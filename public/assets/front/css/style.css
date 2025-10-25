@@ -1,0 +1,908 @@
+
+    /* ========== Salexo Brand Skin (navy + cool blue) ========== */
+/* Brand colors pulled from the logo */
+:root{
+  /* brand cores */
+  --sx-primary: #1E3456;   /* deep navy (logo letters) */
+  --sx-primary-2:#27426D;  /* hover/navy-2 */
+  --sx-accent:  #5AA3C6;   /* light blue (logo chat/pie) */
+  --sx-ink:     #0F172A;   /* headings */
+  --sx-muted:   #475467;   /* body text */
+  --sx-border:  rgba(16,24,40,.10);
+
+  /* section tints (blue family for separation) */
+  --sx-bg-hero:     #F5F8FC;
+  --sx-bg-about:    #F7FAFF;
+  --sx-bg-features: #F3F7FB;
+  --sx-bg-how:      #F6FAFD;
+  --sx-bg-mobile:   #F8FBFF;
+  --sx-bg-cta:      #EEF4FF;
+  --sx-bg-contact:  #F6F9FD;
+}
+
+p{
+  text-align: justify;
+}
+
+/* Global base */
+body{ background:#fff; color:var(--sx-ink); }
+.text-secondary{ color:var(--sx-muted) !important; margin-bottom: 0px; }
+
+/* Navbar + brand logo sizing */
+.navbar{
+  background:#fff !important;
+  border-bottom:1px solid var(--sx-border);
+  box-shadow:none;
+}
+.navbar .navbar-brand .logo-img{ height:60px; width:auto; display:block; }
+.navbar .nav-link{
+  color:#344054 !important;
+  position:relative;
+  padding:.5rem .75rem;
+  border-radius:999px;
+  transition:background .2s ease, color .2s ease;
+}
+.navbar .nav-link:hover{ color:#111827 !important; }
+.navbar .nav-link::after{
+  content:""; position:absolute; left:0; right:0; bottom:-6px; height:2px;
+  background:linear-gradient(90deg, var(--sx-primary), var(--sx-accent));
+  transform:scaleX(0); transform-origin:left; transition:transform .2s ease;
+}
+.navbar .nav-link:hover::after{ transform:scaleX(1); }
+
+/* If you kept navbar-dark, make the toggler visible on white */
+.navbar.navbar-dark .navbar-toggler-icon{
+  filter: invert(1) grayscale(1);
+  opacity:.7;
+}
+
+/* Hero matches brand */
+.hero{
+  background:
+    radial-gradient(80rem 40rem at 80% -10%, rgba(30,52,86,.10), transparent 60%),
+    radial-gradient(60rem 30rem at -10% 20%, rgba(90,163,198,.12), transparent 60%),
+    var(--sx-bg-hero);
+}
+.hero .badge{ background:#fff; border:1px solid var(--sx-border); color:#111827; }
+.hero h1 .text-info{ color:var(--sx-accent) !important; }
+
+/* Section separation with blue family tints */
+.section{ position:relative; z-index:0; }
+.section::before{
+  content:""; position:absolute; left:0; right:0; top:0; height:6px; z-index:1;
+  background:linear-gradient(90deg, var(--sx-primary), var(--sx-accent));
+  opacity:.95;
+}
+.section::after{
+  content:""; position:absolute; left:0; right:0; bottom:0; height:1px; z-index:1;
+  background:var(--sx-border);
+}
+
+/* Map each section to a tint */
+#about   { background:var(--sx-bg-about); }
+#features{ background:var(--sx-bg-features); }
+#how     { background:var(--sx-bg-how); }
+#mobile  { background:var(--sx-bg-mobile); }
+#cta     { background:var(--sx-bg-cta); }
+#contact { background:var(--sx-bg-contact); }
+
+/* Headings get a matching underline */
+.section h2{
+  position:relative; display:inline-block; padding-bottom:.35rem;
+}
+.section h2::after{
+  content:""; position:absolute; left:0; right:0; bottom:-6px; height:4px;
+  background:linear-gradient(90deg, var(--sx-primary), var(--sx-accent));
+  border-radius:999px; opacity:.9;
+}
+
+/* Cards & media live on white for contrast */
+.feature-card{
+  background:#fff;
+  border:1px solid var(--sx-border);
+  box-shadow:0 6px 20px rgba(2,8,23,.06);
+  transition:transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+.feature-card::before{
+  content:""; position:absolute; inset:0 0 auto 0; height:3px;
+  background:linear-gradient(90deg, var(--sx-primary), var(--sx-accent));
+  opacity:.5;
+}
+.feature-card:hover{
+  transform:translateY(-3px);
+  box-shadow:0 16px 32px rgba(2,8,23,.08);
+  border-color:rgba(16,24,40,.16);
+}
+.pill{ background:#EFF4F9; border:1px solid var(--sx-border); color:#0F172A; }
+
+.glass{
+  background:#fff; border:1px solid var(--sx-border);
+  box-shadow:0 12px 30px rgba(2,8,23,.08); border-radius:14px;
+}
+
+/* CTA band in brand gradient */
+.cta-band{
+  background:linear-gradient(135deg, #EEF4FF 0%, #E4F3FA 100%);
+  color:#0f1221; border:1px solid var(--sx-border);
+  box-shadow:0 12px 30px rgba(2,8,23,.06);
+}
+
+/* Buttons use brand blues */
+.btn-primary{ background:var(--sx-primary); border-color:var(--sx-primary); }
+.btn-primary:hover{ background:var(--sx-primary-2); border-color:var(--sx-primary-2); }
+.btn-outline-light{ color:#1E293B; border-color:#E2E8F0; }
+.btn-outline-light:hover{ background:#1E293B; color:#fff; }
+
+/* Footer on white */
+footer{ background:#fff; border-top:1px solid var(--sx-border); }
+footer .link-light{ color:#344054 !important; }
+footer .link-light:hover{ color:#111827 !important; }
+
+/* Back-to-top */
+/* #backToTop{ background:#1E293B; color:#fff; box-shadow:0 8px 20px rgba(2,8,23,.2); }
+#backToTop:hover{ transform:translateY(-2px); } */
+
+/* ==== Back-to-top button positioning ==== */
+#backToTop {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 1050;
+  
+  /* round style */
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* brand colors */
+  background: var(--sx-accent);   /* light blue background */
+  border: none;
+  color: #fff;                    /* default icon color */
+  box-shadow: 0 6px 16px rgba(30,52,86,.25);
+  transition: all .2s ease;
+}
+
+#backToTop i {
+  font-size: 22px;
+  color: var(--sx-primary);  /* deep navy arrow */
+}
+
+#backToTop:hover {
+  background: var(--sx-primary);   /* navy background on hover */
+}
+
+#backToTop:hover i {
+  color: #fff;  /* arrow turns white on hover */
+}
+
+
+/* Image hover micro-interaction */
+img.rounded{ transition:transform .25s ease, box-shadow .25s ease; }
+img.rounded:hover{ transform:translateY(-3px); box-shadow:0 16px 28px rgba(2,8,23,.12); }
+
+/* ==== Spacing Enhancements ==== */
+
+/* account for fixed navbar + give hero breathing room */
+.hero {
+  padding-top: 120px !important;   /* more space from top */
+  padding-bottom: 100px !important;
+}
+
+/* add more vertical space to all sections */
+.section {
+  padding-top: 80px !important;
+  padding-bottom: 80px !important;
+}
+
+/* small extra gap between consecutive sections */
+.section + .section {
+  margin-top: 40px;
+}
+
+/* make anchor scroll targets not hide under fixed navbar */
+#about, #features, #how, #mobile, #cta, #contact {
+  scroll-margin-top: 100px;
+}
+
+
+/* ===== How it works — premium rail + animated badges ===== */
+
+/* Container rail line */
+#how .how-rail{
+  position: relative;
+  padding-top: 10px;  /* space for the rail */
+}
+#how .how-rail::before{
+  content:"";
+  position:absolute;
+  left: 4%;
+  right: 4%;
+  top: 44px;                 /* aligns with the center of .num */
+  height: 3px;
+  background: linear-gradient(90deg, var(--sx-primary), var(--sx-accent));
+  opacity: .25;
+  border-radius: 999px;
+  z-index: 0;
+}
+@media (max-width: 991.98px){
+  /* Vertical rail on mobile */
+  #how .how-rail::before{
+    left: calc(28px + 0.5rem);  /* to the right of the circle */
+    right: auto;
+    width: 3px;
+    height: calc(100% - 10px);
+    top: 10px;
+  }
+}
+
+/* Step card */
+#how .step-card{
+  background: #fff;
+  border: 1px solid var(--sx-border);
+  border-radius: 16px;
+  padding: 18px 18px 18px 18px;
+  box-shadow: 0 10px 24px rgba(2,8,23,.06);
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: 14px;
+  align-items: start;
+  position: relative;
+  z-index: 1; /* above rail */
+  transform: translateZ(0);
+  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+#how .step-card:hover{
+  transform: translateY(-4px);
+  box-shadow: 0 18px 36px rgba(2,8,23,.10);
+  border-color: rgba(16,24,40,.16);
+}
+
+/* Number badge with glow + double ring */
+#how .step .num{
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  color: #fff; font-weight: 700;
+  background: linear-gradient(135deg, var(--sx-primary) 0%, var(--sx-accent) 100%);
+  box-shadow: 0 12px 28px rgba(30,52,86,.25);
+  position: relative;
+  isolation: isolate;
+}
+#how .step .num::before,
+#how .step .num::after{
+  content:""; position:absolute; inset:-6px;
+  border-radius: 50%;
+  border: 2px solid rgba(30,52,86,.18);
+}
+#how .step .num::after{
+  inset: -12px; border: 2px dashed rgba(90,163,198,.35);
+  animation: spin-slow 12s linear infinite;
+}
+@keyframes spin-slow{ to { transform: rotate(360deg); } }
+
+/* Kicker label */
+#how .step-kicker{
+  letter-spacing: .12em;
+  font-size: .72rem;
+  color: var(--sx-primary);
+  margin-bottom: .15rem;
+}
+
+/* Subtle entrance animation (staggered) */
+#how .step-card{ opacity: 0; transform: translateY(8px); }
+#how .step-card:nth-child(1){ animation: how-reveal .5s ease .05s forwards; }
+#how .step-card:nth-child(2){ animation: how-reveal .5s ease .18s forwards; }
+#how .step-card:nth-child(3){ animation: how-reveal .5s ease .31s forwards; }
+@keyframes how-reveal{
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Ensure icons align nicely */
+#how h5 i{ font-size: 1rem; opacity: .9; }
+
+/* Extra breathing room specific to this section (optional) */
+#how.section{
+  padding-top: 96px !important;
+  padding-bottom: 96px !important;
+}
+
+/* ===== About cards — unique, static (no animation) ===== */
+
+/* Per-card accent color (cycled by order) */
+#about .row.g-3 > [class*="col-"]:nth-child(1) { --about-accent: var(--sx-primary); } /* navy */
+#about .row.g-3 > [class*="col-"]:nth-child(2) { --about-accent: var(--sx-accent); }  /* light blue */
+#about .row.g-3 > [class*="col-"]:nth-child(3) { --about-accent: #16a34a; }          /* emerald */
+#about .row.g-3 > [class*="col-"]:nth-child(4) { --about-accent: #f97316; }          /* orange */
+
+/* Card base: solid, embossed, no transitions */
+#about .feature-card{
+  position: relative;
+  background:
+    /* ultra-subtle diagonal texture */
+    repeating-linear-gradient(
+      135deg,
+      rgba(2,8,23,.02) 0 12px,
+      rgba(2,8,23,.04) 12px 13px
+    ),
+    #fff;
+  border: 1px solid var(--sx-border);
+  border-radius: 16px;
+  box-shadow:
+    0 1px 0 rgba(16,24,40,.06) inset,   /* inner top highlight */
+    0 10px 18px rgba(2,8,23,.06);       /* soft lift */
+  overflow: hidden; /* allows corner notch & top bar */
+}
+
+/* Top gradient bar that matches the card's accent */
+#about .feature-card::before{
+  content:"";
+  position:absolute; left:0; right:0; top:0; height:4px;
+  background: linear-gradient(90deg, var(--about-accent), color-mix(in oklab, var(--about-accent) 30%, #ffffff));
+  opacity:.9;
+}
+
+/* Corner notch (top-right) in the accent color */
+#about .feature-card::after{
+  content:"";
+  position:absolute; top:0; right:0;
+  width:16px; height:16px;
+  background: var(--about-accent);
+  clip-path: polygon(0 0, 100% 0, 100% 100%); /* little triangle */
+}
+
+/* Icon pill: solid tile with accent icon (no glow/animation) */
+#about .feature-card .pill{
+  background: #F4F7FB;
+  border: 1px solid var(--sx-border);
+  color: #0F172A;
+  border-radius: 12px;
+  box-shadow: 0 0 0 4px #ffffff,  /* crisp separation from patterned bg */
+              0 1px 0 rgba(16,24,40,.06) inset;
+}
+#about .feature-card .pill i{
+  color: var(--about-accent);
+}
+
+/* Title styling: accent dot + underline bar */
+#about .feature-card h6{
+  position: relative;
+  padding-left: 14px;
+  margin-bottom: .5rem;
+  color: #0F172A;
+  letter-spacing: .2px;
+}
+#about .feature-card h6::before{
+  content:"";
+  position:absolute; left:0; top:.5em;
+  width:8px; height:8px; border-radius:50%;
+  background: var(--about-accent);
+}
+#about .feature-card h6::after{
+  content:"";
+  display:block;
+  height:3px; width:56px; margin-top:6px;
+  background: linear-gradient(90deg, var(--about-accent), rgba(0,0,0,0));
+  border-radius: 999px;
+}
+
+/* Text: slightly larger line-height for clarity */
+#about .feature-card p{
+  line-height: 1.55;
+}
+
+/* Tighten the grid gutter a touch on md+ so the layout feels intentional */
+@media (min-width: 768px){
+  #about .row.g-3{
+    --bs-gutter-x: 1rem;
+    --bs-gutter-y: 1rem;
+  }
+}
+
+/* Optional: make the four cards visually balanced on one row at ≥992px */
+@media (min-width: 992px){
+  #about .col-6{ flex: 0 0 auto; width: 50%; }
+}
+
+
+.whatsapp-float {
+      position: fixed;
+      width: 52px;
+      height: 52px;
+      bottom: 80px;
+      right: 27px;
+      background-color: #25d366;
+      color: #fff;
+      border-radius: 50px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 26px;
+      box-shadow: 0 4px 15px rgba(0,0,0,.2);
+      z-index: 1000;
+      transition: transform .3s ease;
+    }
+    .whatsapp-float:hover {
+      transform: scale(1.1);
+    }
+    
+
+#demoModal .modal-title{
+    position: relative;
+    padding-bottom: .25rem;
+  }
+  #demoModal .modal-title::after{
+    content:""; position:absolute; left:0; bottom:-6px; height:3px; width:72px;
+    background: linear-gradient(90deg, var(--sx-primary), var(--sx-accent));
+    border-radius:999px;
+  }
+  /* keep the modal scrollable if content is tall */
+  #demoModal .modal-body{ max-height: calc(100vh - 200px); overflow:auto; }
+
+
+/* ===== Creative Dark Contact Panel (left column only) ===== */
+.section-contact-dark { /* keep your dark section styles as you have */ }
+
+/* Framed, premium panel with conic-gradient border */
+.contact-panel-dark{
+  position: relative;
+  padding: 28px;
+  border-radius: 20px;
+  background:
+    radial-gradient(1200px 500px at 90% -30%, rgba(154,214,241,.08), transparent 60%),
+    rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.18);
+  box-shadow: 0 24px 60px rgba(0,0,0,.35);
+  isolation: isolate;
+}
+.contact-panel-dark::before{
+  /* gradient frame */
+  content:"";
+  position:absolute; inset:-1px;
+  border-radius: 21px;
+  padding: 1px;
+  background: conic-gradient(from 180deg at 50% 50%,
+    color-mix(in oklab, var(--sx-accent) 70%, transparent),
+    color-mix(in oklab, var(--sx-primary) 80%, transparent),
+    color-mix(in oklab, #9fd0e6 60%, transparent),
+    color-mix(in oklab, var(--sx-primary) 70%, transparent)
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events:none;
+}
+
+/* Diagonal ribbon */
+.contact-panel-dark .ribbon{
+  position:absolute; top:14px; right:-14px;
+  background: linear-gradient(90deg, var(--sx-accent), #9fd0e6);
+  color:#0b1728; font-weight:700; font-size:.75rem;
+  padding:6px 14px; border-radius:8px 0 0 8px;
+  letter-spacing:.06em;
+}
+
+/* Social badges (stacked, brand-matched) */
+.social-stack{
+  display:flex; gap:10px; flex-wrap:wrap;
+}
+.social-badge{
+  width:40px; height:40px; display:grid; place-items:center;
+  border-radius:14px;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.22);
+  color:var(--sx-primary-2); text-decoration:none;
+}
+.social-badge:hover{ background: rgba(255,255,255,.16); border-color: rgba(255,255,255,.35); }
+.social-badge i{ font-size:1.15rem; }
+
+/* Contact chips (compact cards) */
+.contact-chip{
+  display:flex; align-items:center; gap:12px;
+  padding:12px 14px; border-radius:14px;
+  background: rgba(255,255,255,.07);
+  border:1px solid rgba(255,255,255,.18);
+  color:var(--sx-ink); text-decoration:none;
+}
+.contact-chip:hover{ background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.28); }
+
+.chip-icon{
+  width:40px; height:40px; display:grid; place-items:center;
+  border-radius:10px;
+  background: linear-gradient(135deg, var(--sx-primary), color-mix(in oklab, var(--sx-primary) 45%, #0b1728));
+  color:#EAF2FA;
+}
+.chip-body{ display:flex; flex-direction:column; line-height:1.2; }
+.chip-label{ font-size:.72rem; opacity:.7; }
+.chip-value{ font-weight:600; }
+
+/* CTA button: stacked label */
+.btn-cta{
+  display:flex; align-items:center; gap:12px;
+  background:#fff; color:#0b1728; border:none;
+  border-radius:14px; padding:14px 18px;
+  box-shadow: 0 14px 34px rgba(0,0,0,.35);
+}
+.btn-cta-main{ font-weight:700; }
+.btn-cta-sub{ font-size:.8rem; opacity:.7; margin-left:4px; }
+.btn-cta i{ font-size:1.1rem; color: var(--sx-primary); }
+.btn-cta:hover{ filter: brightness(.96); }
+
+/* Spacing harmony on small screens */
+@media (max-width: 991.98px){
+  .contact-panel-dark{ padding:22px; }
+}
+
+
+/* responsive */
+@media (max-width:768px) {
+.hero {
+    padding-top: 80px !important;
+    padding-bottom: 50px !important;
+}
+
+.section {
+    padding-top: 40px !important;
+    padding-bottom: 40px !important;
+}
+
+#how.section {
+    padding-top: 48px !important;
+    padding-bottom: 48px !important;
+}
+}
+
+
+
+/* ===================== LOGIN PAGE ONLY ===================== */
+body.login-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(60rem 30rem at -10% -10%, rgba(90,163,198,.10), transparent 60%),
+    radial-gradient(80rem 40rem at 110% -20%, rgba(30,52,86,.10), transparent 60%),
+    #f6f9fd;
+}
+
+/* Wrapper row with spacing from top */
+body.login-page .auth-wrap {
+  min-height: 100vh;
+  padding-top: 120px;   /* 👈 pushes whole content down */
+  padding-bottom: 50px;
+}
+
+/* Left: carousel side */
+body.login-page .auth-left {
+  /* background:#000;  */
+  padding:0;
+  position:relative;
+  overflow:hidden;
+}
+body.login-page .auth-left .carousel,
+body.login-page .auth-left .carousel-inner,
+body.login-page .auth-left .carousel-item {
+  height:100%;
+}
+body.login-page .auth-left img {
+  object-fit:cover;
+  width:100%; height:100%;
+  filter:contrast(1.05) saturate(1.05);
+}
+body.login-page .auth-left::after {
+  content:"";
+  position:absolute; inset:0;
+  background: radial-gradient(80rem 40rem at 120% -20%, rgba(30,52,86,.12), transparent 60%);
+  pointer-events:none;
+}
+
+/* Right: login form side */
+body.login-page .auth-right {
+  display:flex;
+  align-items:flex-start;    /* align form from top */
+  justify-content:center;
+  padding:32px 24px;
+}
+
+/* Login card */
+body.login-page .login-card {
+  width:100%;
+  max-width: 600px;
+  background:#fff;
+  border:1px solid var(--sx-border);
+  border-radius: 16px;
+  box-shadow: 0 24px 60px rgba(2,8,23,.10);
+  padding: 28px;
+  margin-top: 40px;   /* 👈 extra breathing room from top */
+}
+
+body.login-page .login-card .brand-mark { height:38px; width:auto; }
+body.login-page .login-card h1 { font-size:1.5rem; margin: 12px 0 6px; color: var(--sx-ink); }
+body.login-page .login-card .login-sub { color: var(--sx-muted); margin-bottom: 18px; }
+
+/* Form */
+body.login-page .login-card .form-label { font-weight:600; color: var(--sx-ink); }
+body.login-page .login-card .form-control {
+  border-color: var(--sx-border);
+}
+body.login-page .login-card .form-control:focus {
+  border-color: var(--sx-accent);
+  box-shadow: 0 0 0 .25rem rgba(90,163,198,.15);
+}
+
+/* Buttons */
+body.login-page .login-card .btn-primary {
+  background: var(--sx-primary);
+  border-color: var(--sx-primary);
+}
+body.login-page .login-card .btn-primary:hover {
+  background: var(--sx-primary-2);
+  border-color: var(--sx-primary-2);
+}
+
+/* Divider */
+body.login-page .login-card .rule {
+  display:block; height:1px; width:100%;
+  background: linear-gradient(90deg, rgba(16,24,40,.04), rgba(16,24,40,.12), rgba(16,24,40,.04));
+  margin: 16px 0;
+}
+
+/* Responsive tweaks */
+@media (max-width: 991.98px){
+  body.login-page .auth-left { height: 38vh; }
+  body.login-page .auth-right { min-height: 62vh; }
+}
+
+@media (max-width: 768px) {
+  body.login-page .auth-right {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 16px 12px;
+}
+}
+
+
+
+/* ================== TERMS & CONDITIONS PAGE ONLY ================== */
+/* Scope everything so it affects only the terms page */
+body.terms-page {
+  background: #fff;
+  color: var(--sx-ink);
+}
+
+/* Hero header strip */
+body.terms-page .page-hero {
+  padding: 120px 0 48px; /* clear the fixed navbar + breathing room */
+  background:
+    radial-gradient(80rem 40rem at 80% -10%, rgba(30,52,86,.10), transparent 60%),
+    radial-gradient(60rem 30rem at -10% 20%, rgba(90,163,198,.12), transparent 60%),
+    var(--sx-bg-hero);
+  border-bottom: 1px solid var(--sx-border);
+}
+body.terms-page .page-hero .kicker {
+  display:inline-block;
+  font-size:.8rem;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color: var(--sx-primary);
+  background:#fff;
+  border:1px solid var(--sx-border);
+  padding:.25rem .5rem;
+  border-radius:999px;
+}
+
+/* Content wrapper */
+body.terms-page .terms-wrap {
+  padding: 48px 0 80px;
+}
+
+/* Card that holds the terms content */
+body.terms-page .terms-card{
+  background:#fff;
+  border:1px solid var(--sx-border);
+  border-radius:16px;
+  box-shadow:0 8px 24px rgba(2,8,23,.06);
+  padding:28px;
+}
+
+/* Section headings with brand underline */
+body.terms-page .terms-card h3{
+  margin-top:1.25rem;
+  margin-bottom:.5rem;
+  font-size:1.15rem;
+}
+body.terms-page .terms-card h2,
+body.terms-page .terms-card h3{
+  position:relative;
+}
+body.terms-page .terms-card h2::after,
+body.terms-page .terms-card h3::after{
+  content:"";
+  position:absolute; left:0; bottom:-6px; height:3px; width:72px;
+  background:linear-gradient(90deg, var(--sx-primary), var(--sx-accent));
+  border-radius:999px;
+}
+
+/* Paragraphs & lists */
+body.terms-page .terms-card p{
+  color: var(--sx-muted);
+  margin: .5rem 0 1rem;
+  line-height:1.65;
+}
+body.terms-page .terms-card ul{
+  margin: .25rem 0 1rem 1rem;
+}
+body.terms-page .terms-card li{
+  color: var(--sx-muted);
+  margin: .4rem 0;
+}
+
+/* Contact callout at the end */
+body.terms-page .contact-callout{
+  background: linear-gradient(135deg, #EEF4FF 0%, #E4F3FA 100%);
+  border:1px solid var(--sx-border);
+  border-radius:16px;
+  padding:18px;
+  margin-top: 24px;
+}
+body.terms-page .contact-item{
+  display:flex; align-items:center; gap:10px;
+  margin: 6px 0;
+  color: var(--sx-ink);
+}
+body.terms-page .contact-icon{
+  width:36px; height:36px; display:grid; place-items:center;
+  border-radius:10px;
+  background:#fff;
+  border:1px solid var(--sx-border);
+  color: var(--sx-primary);
+}
+
+/* Breadcrumb (optional) */
+body.terms-page .breadcrumb{
+  --bs-breadcrumb-divider: "›";
+  margin: 8px 0 0 0;
+}
+body.terms-page .breadcrumb a{
+  text-decoration:none;
+  color:#475467;
+}
+body.terms-page .breadcrumb .active{
+  color:#111827;
+}
+
+/* Responsive spacing */
+@media (max-width: 768px){
+  body.terms-page .page-hero{ padding: 96px 0 36px; }
+  body.terms-page .terms-wrap{ padding: 36px 0 64px; }
+  body.terms-page .terms-card{ padding:20px; }
+}
+
+
+/* ================== REGISTRATION PAGE ONLY ================== */
+body.register-page {
+  background: #fff;
+  color: var(--sx-ink);
+}
+
+/* Hero header */
+body.register-page .page-hero {
+  padding: 120px 0 48px; /* account for fixed navbar */
+  background:
+    radial-gradient(80rem 40rem at 80% -10%, rgba(30,52,86,.10), transparent 60%),
+    radial-gradient(60rem 30rem at -10% 20%, rgba(90,163,198,.12), transparent 60%),
+    var(--sx-bg-hero);
+  border-bottom: 1px solid var(--sx-border);
+}
+body.register-page .page-hero .kicker {
+  display:inline-block;
+  font-size:.8rem;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color: var(--sx-primary);
+  background:#fff;
+  border:1px solid var(--sx-border);
+  padding:.25rem .5rem;
+  border-radius:999px;
+}
+
+/* Content wrapper */
+body.register-page .register-wrap {
+  padding: 48px 0 80px;
+}
+
+/* Left: registration form card */
+body.register-page .register-card{
+  background:#fff;
+  border:1px solid var(--sx-border);
+  border-radius:16px;
+  box-shadow:0 8px 24px rgba(2,8,23,.06);
+  padding:28px;
+}
+body.register-page .register-card h2{
+  position:relative;
+}
+body.register-page .register-card h2::after{
+  content:"";
+  position:absolute; left:0; bottom:-6px; height:3px; width:72px;
+  background:linear-gradient(90deg, var(--sx-primary), var(--sx-accent));
+  border-radius:999px;
+}
+body.register-page .section-title{
+  font-size:1.05rem;
+  font-weight:700;
+  margin: 1.25rem 0 .75rem;
+  color: var(--sx-ink);
+}
+
+/* Right: plan & billing card */
+body.register-page .plan-card{
+  background:#fff;
+  border:1px solid var(--sx-border);
+  border-radius:16px;
+  box-shadow:0 8px 24px rgba(2,8,23,.06);
+  padding:20px;
+  position: sticky;
+  top: 120px; /* visible under fixed navbar */
+}
+body.register-page .plan-card h5{
+  position:relative; margin-bottom:.75rem;
+}
+body.register-page .plan-card h5::after{
+  content:"";
+  position:absolute; left:0; bottom:-6px; height:3px; width:56px;
+  background:linear-gradient(90deg, var(--sx-primary), var(--sx-accent));
+  border-radius:999px;
+}
+
+/* Inputs, focus states */
+body.register-page .form-label{ font-weight:600; color: var(--sx-ink); margin-bottom:.35rem; }
+body.register-page .form-control, 
+body.register-page .form-select{
+  border-color: var(--sx-border);
+}
+body.register-page .form-control:focus, 
+body.register-page .form-select:focus{
+  border-color: var(--sx-accent);
+  box-shadow: 0 0 0 .25rem rgba(90,163,198,.15);
+}
+
+/* Input groups */
+body.register-page .input-group-text{
+  background:#f8fafc; 
+  border-color: var(--sx-border);
+  color:#334155;
+  font-weight:600;
+}
+
+/* Totals row */
+body.register-page .total-box{
+  background:linear-gradient(135deg, #EEF4FF 0%, #E4F3FA 100%);
+  border:1px solid var(--sx-border);
+  border-radius:12px;
+  padding:12px;
+  display:flex; align-items:center; justify-content:space-between;
+  margin-top: 10px;
+}
+body.register-page .total-box .amount{
+  font-weight:800; font-size:1.15rem; color:#0b1728;
+}
+
+/* Submit button spacing */
+body.register-page .register-actions{
+  margin-top: 12px;
+}
+
+/* Small helper text */
+body.register-page .form-text{ color: var(--sx-muted); }
+
+/* Responsive */
+@media (max-width: 768px){
+  body.register-page .page-hero{ padding: 96px 0 36px; }
+  body.register-page .register-wrap{ padding: 36px 0 64px; }
+  body.register-page .register-card{ padding:20px; }
+  body.register-page .plan-card{ position: static; margin-top: 16px; }
+}
