@@ -14,6 +14,8 @@ use App\Http\Controllers\Api\UDFMasterApiController;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 
+use App\Http\Controllers\Api\PartyApiController;
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -105,6 +107,16 @@ Route::prefix('employee')->group(function () {
         Route::post('/lead/analysis/detail', [ReportController::class, 'lead_analysis_detail']);
 
         Route::post('/firebase/device/update', [EmployeeApiController::class, 'firebase_device_update']);
+
+//party 
+            Route::post('party', [PartyApiController::class, 'index']);
+            Route::post('party/detail',        [PartyApiController::class, 'show']);
+            Route::post('party/create',        [PartyApiController::class, 'store']);
+            Route::post('party/update',        [PartyApiController::class, 'update']);
+            Route::post('party/delete',        [PartyApiController::class, 'destroy']);
+            Route::post('party/bulk-delete',   [PartyApiController::class, 'bulkDestroy']);
+            Route::post('party/toggle-status', [PartyApiController::class, 'toggleStatus']);
+
 
         // 14-10-2025
         Route::post('udf/list', [UDFMasterApiController::class, 'udf_list']);

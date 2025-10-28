@@ -25,17 +25,30 @@
                 <div class="card-header py-3">
                     <div style="display: flex;
                 justify-content: space-between;">
-                        <h6 class="m-0 font-weight-bold text-primary">Company Name : {{ $CompanyName->company_name }}</h6>
-                    
-                    <h6 class="m-0 font-weight-bold text-primary">Party Name : {{ $CompanyName->strPartyName }}</h6>
+                        <h6 class="m-0 font-weight-bold text-primary">
+                          Company Name : {{ $CompanyName->company_name ?? '-' }}
+                        </h6>
+                        <h6 class="m-0 font-weight-bold text-primary">
+                          Party Name : {{ $CompanyName->strPartyName ?? '-' }}
+                        </h6>
                     </div>
                     
                     <div style="display: flex;
                 justify-content: space-between;margin-top:20px;">
-                    <h6 class="m-0 font-weight-bold text-primary">Year : {{ $CompanyName->strYear }}</h6>
-                    <h6 class="m-0 font-weight-bold text-primary">Quotation No  : {{ $CompanyName->iQuotationNo }}</h6>
                     <h6 class="m-0 font-weight-bold text-primary">
-                        Date :  {{ date('d-m-Y', strtotime($CompanyName->entryDate)) }}</h6>
+                      Year : {{ $CompanyName->strYear ?? '-' }}
+                    </h6>
+                    <h6 class="m-0 font-weight-bold text-primary">
+                      Quotation No : {{ $CompanyName->iQuotationNo ?? '-' }}
+                    </h6>
+                    <h6 class="m-0 font-weight-bold text-primary">
+                      Date :
+                      @if(!empty($CompanyName?->entryDate))
+                        {{ \Carbon\Carbon::parse($CompanyName->entryDate)->format('d-m-Y') }}
+                      @else
+                        -
+                      @endif
+                    </h6>
                         </div>
                 </div>
                 <form method="POST" action="{{ route('quotationdetails.create') }}" enctype="multipart/form-data">
@@ -47,16 +60,17 @@
                             
                             <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
                                 <span style="color:red;"></span>Product Name</label>
-                                <select class="form-control form-control-user" @error('productID') is-invalid @enderror
-                                    id="getproductID" onblur="productfetch();" name="productID" >
-                                    <option selected disabled >Select Product Name</option>
-                                    <option value="other">Other Product</option>
-                                    @foreach ($Product as $product)
-                                        <option value="{{ $product->service_id }}"
-                                            {{ old('productID') == $product->service_id ? 'selected' : '' }}>
-                                            {{ $product->service_name }}</option>
-                                    @endforeach
+                                <select class="form-control form-control-user" id="getproductID" name="productID" onchange="productfetch();">
+                                  <option selected disabled>Select Product Name</option>
+                                  <option value="other">Other Product</option>
+                                  @foreach ($Product as $product)
+                                    <option value="{{ $product->service_id }}"
+                                      {{ old('productID') == $product->service_id ? 'selected' : '' }}>
+                                      {{ $product->service_name }}
+                                    </option>
+                                  @endforeach
                                 </select>
+
                             </div>
                             {{-- Shown only when Product = "other" --}}
                             <div id="other-product-fields" class="col-sm-6 mb-3 mt-3 mb-sm-0" style="display:none;">
@@ -72,7 +86,7 @@
 
                             <div class="col-sm-4 mb-3 mt-3 mb-sm-0">
                                 <span style="color:red;">*</span>UOM / HSN</label>
-                                <input class="form-control" id="basic-form-name" name="uom" type="text"
+                                <input class="form-control" id="HSN" name="uom" type="text"
                                     placeholder="Enter UOM" value="{{ old('uom') }}" required>
                             </div>
 
@@ -296,160 +310,90 @@
 @section('scripts')
 
     <script>
-    function toggleOtherFields() {
-        const val = $('#getproductID').val();
-        const wrap = $('#other-product-fields');
-        if (val === 'other') {
-            wrap.show();
-
-            // Make "Service Name" required when Other is selected
-            $('#service_name').attr('required', true);
-
-            // Optional: If user types Service Description and Description is empty, mirror it
-            $('#service_description').on('blur', function () {
-                const desc = $('#fetchdescription').val();
-                if (!desc?.trim()) {
-                    $('#fetchdescription').val($(this).val());
-                }
-            });
-        } else {
-            wrap.hide();
-            $('#service_name').removeAttr('required');
-        }
+      function toggleOtherFields() {
+    const val = $('#getproductID').val();
+    const wrap = $('#other-product-fields');
+    if (val === 'other') {
+      wrap.show();
+      $('#service_name').attr('required', true);
+    } else {
+      wrap.hide();
+      $('#service_name').removeAttr('required');
     }
+  }
 
-    // Bind change / onload
-    $(document).ready(function () {
-        $('#getproductID').on('change', toggleOtherFields);
-        toggleOtherFields(); // initialize on page load (covers back/validation errors)
+  $(document).ready(function () {
+    $('#getproductID').on('change', toggleOtherFields);
+    toggleOtherFields();
+  });
+
+  function productfetch() {
+    const product = $('#getproductID').val();
+
+    $.ajax({
+      type: 'GET',
+      url: "{{ route('quotationdetails.productfetch') }}",
+      data: { product },
+      dataType: 'json',
+      headers: { 'Accept': 'application/json' },
+      success: function (obj) {
+        $('#fetchdescription').val(obj.productDescription || '');
+        $('#HSN').val(obj.HSN || '');
+      },
+      error: function (xhr, status, err) {
+        let msg = 'Failed to fetch product';
+        if (xhr.responseJSON?.message) {
+          msg = xhr.responseJSON.message;
+        } else if (xhr.responseText) {
+          try {
+            const parsed = JSON.parse(xhr.responseText);
+            if (parsed?.message) msg = parsed.message;
+          } catch {
+            if (xhr.status) msg = `${xhr.status} ${xhr.statusText}`;
+          }
+        }
+        console.error('Product fetch failed:', msg);
+        $('#fetchdescription').val('');
+      }
     });
+  }
 
+  function editdata(id) {
+    const url = "{{ route('quotationdetails.edit', ':id') }}".replace(':id', id);
+    $.ajax({
+      url: url,
+      type: 'GET',
+      dataType: 'json',
+      headers: { 'Accept': 'application/json' },
+      success: function (obj) {
+        $('#EditproductID').val(obj.productID);
+        $('#Editdescription').val(obj.description);
+        $('#Edituom').val(obj.uom);
+        $('#Editquantity').val(obj.quantity);
+        $('#Editrate').val(obj.rate);
+        $('#EditnetAmount').val(obj.netAmount);
+        $('#EditIGstPercentage').val(obj.iGstPercentage);
+        $('#quotationdetailsId').val(id);
+        $('#exampleModal').modal('show');
+      },
+      error: function (xhr) {
+        console.error('Edit fetch failed', xhr);
+      }
+    });
+  }
 
-        /*function editdata(id) {
-            //alert(id);
-            var ID = id;
-            var url = "{{ route('quotationdetails.edit', ':id') }}";
-            url = url.replace(":id", ID);
-            if (ID) {
-                $.ajax({
-                    url: url,
-                    type: 'GET',
-                    data: {
-                        id: ID
-                    },
-                    success: function(data) {
-                        //console.log(data);
-                        var obj = JSON.parse(data);
-                        $('#EditproductID').val(obj.productID);
-                        $('#Editdescription').val(obj.description);
-                        $('#Edituom').val(obj.uom);
-                        $('#Editquantity').val(obj.quantity);
-                        $('#Editrate').val(obj.rate);
-                        $('#Editamount').val(obj.amount);
-                        $('#Editdiscount').val(obj.discount);
-                        $('#EditnetAmount').val(obj.netAmount);
-                        $('#EditIGstPercentage').val(obj.iGstPercentage);
-                        $('#quotationdetailsId').val(ID);
-                    }
-                });
-            }
-        }*/
+  function AmountTotal() {
+    const quantity = +$('#quantity').val() || 0;
+    const rate = +$('#rate').val() || 0;
+    $('#NetAmount').val(quantity * rate);
+  }
 
-      function editdata(id) {
-              var ID = id;
-              var url = "{{ route('quotationdetails.edit', ':id') }}".replace(":id", ID);
-              if (ID) {
-                $.ajax({
-                  url: url,
-                  type: 'GET',
-                  dataType: 'text',          // <-- ADD THIS LINE
-                  data: { id: ID },
+  function EditAmountTotal() {
+    const q = +$('#Editquantity').val() || 0;
+    const r = +$('#Editrate').val() || 0;
+    $('#EditnetAmount').val(q * r);
+  }
 
-                  success: function(data) {
-
-                    var obj = JSON.parse(data);
-  // now this works (data is a string)
-                    $('#EditproductID').val(obj.productID);
-                    $('#Editdescription').val(obj.description);
-                    $('#Edituom').val(obj.uom);
-                    $('#Editquantity').val(obj.quantity);
-                    $('#Editrate').val(obj.rate);
-                    $('#Editamount').val(obj.amount);
-                    $('#Editdiscount').val(obj.discount);
-                    $('#EditnetAmount').val(obj.netAmount);
-                    $('#EditIGstPercentage').val(obj.iGstPercentage);
-                    $('#quotationdetailsId').val(ID);
-                  $('#exampleModal').modal('show');
-                  }
-                });
-              }
-            }
-
-    </script>
-
-    <script>
-        function AmountTotal() {
-
-            var quantity = $('#quantity').val();
-            var rate = $('#rate').val();
-            var total = (quantity * 1) * (rate * 1);
-
-            //$('#Amount').val(total);
-
-            //var amount = $('#Amount').val();
-            //var discount = $('#Discount').val();
-
-            //var netAmount = amount - discount;
-            //var netAmount = amount;
-            $('#NetAmount').val(total);
-
-
-            //alert(total);
-
-        }
-
-        function EditAmountTotal() {
-
-            var Editquantity = $('#Editquantity').val();
-            var Edirrate = $('#Editrate').val();
-            var Edittotal = (Editquantity * 1) * (Edirrate * 1);
-
-            //alert(Edittotal);
-
-            //$('#Editamount').val(Edittotal);
-
-            //var Editamount = $('#Editamount').val();
-            //var Editdiscount = $('#Editdiscount').val();
-
-            //var EditnetAmount = Editamount - Editdiscount;
-            //var EditnetAmount = Editamount;
-
-            $('#EditnetAmount').val(Edittotal);
-
-
-            //alert(total);
-
-        }
-    </script>
-    
-    <script>
-        function productfetch() {
-            var product = $('#getproductID').val();
-            $.ajax({
-                type: 'GET',
-                url: "{{ route('quotationdetails.productfetch') }}",
-                data: {
-                    product: product,
-                },
-                success: function(data) {
-                    //alert(data);
-                    var obj = JSON.parse(data);
-                    $('#fetchdescription').val(obj.productDescription);
-                    //alert(obj.productDescription);
-                }
-            });
-
-        }
     </script>
 
 
