@@ -90,6 +90,29 @@
                                         @enderror
                                     </div>
                                     
+                                     <div class="col-md-6 mt-2">
+                                            <label class="labels">Delivery Terms</label>
+                                            <input class="form-control" id="basic-form-name" name="delivery_terms" type="text"
+                                                placeholder="Enter Delivery Terms" value="{{ old('delivery_terms') ? old('delivery_terms') : $users1->delivery_terms }}">
+                                        @error('delivery_terms')
+                                            <span class="text-danger">{{ $message }}</span>
+                                        @enderror
+
+                                        </div>
+
+                                        <div class="col-md-6 mt-2">
+                                            <label class="labels">Payment Terms</label>
+                                            <input class="form-control" id="basic-form-name" name="payment_terms" type="text"
+                                                placeholder="Enter Payment Terms" value="{{ old('payment_terms') ? old('payment_terms') : $users1->payment_terms }}">
+                                            @error('payment_terms')
+                                                <span class="text-danger">{{ $message }}</span>
+                                            @enderror
+                                        </div>
+                                        <div class="col-sm-12 mb-3 mt-3 mb-sm-0">
+                                            <span style="color:red;"></span>Terms & Condition</label>
+                                            <textarea class="form-control" id="fetchtermcondition" name="terms_condition">{{ old('terms_condition') ? old('terms_condition') : $users1->terms_condition }} </textarea>
+                                        </div>
+
                                 </div>
                                 <div class="mt-5 text-center">
                                     <button class="btn btn-primary profile-button" type="submit">Update Profile</button>
@@ -150,3 +173,13 @@
         </div>
     </div>
 @endsection
+@section('scripts')
+
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.js"></script>
+    <script src="https://cdn.ckeditor.com/4.12.1/standard/ckeditor.js"></script>
+    <script>
+        CKEDITOR.replace('terms_condition');
+        
+    </script>
+    @endsection

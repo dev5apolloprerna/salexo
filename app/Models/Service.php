@@ -15,6 +15,7 @@ class Service extends Model
         'service_id',
         'company_id',
         'service_name',
+        'HSN',
         'service_description',
         'service_image',
     ];

@@ -50,6 +50,7 @@
                                 <select class="form-control form-control-user" @error('productID') is-invalid @enderror
                                     id="getproductID" onblur="productfetch();" name="productID" >
                                     <option selected disabled >Select Product Name</option>
+                                    <option value="other">Other Product</option>
                                     @foreach ($Product as $product)
                                         <option value="{{ $product->service_id }}"
                                             {{ old('productID') == $product->service_id ? 'selected' : '' }}>
@@ -57,6 +58,12 @@
                                     @endforeach
                                 </select>
                             </div>
+                            {{-- Shown only when Product = "other" --}}
+                            <div id="other-product-fields" class="col-sm-6 mb-3 mt-3 mb-sm-0" style="display:none;">
+                                        <span style="color:red;"></span> Service Name</label>
+                                        <input type="text" class="form-control" name="service_name" id="service_name" placeholder="Enter new service name">
+                            </div>
+
 
                             <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
                                 <span style="color:red;">*</span>Description</label>
@@ -64,7 +71,7 @@
                             </div>
 
                             <div class="col-sm-4 mb-3 mt-3 mb-sm-0">
-                                <span style="color:red;">*</span>UOM</label>
+                                <span style="color:red;">*</span>UOM / HSN</label>
                                 <input class="form-control" id="basic-form-name" name="uom" type="text"
                                     placeholder="Enter UOM" value="{{ old('uom') }}" required>
                             </div>
@@ -186,92 +193,92 @@
 
 
                                 <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
-     aria-hidden="true">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
+                                 aria-hidden="true">
+                              <div class="modal-dialog" role="document">
+                                <div class="modal-content">
 
-      <div class="modal-header">
-        <h5 class="modal-title" id="exampleModalLabel">Edit Quotation</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
+                                  <div class="modal-header">
+                                    <h5 class="modal-title" id="exampleModalLabel">Edit Quotation</h5>
+                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                      <span aria-hidden="true">&times;</span>
+                                    </button>
+                                  </div>
 
-      {{-- Keep your existing POST handler if that’s what your update uses --}}
-      <form method="post" action="{{ route('quotationdetails.update', ['Id' => 0]) }}" enctype="multipart/form-data">
-        @csrf
-        @method('post')
+                                  {{-- Keep your existing POST handler if that’s what your update uses --}}
+                                  <form method="post" action="{{ route('quotationdetails.update', ['Id' => 0]) }}" enctype="multipart/form-data">
+                                    @csrf
+                                    @method('post')
 
-        <div class="modal-body">
-          <div class="row">
-            <input type="hidden" name="quotationID" value="{{ $id }}">
-            <input type="hidden" name="quotationdetailsId" id="quotationdetailsId" value="">
+                                    <div class="modal-body">
+                                      <div class="row">
+                                        <input type="hidden" name="quotationID" value="{{ $id }}">
+                                        <input type="hidden" name="quotationdetailsId" id="quotationdetailsId" value="">
 
-            <div class="col-md-12">
-              <div class="form-group">
-                <label><span class="text-danger">*</span> Product Name</label>
-                <select class="form-control form-control-user" name="productID" id="EditproductID">
-                  <option selected disabled>Select Product Name</option>
-                  @foreach ($Product as $product)
-                    <option value="{{ $product->productId }}">{{ $product->productName }}</option>
-                  @endforeach
-                </select>
-              </div>
-            </div>
+                                        <div class="col-md-12">
+                                          <div class="form-group">
+                                            <label><span class="text-danger">*</span> Product Name</label>
+                                            <select class="form-control form-control-user" name="productID" id="EditproductID">
+                                              <option selected disabled>Select Product Name</option>
+                                              @foreach ($Product as $product)
+                                                <option value="{{ $product->productId }}">{{ $product->productName }}</option>
+                                              @endforeach
+                                            </select>
+                                          </div>
+                                        </div>
 
-            <div class="col-md-12">
-              <div class="form-group">
-                <label><span class="text-danger">*</span> Description</label>
-                <textarea class="form-control" id="Editdescription" name="description" rows="7" required></textarea>
-              </div>
-            </div>
+                                        <div class="col-md-12">
+                                          <div class="form-group">
+                                            <label><span class="text-danger">*</span> Description</label>
+                                            <textarea class="form-control" id="Editdescription" name="description" rows="7" required></textarea>
+                                          </div>
+                                        </div>
 
-            <div class="col-md-6">
-              <div class="form-group">
-                <label><span class="text-danger">*</span> UOM</label>
-                <input type="text" name="uom" class="form-control" id="Edituom" required>
-              </div>
-            </div>
+                                        <div class="col-md-6">
+                                          <div class="form-group">
+                                            <label><span class="text-danger">*</span> UOM</label>
+                                            <input type="text" name="uom" class="form-control" id="Edituom" required>
+                                          </div>
+                                        </div>
 
-            <div class="col-md-6">
-              <div class="form-group">
-                <label><span class="text-danger">*</span> Quantity</label>
-                <input type="text" name="quantity" class="form-control" id="Editquantity" required>
-              </div>
-            </div>
+                                        <div class="col-md-6">
+                                          <div class="form-group">
+                                            <label><span class="text-danger">*</span> Quantity</label>
+                                            <input type="text" name="quantity" class="form-control" id="Editquantity" required>
+                                          </div>
+                                        </div>
 
-            <div class="col-md-6">
-              <div class="form-group">
-                <label><span class="text-danger">*</span> Unit Rate</label>
-                <input type="text" name="rate" class="form-control" id="Editrate" required>
-              </div>
-            </div>
+                                        <div class="col-md-6">
+                                          <div class="form-group">
+                                            <label><span class="text-danger">*</span> Unit Rate</label>
+                                            <input type="text" name="rate" class="form-control" id="Editrate" required>
+                                          </div>
+                                        </div>
 
-            <div class="col-md-6">
-              <div class="form-group">
-                <label><span class="text-danger">*</span> GST %</label>
-                <input type="text" name="iGstPercentage" class="form-control" id="EditIGstPercentage" required>
-              </div>
-            </div>
+                                        <div class="col-md-6">
+                                          <div class="form-group">
+                                            <label><span class="text-danger">*</span> GST %</label>
+                                            <input type="text" name="iGstPercentage" class="form-control" id="EditIGstPercentage" required>
+                                          </div>
+                                        </div>
 
-            <div class="col-md-6">
-              <div class="form-group">
-                <label><span class="text-danger">*</span> Net Amount</label>
-                <input type="text" name="netAmount" class="form-control" id="EditnetAmount" required readonly>
-              </div>
-            </div>
-          </div>
-        </div>
+                                        <div class="col-md-6">
+                                          <div class="form-group">
+                                            <label><span class="text-danger">*</span> Net Amount</label>
+                                            <input type="text" name="netAmount" class="form-control" id="EditnetAmount" required readonly>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
 
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-          <button type="submit" id="save" class="btn btn-primary">Update</button>
-        </div>
-      </form>
+                                    <div class="modal-footer">
+                                      <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                      <button type="submit" id="save" class="btn btn-primary">Update</button>
+                                    </div>
+                                  </form>
 
-    </div>
-  </div>
-</div>
+                                </div>
+                              </div>
+                            </div>
 
     
                             @endforeach
@@ -289,6 +296,35 @@
 @section('scripts')
 
     <script>
+    function toggleOtherFields() {
+        const val = $('#getproductID').val();
+        const wrap = $('#other-product-fields');
+        if (val === 'other') {
+            wrap.show();
+
+            // Make "Service Name" required when Other is selected
+            $('#service_name').attr('required', true);
+
+            // Optional: If user types Service Description and Description is empty, mirror it
+            $('#service_description').on('blur', function () {
+                const desc = $('#fetchdescription').val();
+                if (!desc?.trim()) {
+                    $('#fetchdescription').val($(this).val());
+                }
+            });
+        } else {
+            wrap.hide();
+            $('#service_name').removeAttr('required');
+        }
+    }
+
+    // Bind change / onload
+    $(document).ready(function () {
+        $('#getproductID').on('change', toggleOtherFields);
+        toggleOtherFields(); // initialize on page load (covers back/validation errors)
+    });
+
+
         /*function editdata(id) {
             //alert(id);
             var ID = id;
@@ -399,7 +435,6 @@
     <script>
         function productfetch() {
             var product = $('#getproductID').val();
-            //alert(product);
             $.ajax({
                 type: 'GET',
                 url: "{{ route('quotationdetails.productfetch') }}",

@@ -218,6 +218,13 @@
                             <span>Calender</span>
                         </a>
                     </li>
+                    <li class="nav-item">
+                      <a href="{{ route('party.index') }}"
+                         class="nav-link {{ request()->routeIs('party.*') ? 'active' : '' }}">
+                        <i class="fa fa-users me-2"></i>
+                        <span>Party Master</span>
+                      </a>
+                    </li>
 
                      <li class="nav-item">
                         <a class="nav-link collapsed" href="{{ route('quotation.index') }}">

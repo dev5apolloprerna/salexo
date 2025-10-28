@@ -188,10 +188,12 @@ class CompanyClientHomeController extends Controller
         try {
 
             $session = Auth::user()->emp_id;
+            $company_id = Auth::user()->company_id;
 
             $users = Employee::where('employee_master.emp_id',  $session)->first();
+            $users1 = CompanyClient::where('company_id',  $company_id)->first();
 
-            return view('company_client.profile', compact('users'));
+            return view('company_client.profile', compact('users','users1'));
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'An error occurred: ' . $e->getMessage());
         }
@@ -215,12 +217,11 @@ class CompanyClientHomeController extends Controller
 
     {
 
+
         $user_role_id = session()->get('user_role_id');
 
 
-
         $userId = session()->get('emp_id');
-
         $company_id = session()->get('company_id');
 
         #Validations
@@ -245,7 +246,8 @@ class CompanyClientHomeController extends Controller
 
 
 
-            if ($user_role_id == 2) {
+            if ($user_role_id == 2) 
+            {
 
                 Employee::where(['emp_id' => $userId])->update([
 
@@ -261,13 +263,14 @@ class CompanyClientHomeController extends Controller
 
 
 
-                CompanyClient::where(['company_id' => $company_id, 'email' => $userId])->update([
+                CompanyClient::where(['company_id' => $company_id])->update([
 
                     'company_name' => $request->emp_name,
-
                     'email' => $request->emp_email,
-
                     'mobile' => $request->emp_mobile,
+                    'payment_terms'=>$request->payment_terms,
+                    'delivery_terms'=>$request->delivery_terms,
+                    'terms_condition'=>$request->terms_condition,
 
                 ]);
             }
