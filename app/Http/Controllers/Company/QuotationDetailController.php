@@ -14,18 +14,60 @@ class QuotationDetailController extends Controller
 {
     public function index(Request $request, $id)
     {
-        //dd($id);
-        $Product = Service::orderBy('service_id', 'DESC')->where(['iStatus' => 1, 'isDelete' => 0])->get();
-        $QuotationDetail = QuotationDetail::orderBy('quotationdetailsId', 'ASC')->where(['quotationdetails.iStatus' => 1, 'quotationdetails.isDelete' => 0, 'quotationdetails.quotationID' => $id])->join('service_master', 'quotationdetails.productID', '=', 'service_master.service_id')->paginate(10);
-        //dd($QuotationDetail);
-        $CompanyName = Quotation::orderBy('quotationId', 'DESC')->where(['quotation.iStatus' => 1, 'quotation.isDelete' => 0, 'quotation.quotationId' => $id])
-            ->join('company_client_master', 'quotation.iCompanyId', '=', 'company_client_master.company_id')
-            ->join('party', 'quotation.iPartyId', '=', 'party.partyId')
-            ->join('year', 'quotation.iYearId', '=', 'year.year_id')
-            ->first();
-        
-        return view('company_client.quotationdetail.index', compact('QuotationDetail', 'id', 'CompanyName','Product'));
+        // Services for dropdown
+        $Product = Service::where(['iStatus' => 1, 'isDelete' => 0])
+            ->orderBy('service_id', 'DESC')
+            ->get();
+
+        // Quotation detail rows
+        $QuotationDetail = QuotationDetail::query()
+            ->from('quotationdetails')
+            ->join('service_master', 'quotationdetails.productID', '=', 'service_master.service_id')
+            ->where([
+                'quotationdetails.iStatus'     => 1,
+                'quotationdetails.isDelete'    => 0,
+                'quotationdetails.quotationID' => $id,
+            ])
+            ->select([
+                'quotationdetails.quotationdetailsId',
+                'quotationdetails.productID',
+                'quotationdetails.description',
+                'quotationdetails.uom',
+                'quotationdetails.quantity',
+                'quotationdetails.rate',
+                'quotationdetails.iGstPercentage',
+                'quotationdetails.netAmount',
+                DB::raw('service_master.service_name as productName'),
+            ])
+            ->orderBy('quotationdetails.quotationdetailsId', 'ASC')
+            ->paginate(10);
+
+        // Header row (LEFT JOIN so missing related rows don’t null the whole thing)
+        $CompanyName = DB::table('quotation')
+            ->leftJoin('company_client_master', 'quotation.iCompanyId', '=', 'company_client_master.company_id')
+            ->leftJoin('party', 'quotation.iPartyId', '=', 'party.partyId')
+            ->leftJoin('year', 'quotation.iYearId', '=', 'year.year_id')
+            ->where([
+                'quotation.iStatus'     => 1,
+                'quotation.isDelete'    => 0,
+                'quotation.quotationId' => $id,
+            ])
+            ->select([
+                'quotation.quotationId',
+                'quotation.entryDate',
+                'quotation.iQuotationNo',
+                'company_client_master.company_name',
+                'party.strPartyName',
+                'year.strYear',
+            ])
+            ->first(); // may be null
+
+        return view('company_client.quotationdetail.index', compact(
+            'QuotationDetail', 'id', 'CompanyName', 'Product'
+        ));
     }
+
+
 
     public function createview()
     {
@@ -119,12 +161,46 @@ class QuotationDetailController extends Controller
 
         return back()->with('success', 'Quotation Details Deleted Successfully!.');
     }
+    // JSON product fetch (used by AJAX)
+        public function productfetch(Request $request)
+        {
+            $product = $request->input('product');
+
+            if ($product === 'other') {
+                return response()->json([
+                    'productDescription' => null,
+                    'message' => 'Other product selected.',
+                ], 200);
+            }
+
+            $id = (int) $product;
+
+            $srv = Service::where([
+                'iStatus'    => 1,
+                'isDelete'   => 0,
+                'service_id' => $id,
+            ])->first();
+
+            if (!$srv) {
+                return response()->json(['message' => 'Product not found'], 404);
+            }
+
+            return response()->json([
+                'service_id'         => $srv->service_id,
+                'service_name'       => $srv->service_name,
+                // pick the correct column from your table:
+                'productDescription' => $srv->service_description ?? $srv->description ?? '',
+                'HSN' => $srv->HSN ?? $srv->HSN ?? '',
+            ], 200);
+        }
+
     
-    public function productfetch(Request $request)
+    /*public function productfetch(Request $request)
     {
+        dd($request);
         $product = Service::where(['iStatus' => 1, 'isDelete' => 0,  'service_id' => $request->product])->first();
 
         return  json_encode($product);
-    }
+    }*/
 
 }

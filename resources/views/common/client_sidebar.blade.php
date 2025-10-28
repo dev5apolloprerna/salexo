@@ -1,4 +1,7 @@
 @php
+
+    $company_id = Auth::guard('web_employees')->user()->company_id;
+
     $roleid = Auth::guard('web_employees')->user()->role_id;
 
     if ($roleid == 1) {
@@ -218,6 +221,7 @@
                             <span>Calender</span>
                         </a>
                     </li>
+                    @if($company_id == 5)
                     <li class="nav-item">
                       <a href="{{ route('party.index') }}"
                          class="nav-link {{ request()->routeIs('party.*') ? 'active' : '' }}">
@@ -233,7 +237,7 @@
                             <span>Quotation Master</span>
                         </a>
                     </li>
-
+                    @endif
                     <!-- Reports -->
                     <li class="nav-item">
                         <a class="nav-link menu-link {{ in_array(request()->route()->getName(), [

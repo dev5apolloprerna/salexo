@@ -12,6 +12,7 @@ use App\Models\LeadMaster;
 use App\Models\LeadPipeline;
 use App\Models\LeadSource;
 use App\Models\LeadUdfData;
+use App\Models\CompanyClient;
 use App\Models\Service;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -935,6 +936,8 @@ class EmployeeApiController extends Controller
     {
         try {
             $employee = Auth::guard('employee_api')->user();
+            $company_id = Auth::guard('employee_api')->user()->company_id;
+
             if (!$employee) {
                 return response()->json([
                     'success' => false,
@@ -948,6 +951,17 @@ class EmployeeApiController extends Controller
             ]);
 
             $employee->update($validated);
+
+            CompanyClient::where(['company_id' => $company_id])->update([
+
+/*                    'company_name' => $request->emp_name,
+                    'email' => $request->emp_email,*/
+                    'payment_terms'=>$request->payment_terms,
+                    'delivery_terms'=>$request->delivery_terms,
+                    'terms_condition'=>$request->terms_condition,
+
+                ]);
+
 
             return response()->json([
                 'success' => true,

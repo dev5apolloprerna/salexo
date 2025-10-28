@@ -395,14 +395,19 @@ Route::prefix('clients/quotationdetails')->name('quotationdetails.')->middleware
 Route::get('/{id}/edit',[QuotationDetailController::class, 'editview'])->name('edit');
     Route::post('/quotationdetails-update/{Id?}', [QuotationDetailController::class, 'update'])->name('update');
     Route::delete('/quotationdetails-delete/{Id}', [QuotationDetailController::class, 'delete'])->name('delete');
-    Route::get('/productfetch', [QuotationDetailController::class, 'productfetch'])->name('productfetch');
 
     // routes/web.php
 
 });
 
 
+// routes/web.php
 
+
+Route::prefix('quotationdetails')->name('quotationdetails.')->group(function () {
+    Route::get('/productfetch', [QuotationDetailController::class, 'productfetch'])
+        ->name('productfetch');
+    });
 
 Route::middleware(['auth:web_employees'])->group(function () {
     Route::prefix('masters/party')->name('party.')->group(function () {
