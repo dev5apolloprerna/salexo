@@ -37,6 +37,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
+use App\Http\Controllers\Company\PartyController;
 
 use App\Http\Controllers\Company\QuotationController;
 use App\Http\Controllers\Company\QuotationDetailController;
@@ -398,4 +399,19 @@ Route::get('/{id}/edit',[QuotationDetailController::class, 'editview'])->name('e
 
     // routes/web.php
 
+});
+
+
+
+
+Route::middleware(['auth:web_employees'])->group(function () {
+    Route::prefix('masters/party')->name('party.')->group(function () {
+        Route::get('/', [PartyController::class, 'index'])->name('index');           // ?edit=ID to edit inline
+        Route::post('/', [PartyController::class, 'store'])->name('store');          // create
+        Route::put('/{party}', [PartyController::class, 'update'])->name('update');  // update
+        Route::delete('/{party}', [PartyController::class, 'destroy'])->name('destroy');
+        Route::post('/bulk-delete', [PartyController::class, 'bulkDestroy'])->name('bulk-delete');
+        Route::patch('/{party}/toggle-status', [PartyController::class, 'toggleStatus'])->name('toggle-status');
+        // You can remove the old AJAX show route; not needed in 1.2
+    });
 });

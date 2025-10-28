@@ -24,19 +24,7 @@
                 @csrf
                 <div class="card-body">
                     <div class="form-group row">
-                      <!--   <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
-                            <span style="color:red;">*</span>Company Name</label>
-                            <select class="form-control form-control-user" @error('iCompanyId') is-invalid @enderror id="mappingCompany" onchange="termconditionFetch();"
-                                name="iCompanyId" required>
-                                <option selected disabled value="">Select Company</option>
-                                @foreach ($Company as $company)
-                                    <option value="{{ $company->company_id }}"
-                                        {{ old('iCompanyId') == $company->company_id ? 'selected' : '' }}>
-                                        {{ $company->company_name }}</option>
-                                @endforeach
-                            </select>
-                        </div> -->
-
+                     
                         <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
                             <span style="color:red;">*</span>Party Name</label>
                             <select class="form-control form-control-user" id="mappingParty" @error('iPartyId') is-invalid @enderror
@@ -95,13 +83,13 @@
                         <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
                             <span style="color:red;"></span>Delivery Terms</label>
                             <input class="form-control" id="basic-form-name" name="deliveryTerm" type="text"
-                                placeholder="Enter Delivery Terms" value="{{ old('deliveryTerm') }}">
+                                placeholder="Enter Delivery Terms" value="{{ old('deliveryTerm') ? old('deliveryTerm') : $Company->delivery_terms }}">
                         </div>
 
                         <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
                             <span style="color:red;"></span>Payment Terms</label>
                             <input class="form-control" id="basic-form-name" name="paymentTerms" type="text"
-                                placeholder="Enter Payment Terms" value="{{ old('paymentTerms') }}">
+                                placeholder="Enter Payment Terms" value="{{ old('paymentTerms') ? old('paymentTerms') : $Company->payment_terms }}">
                         </div>
 
                         <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
@@ -115,7 +103,7 @@
                         </div>
                         <div class="col-sm-12 mb-3 mt-3 mb-sm-0">
                             <span style="color:red;"></span>Terms & Condition</label>
-                            <textarea class="form-control" id="fetchtermcondition" name="strTermsCondition"> </textarea>
+                            <textarea class="form-control" id="fetchtermcondition" name="strTermsCondition"> {{ old('strTermsCondition') ? old('strTermsCondition') : $Company->terms_condition }} </textarea>
                         </div>
                     </div>
                 </div>

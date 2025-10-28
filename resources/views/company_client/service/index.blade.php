@@ -38,6 +38,13 @@
                                                     </div>
 
                                                     <div class="mt-4 mb-3">
+                                                        HSN <span style="color:red;">*</span>
+                                                        <input type="text" class="form-control" name="HSN"
+                                                            placeholder="Enter HSN" maxlength="100"
+                                                            autocomplete="off" required autofocus>
+                                                    </div>
+
+                                                    <div class="mt-4 mb-3">
                                                         Description Name <span style="color:red;">*</span>
                                                         <textarea class="form-control" name="service_description" id="service_description" cols="30" rows="3"></textarea>
                                                     </div>
@@ -69,6 +76,7 @@
                                                 <tr>
                                                     <th>Sr No</th>
                                                     <th>Service / Product Name</th>
+                                                    <th>HSN</th>
                                                     <th>Description</th>
                                                     <th>Actions</th>
                                                 </tr>
@@ -80,6 +88,7 @@
                                                         <td>{{ $services->firstItem() + $index }}</td>
 
                                                         <td>{{ $service->service_name }}</td>
+                                                        <td>{{ $service->HSN }}</td>
                                                         <td>{{ $service->service_description ? Str::limit($service->service_description, 50) : '-' }}
                                                         </td>
 

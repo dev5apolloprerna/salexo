@@ -34,8 +34,23 @@ class QuotationDetailController extends Controller
 
     public function create(Request $request)
     {
+        if($request->productID == 'other')
+        {
+            $service=Service::create([
+                'company_id' => auth()->user()->company_id,
+                'service_name' => $request->service_name,
+                'HSN' => $request->uom,
+                'service_description' => $request->description,
+                'created_at' => now(),
+            ]);
+                $productId = $service->service_id; 
+            } else {
+                // Ensure numeric id
+                $productId = $request->productID;
+            }
+
         $Data = array(
-            'productID' => $request->productID,
+            'productID' => $productId,
             'quotationID' => $request->quotationID,
             'description' => $request->description,
             'uom' => $request->uom,
@@ -48,6 +63,7 @@ class QuotationDetailController extends Controller
         );
         //dd($Data);
         DB::table('quotationdetails')->insert($Data);
+
 
         return redirect()->route('quotationdetails.index', [$request->quotationID])->with('success', 'Quotation Details Created Successfully.');
     }
@@ -106,10 +122,9 @@ class QuotationDetailController extends Controller
     
     public function productfetch(Request $request)
     {
-        // dd($request);
         $product = Service::where(['iStatus' => 1, 'isDelete' => 0,  'service_id' => $request->product])->first();
-        //dd($product);
 
         return  json_encode($product);
     }
+
 }

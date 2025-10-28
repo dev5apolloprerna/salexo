@@ -56,6 +56,7 @@ class serviceController extends Controller
             Service::create([
                 'company_id' => auth()->user()->company_id,
                 'service_name' => $request->service_name,
+                'HSN' => $request->HSN,
                 'service_description' => $request->service_description,
                 'created_at' => now(),
             ]);
@@ -89,6 +90,7 @@ class serviceController extends Controller
             $service = Service::where('service_id', $request->service_id)->first();
             $service->update([
                 "service_name" => $request->service_name,
+                "HSN" => $request->HSN,
                 "service_description" => $request->service_description,
                 'updated_at' => now()
             ]);
