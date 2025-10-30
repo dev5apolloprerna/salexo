@@ -9,6 +9,7 @@ class Quotation extends Model
 {
     use HasFactory;
     public $table = 'quotation';
+   protected $primaryKey = 'quotationId';
     protected $fillable = [
         'iYearId',
         'iQuotationNo',
@@ -33,5 +34,13 @@ class Quotation extends Model
         } else {
             return 1; // Start from 1 if no quotation exists for this company.
         }
+    }
+    public function company()
+    {
+        return $this->belongsTo(CompanyClient::class, 'iCompanyId', 'company_id');
+    }
+    public function party()
+    {
+        return $this->belongsTo(CompanyClient::class, 'partyId', 'iPartyId');
     }
 }

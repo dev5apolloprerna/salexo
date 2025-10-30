@@ -106,6 +106,7 @@
                                 <th >Year</th>
                                 <th >Date</th>
                                 <th >Party Name</th>
+                                <th >Party Mobile No</th>
                                 <th >Quotation No</th>
                                 <th >Quotation Validity</th>
                                 <!--<th >Mode Of Dispatch</th>-->
@@ -124,6 +125,7 @@
                                         echo date('d-m-Y', strtotime($datestore)); ?>
                                     </td>
                                     <td>{{ $quotation->strPartyName }}</td>
+                                    <td>{{ $quotation->iMobile }}</td>
                                     <td>{{ $quotation->iQuotationNo }}</td>
                                     <td>{{ $quotation->quotationValidity }}</td>
                                     <!--<td>{{ $quotation->modeOfDespatch }}</td>-->
@@ -160,6 +162,28 @@
                                         </a>
                                                 
                                                 
+                                           @php
+                                              // Phone must be in international format, without plus, e.g., 9198XXXXXXXX
+                                              $phone = preg_replace('/\D/','', $quotation->iMobile ?? '');
+                                              $pdfUrl = route('quotation.DetailPDF', $quotation->quotationId, true); // absolute URL
+                                              $text   = urlencode("Hello! Here is your quotation PDF:\n{$pdfUrl}");
+                                            @endphp
+
+                                            <a href="https://wa.me/{{ $phone }}?text={{ $text }}"
+                                               target="_blank"
+                                               class="btn btn-success m-2 btn-sm"
+                                               title="Share on WhatsApp">
+                                              <i class="fab fa-whatsapp"></i>
+                                            </a>
+
+
+<!-- <a href="{{ route('company.quotations.pdf.preview', $quotation->quotationId) }}" class="btn btn-outline-secondary btn-sm">Preview PDF</a> -->
+<!-- <a href="{{ route('company.quotations.pdf.stream', $quotation->quotationId) }}"  class="btn btn-primary btn-sm">PDF</a>
+<a href="{{ route('company.quotations.pdf.download', $quotation->quotationId) }}" class="btn btn-success btn-sm">Download</a>
+ -->
+
+
+
                                                 <a href="{{ route('quotation.copy', $quotation->quotationId) }}" title="Copy"
                                             class="btn btn-primary btn-sm m-2"> <i class="fa-solid fa-copy"></i></a>
                                     </td>

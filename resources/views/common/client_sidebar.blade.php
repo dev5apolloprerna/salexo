@@ -16,6 +16,7 @@
 @endphp
 
 <style>
+
     /* Sidebar Gradient and Base Styles */
     .app-menu.navbar-menu {
         /*background: linear-gradient(to bottom, #3ccf90, #246fdb) !important;*/
@@ -237,6 +238,43 @@
                             <span>Quotation Master</span>
                         </a>
                     </li>
+                     <ul class="nav-item">
+                                     <a class="nav-link collapsed" href="{{ route('company.quotations.designs') }}"
+                                       class="{{ request()->routeIs('company.quotations.designs') ? 'active' : '' }}">
+                                      Quotation Templates
+                                    </a>
+                                
+                                 <li class="nav-item">
+      <a href="{{ route('company.quotations.latest.preview','v1') }}"
+         target="_blank"
+         class="submenu {{ request()->fullUrlIs('*quotations/latest/preview/v1') ? 'active' : '' }}">
+        • Preview V1
+      </a></li>
+      <li class="nav-item">
+      <a href="{{ route('company.quotations.latest.preview','v2') }}"
+         target="_blank"
+         class="submenu {{ request()->fullUrlIs('*quotations/latest/preview/v2') ? 'active' : '' }}">
+        • Preview V2
+      </a></li>
+      <li class="nav-item"> 
+      <a href="{{ route('company.quotations.latest.preview','v3') }}"
+         target="_blank"
+         class="submenu {{ request()->fullUrlIs('*quotations/latest/preview/v3') ? 'active' : '' }}">
+        • Preview V3
+      </a></li>
+      <li class="nav-item">
+      <a href="{{ route('company.quotations.latest.preview','v4') }}"
+         target="_blank"
+         class="submenu {{ request()->fullUrlIs('*quotations/latest/preview/v4') ? 'active' : '' }}">
+        • Preview V4
+      </a></li>
+      <li class="nav-item">
+      <a href="{{ route('company.quotations.latest.preview','v5') }}"
+         target="_blank"
+         class="submenu {{ request()->fullUrlIs('*quotations/latest/preview/v5') ? 'active' : '' }}">
+        • Preview V5
+      </a></li>
+    </ul>
                     @endif
                     <!-- Reports -->
                     <li class="nav-item">
@@ -323,6 +361,7 @@
 
                                     </a>
                                 </li>
+                               
                             </ul>
                         </div>
                     </li>
@@ -357,6 +396,7 @@
                     </li>
                 @endif
             </ul>
+
         </div>
     </div>
 </div>
