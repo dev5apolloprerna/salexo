@@ -38,9 +38,12 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\Company\PartyController;
-
 use App\Http\Controllers\Company\QuotationController;
 use App\Http\Controllers\Company\QuotationDetailController;
+use App\Http\Controllers\Company\QuotationPdfController;
+
+use App\Http\Controllers\Company\QuotationDesignController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -381,6 +384,11 @@ Route::prefix('clients/quotation')->name('quotation.')->middleware(['auth:web_em
     Route::get('/termcondition-fetch', [QuotationController::class, 'termconditionFetch'])->name('termconditionFetch');
     Route::get('/copy/{id}', [QuotationController::class, 'copyQuotation'])->name('copy');
     Route::get('/get-next-no/{companyId}', [QuotationController::class, 'getNextQuotationNo'])->name('getNextNo');
+    // Route::post('/quotation/{id}/whatsapp', [QuotationController::class, 'sendWhatsApp'])->name('quotation.whatsapp');
+    Route::post('/quotation/{id}/send-whatsapp', [QuotationController::class, 'sendWhatsApp'])
+    ->name('sendWhatsApp');
+
+
 })->whereNumber('id')->whereNumber('companyId');
 
 
@@ -409,14 +417,42 @@ Route::prefix('quotationdetails')->name('quotationdetails.')->group(function () 
         ->name('productfetch');
     });
 
+// routes/web.php
 Route::middleware(['auth:web_employees'])->group(function () {
-    Route::prefix('masters/party')->name('party.')->group(function () {
-        Route::get('/', [PartyController::class, 'index'])->name('index');           // ?edit=ID to edit inline
-        Route::post('/', [PartyController::class, 'store'])->name('store');          // create
-        Route::put('/{party}', [PartyController::class, 'update'])->name('update');  // update
-        Route::delete('/{party}', [PartyController::class, 'destroy'])->name('destroy');
-        Route::post('/bulk-delete', [PartyController::class, 'bulkDestroy'])->name('bulk-delete');
-        Route::patch('/{party}/toggle-status', [PartyController::class, 'toggleStatus'])->name('toggle-status');
-        // You can remove the old AJAX show route; not needed in 1.2
-    });
+  Route::prefix('masters/party')->name('party.')->group(function () {
+    Route::get('/',               [PartyController::class, 'index'])->name('index');
+    Route::get('/create',         [PartyController::class, 'create'])->name('create');           // NEW
+    Route::get('/{party}/edit',   [PartyController::class, 'edit'])->name('edit');               // NEW
+    Route::post('/',              [PartyController::class, 'store'])->name('store');
+    Route::put('/{party}',        [PartyController::class, 'update'])->name('update');
+    Route::delete('/{party}',     [PartyController::class, 'destroy'])->name('destroy');
+    Route::post('/bulk-delete',   [PartyController::class, 'bulkDestroy'])->name('bulk-delete');
+    Route::patch('/{party}/toggle-status', [PartyController::class, 'toggleStatus'])->name('toggle-status');
+    Route::get('/lookup-by-mobile', [PartyController::class, 'lookupByMobile'])->name('lookup-by-mobile');
+  });
+});
+
+
+
+Route::middleware(['auth'])->group(function () {
+});
+
+
+
+Route::prefix('company')->name('company.')->group(function () {
+    Route::get('quotations/{id}/preview',  [QuotationPdfController::class, 'preview'])->name('quotations.pdf.preview');
+    Route::get('quotations/{id}/pdf',      [QuotationPdfController::class, 'stream'])->name('quotations.pdf.stream');
+    Route::get('quotations/{id}/download', [QuotationPdfController::class, 'download'])->name('quotations.pdf.download');
+});
+
+
+Route::prefix('company/quotations')->name('company.quotations.')->group(function () {
+    // Design picker UI (shows latest quotation in chosen design)
+    Route::get('designs',               [QuotationDesignController::class, 'picker'])->name('designs');
+    Route::get('latest/preview/{d}',    [QuotationDesignController::class, 'previewLatest'])->name('latest.preview');
+    Route::get('latest/pdf/{d}',        [QuotationDesignController::class, 'pdfLatest'])->name('latest.pdf');
+
+    // (Optional) Preview/PDF for a specific quotation id
+    Route::get('{id}/preview/{d}',      [QuotationDesignController::class, 'preview'])->name('preview');
+    Route::get('{id}/pdf/{d}',          [QuotationDesignController::class, 'pdf'])->name('pdf');
 });

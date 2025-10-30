@@ -33,5 +33,10 @@ return [
     'meta' => [
         'system_user_token' => env('META_SYSTEM_USER_TOKEN'),
     ],
+    'whatsapp' => [
+    'token' => env('WHATSAPP_TOKEN'),
+    'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID'),
+],
+
 
 ];

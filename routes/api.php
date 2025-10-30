@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\Api\PartyApiController;
+use App\Http\Controllers\Api\QuotationApiController;
 
 /*
 |--------------------------------------------------------------------------
@@ -116,6 +117,27 @@ Route::prefix('employee')->group(function () {
             Route::post('party/delete',        [PartyApiController::class, 'destroy']);
             Route::post('party/bulk-delete',   [PartyApiController::class, 'bulkDestroy']);
             Route::post('party/toggle-status', [PartyApiController::class, 'toggleStatus']);
+
+
+
+
+Route::prefix('quotations')->group(function () {
+    Route::get('/',              [QuotationApiController::class, 'index'])->name('api.quotations.index');
+    Route::get('/next-number',   [QuotationApiController::class, 'getNextQuotationNo'])->name('api.quotations.next');
+    Route::post('/create',             [QuotationApiController::class, 'store'])->name('api.quotations.store');
+    Route::get('/{id}',          [QuotationApiController::class, 'show'])->name('api.quotations.show');
+    Route::put('/{id}',          [QuotationApiController::class, 'update'])->name('api.quotations.update');
+    Route::patch('/{id}',        [QuotationApiController::class, 'update']);
+    Route::delete('/{id}',       [QuotationApiController::class, 'destroy'])->name('api.quotations.destroy');
+
+    Route::get('/{id}/details',  [QuotationApiController::class, 'details'])->name('api.quotations.details');
+    Route::get('/{id}/pdf',      [QuotationApiController::class, 'pdf'])->name('api.quotations.pdf');
+    Route::post('/{id}/copy',    [QuotationApiController::class, 'copy'])->name('api.quotations.copy');
+    Route::post('/{id}/send-whatsapp', [QuotationApiController::class, 'sendWhatsApp'])->name('api.quotations.whatsapp');
+});
+
+Route::get('/party-mapping',     [QuotationApiController::class, 'mapping'])->name('api.party.mapping');
+Route::get('/term-conditions',   [QuotationApiController::class, 'termConditions'])->name('api.termconditions.index');
 
 
         // 14-10-2025

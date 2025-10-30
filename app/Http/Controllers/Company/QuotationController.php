@@ -13,7 +13,10 @@ use App\Models\QuotationDetail;
 use App\Models\TermCondition;
 use App\Models\Service;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
+
 //use PDF;
+
 use Barryvdh\DomPDF\Facade\Pdf as PDF;
 
 use Illuminate\Support\Facades\Auth;
@@ -159,28 +162,21 @@ class QuotationController extends Controller
 
     public function showdetail(Request $request, $id)
     {
-        //dd($id);
-        // echo $id;
         $popupQuotation = Quotation::select('party.address1','company_client_master.company_name','company_client_master.Address','company_client_master.email','company_client_master.mobile','company_client_master.GST','company_client_master.plan_id','party.strPartyName','party.address2','party.address3','party.iMobile','party.strEmail','quotation.iQuotationNo','quotation.entryDate','quotation.iCompanyId','quotation.quotationValidity','quotation.modeOfDespatch','quotation.deliveryTerm','quotation.paymentTerms','quotation.iGstType','quotation.strTermsCondition')
             ->orderBy('quotationId', 'ASC')->where(['quotation.iStatus' => 1, 'quotation.isDelete' => 0, 'quotation.quotationId' => $id])
             ->join('company_client_master', 'quotation.iCompanyId', '=', 'company_client_master.company_id')
             ->join('party', 'quotation.iPartyId', '=', 'party.partyId')
             ->join('year', 'quotation.iYearId', '=', 'year.year_id')
             ->first();
-        //dd($popupQuotation);
-        //$path = public_path('CompanyLogo/' . $popupQuotation->strLogo);
-        //https://getdemo.in/quotation/CompanyLogo/1670580466.png
-        /*$path = ("https://quotation.sanjay-sales.com/CompanyLogo/" . $popupQuotation->strLogo);
-        $type = pathinfo($path, PATHINFO_EXTENSION);
-         $data = file_get_contents($path);*/
-        //$data = ($path);
-        // $pic = 'data:CompanyLogo/' . $type . ';base64,' . base64_encode(($data));
-        $pic = '';
+            // $path = ("https://quotation.sanjay-sales.com/CompanyLogo/" . $popupQuotation->strLogo);
+            $path = ("https://salexo.in/assets/images/logo.png");
+            $type = pathinfo($path, PATHINFO_EXTENSION);
+            $data = file_get_contents($path);
+            $pic = 'data:CompanyLogo/' . $type . ';base64,' . base64_encode(($data));
+
 
         $QuotationDetail = QuotationDetail::orderBy('quotationdetailsId', 'ASC')->where(['quotationdetails.iStatus' => 1, 'quotationdetails.isDelete' => 0, 'quotationdetails.quotationID' => $id])->get();
-        // dd($QuotationDetail);
         $TermCondition = TermCondition::orderBy('termconditionId', 'ASC')->where(['termcondition.iStatus' => 1, 'termcondition.isDelete' => 0, 'termcondition.companyID'=>$popupQuotation->iCompanyId])
-            //  ->join('quotation', 'termcondition.companyID', '=', 'quotation.iCompanyId')
             ->get();
         
         return view('company_client.quotation.showdetails', compact('popupQuotation', 'QuotationDetail', 'pic','TermCondition'));
@@ -200,14 +196,12 @@ class QuotationController extends Controller
             ->join('party', 'quotation.iPartyId', '=', 'party.partyId')
             ->join('year', 'quotation.iYearId', '=', 'year.year_id')
             ->first();
-        //dd($Quotation);
-        // https://getdemo.in/CompanyLogo/1670481081.png
-        // $path = ("https://quotation.sanjay-sales.com/CompanyLogo/" . $Quotation->strLogo);
-        //dd($path);
-        $type = pathinfo($path, PATHINFO_EXTENSION);
-        // $data = file_get_contents($path);
-        // $pic = 'data:CompanyLogo/' . $type . ';base64,' . base64_encode(($data));
-        $pic = '';
+            // $path = ("https://quotation.sanjay-sales.com/CompanyLogo/" . $Quotation->strLogo);
+            $path = ("https://salexo.in/assets/images/logo.png");
+            $type = pathinfo($path, PATHINFO_EXTENSION);
+            $data = file_get_contents($path);
+            $pic = 'data:CompanyLogo/' . $type . ';base64,' . base64_encode(($data));
+
 
         $QuotationDetail = QuotationDetail::orderBy('quotationdetailsId', 'ASC')->where(['quotationdetails.iStatus' => 1, 'quotationdetails.isDelete' => 0, 'quotationdetails.quotationID' => $id])->get();
 
@@ -324,4 +318,41 @@ class QuotationController extends Controller
 
         return back()->with('success', 'Quotation Copied Successfully.');
     }
+     public function sendWhatsApp(Request $request, $id)
+    {
+        // 1) Validate phone (WhatsApp requires country code, no "+")
+        $phone = preg_replace('/\D/', '', $request->input('phone'));
+        if (!$phone) {
+            return back()->with('error', 'Invalid phone number.');
+        }
+        $pdfUrl = route('quotation.DetailPDF', $id, true);
+
+        // 3) Prepare payload for Cloud API
+        $token         = config('services.whatsapp.token');
+        $phoneNumberId = config('services.whatsapp.phone_number_id');
+
+        $payload = [
+            'messaging_product' => 'whatsapp',
+            'to'   => $phone,
+            'type' => 'document',
+            'document' => [
+                // You can send by URL directly (no media upload step needed for documents)
+                'link'     => $pdfUrl,
+                'filename' => "Quotation-{$id}.pdf",
+            ],
+        ];
+
+        $resp = Http::withToken($token)
+            ->post("https://graph.facebook.com/v20.0/{$phoneNumberId}/messages", $payload);
+
+        if (!$resp->ok()) {
+            // Helpful error reporting
+            $err = $resp->json();
+            report(new \Exception('WhatsApp send failed: ' . json_encode($err)));
+            return back()->with('error', $err['error']['message'] ?? 'Failed to send WhatsApp message.');
+        }
+
+        return back()->with('success', 'Quotation sent on WhatsApp!');
+    }
+   
 }

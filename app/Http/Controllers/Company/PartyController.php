@@ -9,6 +9,7 @@ use App\Http\Requests\UpdatePartyRequest;
 use App\Models\Party;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class PartyController extends Controller
 {
@@ -42,6 +43,71 @@ class PartyController extends Controller
             'editing'    => $editing,
         ]);
     }
+    public function lookupByMobile(Request $request)
+    {
+        // sanitize: keep digits only
+        $mobile = preg_replace('/\D+/', '', (string) $request->query('mobile', ''));
+
+        if (strlen($mobile) < 6) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Please provide a valid mobile number.',
+            ], 422);
+        }
+
+        // Optional: if your employee belongs to a company and you want to scope by iCustomerId
+        $companyId = (int) ($request->query('company_id', 0)); // or derive from Auth if needed
+
+        $query = DB::table('lead_master')
+            ->where('isDelete', 0)
+            ->where('mobile', $mobile);
+
+        if ($companyId > 0) {
+            $query->where('iCustomerId', $companyId);
+        }
+
+        // Get the latest matching lead
+        $lead = $query->orderByDesc('lead_id')->first();
+
+        if (!$lead) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'No lead found for this mobile.',
+            ], 404);
+        }
+
+        // Map lead fields -> your Party create form fields.
+        // Adjust keys BELOW to match your actual Party columns / input names.
+        $prefill = [
+            // common Party fields (rename if yours differ)
+            'strPartyName'      => $lead->company_name ?: ($lead->customer_name ?: ''), // company or person
+            'strContactPerson'  => $lead->customer_name ?: '',
+            'iMobile'      => $lead->mobile ?: '',
+            'strEmail'        => $lead->email ?: '',
+            'address1'        => $lead->address ?: '',
+            'strGST'          => $lead->GST_No ?: '',
+            'remarks'           => $lead->remarks ?: '',
+            // add more mappings if you keep them in Party:
+            // 'product_service_id' => $lead->product_service_id,
+            // 'amount'             => $lead->amount,
+        ];
+
+        return response()->json([
+            'ok'   => true,
+            'lead' => $lead,
+            'data' => $prefill,
+        ]);
+    }
+    public function create()
+    {
+        return view('company_client.party.add');
+    }
+
+    public function edit(Party $party) // or findOrFail($id) if not using model binding
+    {
+        return view('company_client.party.edit', compact('party'));
+    }
+
 
     public function store(StorePartyRequest $request)
     {
@@ -70,9 +136,9 @@ class PartyController extends Controller
         return redirect()->route('party.index')->with('success', 'Party updated successfully.');
     }
 
-    public function destroy(int $party)
+    public function destroy(Request $request)
     {
-        Party::findOrFail($party)->delete();
+        Party::findOrFail($id)->delete();
         return back()->with('success', 'Party deleted.');
     }
 
