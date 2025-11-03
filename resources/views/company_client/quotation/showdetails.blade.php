@@ -261,7 +261,7 @@
         </tbody>
     </table>
     <br>
-   <table  style="width:100%;" border="0">
+   <!-- <table  style="width:100%;" border="0">
         <tbody>
             <tr>
                 <td>Bank Name :</td>
@@ -280,7 +280,7 @@
                 <td  style="text-align: right;">Authorized Signatory</td>
             </tr>
         </tbody>
-    </table>
+    </table> -->
 </body>
 
 </html>

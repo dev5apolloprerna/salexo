@@ -86,12 +86,17 @@
 
                                     <div class="row g-3 mb-3">
                                       <div class="col-md-6">
-                                        <label class="form-label">Address 2</label>
-                                        <input type="text" class="form-control" name="address2" value="{{ old('address2') }}">
+                                        <label class="form-label">City</label>
+                                        <input type="text" class="form-control" name="address2" value="{{ old('city') }}">
                                       </div>
                                       <div class="col-md-6">
-                                        <label class="form-label">Address 3</label>
-                                        <input type="text" class="form-control" name="address3" value="{{ old('address3') }}">
+                                        <label class="form-label">State</label>
+                                        <select class="form-control" name="state" id="state">
+                                          <option value="">Select State</option>
+                                            @foreach($state as $s)
+                                            <option value="{{$s->stateId}}" {{ old('state')== $s->stateId ? 'selected' :'' }}> {{ $s->stateName }} </option>
+                                            @endforeach
+                                        </select>
                                       </div>
                                     </div>
                                     <div class="card-footer mt-2">

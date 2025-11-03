@@ -4,25 +4,29 @@
 
 @section('content')
 
-    <div class="main-content">
+ <div class="main-content">
         <div class="page-content">
             <div class="container-fluid">
 
-
-            <!-- Page Heading -->
-            <div class="d-sm-flex align-items-center justify-content-between mb-4">
-                <h1 class="h3 mb-0 text-gray-800">Add Quotation Detail</h1>
-                <a href="{{ route('quotation.index') }}"><button type="submit"
+                {{-- Alert Messages --}}
+                @include('common.alert')
+                <div class="row">
+                    <div class="col-lg-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title mb-0">Add Quotation Detail
+                                    <a href="{{ route('quotation.index') }}"><button type="submit"
                         class="btn btn-success btn-user float-right mb-3">Back</button></a>
-            </div>
+
+                                </h5>
+                                <hr>
+                            </div>
+    <div class="card-body">
 
 
             {{-- Alert Messages --}}
-            @include('common.alert')
-
+           
             <!-- DataTales Example -->
-            <div class="card shadow mb-4">
-                <div class="card-header py-3">
                     <div style="display: flex;
                 justify-content: space-between;">
                         <h6 class="m-0 font-weight-bold text-primary">
@@ -59,7 +63,7 @@
                             <input type="hidden" name="quotationID" value={{ $id }}>
                             
                             <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
-                                <span style="color:red;"></span>Product Name</label>
+                                <span style="color:red;"></span>Product Name / Service Name</label>
                                 <select class="form-control form-control-user" id="getproductID" name="productID" onchange="productfetch();">
                                   <option selected disabled>Select Product Name</option>
                                   <option value="other">Other Product</option>
@@ -74,7 +78,7 @@
                             </div>
                             {{-- Shown only when Product = "other" --}}
                             <div id="other-product-fields" class="col-sm-6 mb-3 mt-3 mb-sm-0" style="display:none;">
-                                        <span style="color:red;"></span> Service Name</label>
+                                        <span style="color:red;"></span> Service Name / Product Name</label>
                                         <input type="text" class="form-control" name="service_name" id="service_name" placeholder="Enter new service name">
                             </div>
 
@@ -139,13 +143,18 @@
                 </form>
             </div>
         </div>
-
+</div>
         <!-- DataTales Example -->
-        <div class="card shadow mb-4">
-            <div class="card-header py-3">
-                <h6 class="m-0 font-weight-bold text-primary">Quotation Details List</h6>
-            </div>
-            <div class="card-body">
+         <div class="row">
+                    <div class="col-lg-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title mb-0">Quotation Details List
+                                </h5>
+                                <hr>
+                            </div>
+                            <div class="card-body">
+
                 <div class="table-responsive">
                     <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                         <thead>
@@ -179,12 +188,7 @@
                                     <td>{{ $detail->netAmount }}</td>
 
                                     <td style="align-items: center;">
-                                       <!--  <button class="btn btn-primary m-2" data-toggle="modal"
-                                            data-target="#exampleModal"
-                                            onclick="return editdata(<?= $detail->quotationdetailsId ?>);">
-                                            <i class="fa fa-pen"></i></button> -->
-
-                                        <button class="btn btn-primary m-2"
+                                        <button class="m-2"  
                                                 data-toggle="modal"
                                                 data-target="#exampleModal"
                                                 onclick="return editdata({{ $detail->quotationdetailsId }});">
@@ -198,7 +202,7 @@
                                             style="display: inline-block;">
                                             <input type="hidden" name="_method" value="DELETE">
                                             <input type="hidden" name="_token" value="{{ csrf_token() }}">
-                                            <button type="submit" class="btn btn-xs btn-danger"><i
+                                            <button type="submit" class="mt-2"><i
                                                     class="fa fa-trash"></i></button>
                                         </form>
                                     </td>
@@ -299,11 +303,15 @@
                         </tbody>
                     </table>
                     {{ $QuotationDetail->links() }}
-                </div>
-            </div>
-        </div>
-    </div>
+               </div>
+           </div>
+           </div>
+       </div>
+   </div>
 </div>
+</div>
+</div>
+
 
 @endsection
 

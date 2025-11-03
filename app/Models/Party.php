@@ -16,7 +16,7 @@ class Party extends Model
     protected $fillable = [
         'strPartyName',
         'iCompanyId',
-        'address1','address2','address3',
+        'address1','city','state_id',
         'strGST','iMobile','strEmail','strIP',
         'strEntryDate','iStatus','isDelete'
     ];
@@ -66,5 +66,6 @@ class Party extends Model
         $this->attributes['strGST'] = $v ? strtoupper(trim((string)$v)) : null;
     }
     public function company()     { return $this->belongsTo(CompanyClient::class, 'iCompanyId','company_id'); }
+    public function state()     { return $this->belongsTo(State::class, 'state_id','stateId'); }
 
 }

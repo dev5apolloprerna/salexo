@@ -59,6 +59,8 @@
                                                         <th>GST</th>
                                                         <th>Mobile</th>
                                                         <th>Email</th>
+                                                        <th>City</th>
+                                                        <th>State</th>
                                                         <th>Date</th>
                                                         <th>Actions</th>
                                                     </tr>
@@ -91,6 +93,8 @@
                                                           <td>{{ $row->strGST }}</td>
                                                           <td>{{ $row->iMobile }}</td>
                                                           <td>{{ $row->strEmail }}</td>
+                                                          <td>{{ $row->city }}</td>
+                                                          <td>{{ $row->state->stateName ?? '-' }}</td>
                                                           <td>{{ $dateDMY }}</td>
                                                             <td>
                                                                 <a href="{{ route('party.edit', $pid) }}"><i

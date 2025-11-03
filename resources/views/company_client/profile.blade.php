@@ -19,8 +19,14 @@
                 <div class="row">
                     <div class="col-md-3 border-right">
                         <div class="d-flex flex-column align-items-center text-center p-3 py-5">
-                            <img class="rounded-circle mt-5" width="150px"
-                                src="{{ asset('assets/images/users/undraw_profile.webp') }}">
+                            <img
+                              class="rounded-circle mt-5"
+                              width="150"
+                              src="{{ auth()->user()?->company?->company_logo
+                                      ? asset('uploads/company/' . ltrim(auth()->user()?->company?->company_logo, '/'))
+                                      : asset('assets/images/users/undraw_profile.webp') }}"
+                              alt="Company Logo" >
+
                             <span class="font-weight-bold">{{ auth()->user()->full_name }}</span>
                             <?php
                             $id = Auth::guard('web_employees')->user()->emp_id;
@@ -48,16 +54,38 @@
                             <form action="{{ route('empprofile.update') }}" method="POST">
                                 @csrf
                                 <div class="row mt-2">
+                                     <div class="col-md-4">
+                                        <label class="labels">Company Name</label>
+                                        <input type="text" class="form-control @error('company_name') is-invalid @enderror"
+                                            name="company_name" placeholder="Company Name"
+                                            value="{{ old('company_name') ? old('company_name') : auth()->user()?->company?->company_name }}" readonly>
+
+                                        @error('company_name')
+                                            <span class="text-danger">{{ $message }}</span>
+                                        @enderror
+                                    </div>
                                     <div class="col-md-4">
                                         <label class="labels">Name</label>
                                         <input type="text" class="form-control @error('emp_name') is-invalid @enderror"
                                             name="emp_name" placeholder="First Name"
-                                            value="{{ old('emp_name') ? old('emp_name') : auth()->user()->emp_name }}">
+                                            value="{{ old('emp_name') ? old('emp_name') : auth()->user()?->company?->contact_person_name }}">
 
                                         @error('emp_name')
                                             <span class="text-danger">{{ $message }}</span>
                                         @enderror
                                     </div>
+                                   
+                                     <div class="col-md-4">
+                                        <label class="labels">GST</label>
+                                        <input type="text" class="form-control @error('GST') is-invalid @enderror"
+                                            name="GST" placeholder="GST"
+                                            value="{{ old('GST') ? old('GST') : auth()->user()?->company?->GST }}">
+
+                                        @error('GST')
+                                            <span class="text-danger">{{ $message }}</span>
+                                        @enderror
+                                    </div> 
+                                  
                                     <div class="col-md-4">
                                         <label class="labels">Email</label>
                                         <input type="email" class="form-control @error('emp_email') is-invalid @enderror"
