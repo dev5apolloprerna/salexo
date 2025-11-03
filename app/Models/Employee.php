@@ -43,4 +43,6 @@ class Employee extends Authenticatable implements JWTSubject
     {
         return [];
     }
+        public function company()     { return $this->belongsTo(CompanyClient::class, 'company_id','company_id'); }
+
 }

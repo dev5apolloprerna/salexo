@@ -22,8 +22,8 @@ class UpdatePartyRequest extends FormRequest
                     ->ignore($partyId, 'partyId'),
             ],
             'address1'     => ['nullable','string','max:255'],
-            'address2'     => ['nullable','string','max:255'],
-            'address3'     => ['nullable','string','max:255'],
+            'city'     => ['nullable','string','max:255'],
+            'state'     => ['nullable','string','max:255'],
             'strGST'       => [
                 'nullable','string','max:15',
                 Rule::unique('party')

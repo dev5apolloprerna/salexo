@@ -47,25 +47,39 @@ class CompanyClientLoginController extends Controller
 
                 if (Auth::guard('web_employees')->attempt($credentials)) {
 
-                    $user = Employee::select(
-                        'emp_name',
-                        'emp_id',
-                        'emp_email',
-                        'company_id',
-                        'emp_mobile',
-                        'role_id',
-                        'isCompanyAdmin'
-                    )
-                        ->where('emp_id', $user->emp_id)
+                   $user = Employee::with(['company.state'])
+                        ->select([
+                            'emp_id',
+                            'emp_name',
+                            'emp_email',
+                            'company_id',
+                            'emp_mobile',
+                            'role_id',
+                            'isCompanyAdmin',
+                        ])
+                        ->where('emp_id', $empId)
                         ->first();
 
+                    if (!$user) {
+                        return back()->withErrors('Employee not found.');
+                    }
+
                     if ($user) {
-                        $request->session()->put('emp_id', $user->emp_id);
-                        $request->session()->put('emp_name', $user->emp_name);
-                        $request->session()->put('emp_mobile', $user->emp_mobile);
-                        $request->session()->put('emp_email', $user->emp_email);
-                        $request->session()->put('company_id', $user->company_id);
-                        $request->session()->put('user_role_id', $user->role_id);
+                        $request->session()->put([
+                            'emp_id'              => $user->emp_id,
+                            'emp_name'            => $user->emp_name,
+                            'emp_mobile'          => $user->emp_mobile,
+                            'emp_email'           => $user->emp_email,
+                            'company_id'          => $user->company_id,
+                            'company_name'        => data_get($user, 'company.company_name'),
+                            'contact_person_name' => data_get($user, 'company.contact_person_name'),
+                            'company_logo' => data_get($user, 'company.company_logo'),
+                            'GST'                 => data_get($user, 'company.GST'),
+                            'city'                => data_get($user, 'company.city'),
+                            'state'               => data_get($user, 'company.state.stateName'),
+                            'user_role_id'        => $user->role_id,
+                            'isCompanyAdmin'      => $user->isCompanyAdmin,
+                        ]);
 
                         // return redirect()->route('userhome');
                         // ✅ Redirect based on role
@@ -112,13 +126,21 @@ class CompanyClientLoginController extends Controller
 
 
         $request->session()->forget('emp_id');
-        $request->session()->forget('emp_name');
-        $request->session()->forget('emp_phone');
+        $request->session()->forget('company_name');
+        $request->session()->forget('company_id');
+        $request->session()->forget('emp_mobile');
         $request->session()->forget('emp_email');
+        $request->session()->forget('emp_name');
         $request->session()->forget('user_role_id');
+        $request->session()->forget('contact_person_name');
+        $request->session()->forget('GST');
+        $request->session()->forget('city');
+        $request->session()->forget('state');
         $request->session()->forget('branch_id');
+        $request->session()->forget('company_logo');
 
         return redirect()->route('user_login');
+
         // return view('frontview.login');
         // return view('company_client.logout');
     }

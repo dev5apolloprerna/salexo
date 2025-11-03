@@ -3,23 +3,28 @@
 @section('title', 'Add Quotation')
 
 @section('content')
-<div class="main-content">
-  <div class="page-content">
-    <div class="container-fluid">
 
-        <!-- Page Heading -->
-        <div class="d-sm-flex align-items-center justify-content-between mb-4">
-            <h1 class="h3 mb-0 text-gray-800">Add Quotation</h1>
-        </div>
+ <div class="main-content">
+        <div class="page-content">
+            <div class="container-fluid">
+            {{-- Alert Messages --}}
+            @include('common.alert')
 
-        {{-- Alert Messages --}}
-        @include('common.alert')
+            <div class="row">
+                <div class="col-lg-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title mb-0">
+                        <h5 class="mb-sm-0">Add Quotation </h5>
+                        
+                        <a href="{{ route('quotation.index') }}" style="float: right;"
+                                class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
+                                Back
+                            </a>
+                        </h5>
+        <hr> 
+        <div class="live-preview">
 
-        <!-- DataTales Example -->
-        <div class="card shadow mb-4">
-            <div class="card-header py-3">
-                <h6 class="m-0 font-weight-bold text-primary">Add Quotation</h6>
-            </div>
             <form method="POST" action="{{ route('quotation.store') }}" enctype="multipart/form-data">
                 @csrf
                 <div class="card-body">
@@ -113,8 +118,13 @@
                     <a class="btn btn-primary float-right mr-3 mb-3" href="{{ route('quotation.index') }}">Cancel</a>
                 </div>
             </form>
-        </div>
+            </div>
+        
     </div>
+</div>
+</div>
+</div>
+</div>
 </div>
 </div>
 

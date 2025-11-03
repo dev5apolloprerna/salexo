@@ -57,15 +57,20 @@
                               </div>
 
                               <div class="row g-3 mb-3">
-                                <div class="col-md-6">
-                                  <label class="form-label">Address 2</label>
-                                  <input type="text" class="form-control" name="address2" value="{{ old('address2', $party->address2) }}">
+                                  <div class="col-md-6">
+                                    <label class="form-label">City</label>
+                                    <input type="text" class="form-control" name="city" value="{{ old('city', $party->city) }}">
+                                  </div>
+                                  <div class="col-md-6">
+                                    <label class="form-label">State</label>
+                                    <select class="form-control" name="state" id="state">
+                                      <option value="">Select State</option>
+                                        @foreach($state as $s)
+                                        <option value="{{$s->stateId}}"  @if($s->stateId == $party->state){{ 'selected' }} @endif> {{ $s->stateName }} </option>
+                                        @endforeach
+                                    </select>
+                                  </div>
                                 </div>
-                                <div class="col-md-6">
-                                  <label class="form-label">Address 3</label>
-                                  <input type="text" class="form-control" name="address3" value="{{ old('address3', $party->address3) }}">
-                                </div>
-                              </div>
 
                               <div class="card-footer mt-2">
                                   <div class="mb-3" style="float: right;">

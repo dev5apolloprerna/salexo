@@ -3,233 +3,211 @@
 @section('title', 'Edit Quotation')
 
 @section('content')
+<div class="main-content">
+  <div class="page-content">
     <div class="container-fluid">
 
-        <!-- Page Heading -->
-        <div class="d-sm-flex align-items-center justify-content-between mb-4">
-            <h1 class="h3 mb-0 text-gray-800">Edit Quotation</h1>
-        </div>
+      {{-- Alerts --}}
+      @include('common.alert')
 
-        {{-- Alert Messages --}}
-        @include('common.alert')
+      <div class="row">
+        <div class="col-lg-12">
+          <div class="card">
+            <div class="card-body">
+              <h5 class="card-title mb-0">
+                Edit Quotation
+                <a href="{{ route('quotation.index') }}" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm" style="float:right;">
+                  Back
+                </a>
+              </h5>
+              <hr>
 
-        <!-- DataTales Example -->
-        <div class="card shadow mb-4">
-            <div class="card-header py-3">
-                <h6 class="m-0 font-weight-bold text-primary">Edit Quotation</h6>
-            </div>
-            <form method="POST" action="{{ route('quotation.update',$Data->quotationId) }}" enctype="multipart/form-data">
-                @csrf
-                <div class="card-body">
+              <div class="live-preview">
+                <form method="POST" action="{{ route('quotation.update', $Data->quotationId) }}" enctype="multipart/form-data">
+                  @csrf
+                  @method('PUT')
+
+                  <div class="card-body">
                     <div class="form-group row">
-                        <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
-                            <span style="color:red;">*</span>Company Name</label>
-                            <select class="form-control form-control-user" @error('iCompanyId') is-invalid @enderror id="mappingCompany" onchange="termconditionFetch();"
-                                name="iCompanyId" required>
-                                <option selected disabled value="">Select Company</option>
-                                @foreach ($Company as $company)
-                                    <option value="{{ $company->companyId }}"
-                                        {{ $Data->iCompanyId == $company->companyId ? 'selected' : '' }}>
-                                        {{ $company->strCompanyName }}</option>
-                                @endforeach
-                            </select>
-                        </div>
 
-                        <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
-                            <span style="color:red;">*</span>Year</label>
-                            <select class="form-control form-control-user" @error('iYearId') is-invalid @enderror
-                                name="iYearId" required>
-                                <!--<option selected disabled value="">Select Year</option>-->
-                                @foreach ($Year as $year)
-                                    <option value="{{ $year->year_id }}"
-                                        {{ $Data->iYearId == $year->year_id ? 'selected' : '' }}>
-                                        {{ $year->strYear }}</option>
-                                @endforeach
-                            </select>
-                        </div>
+                      {{-- Company (locked to logged-in user’s company) --}}
+                      <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
+                        <label for="mappingCompany"><span style="color:red;">*</span> Company</label>
+                        <select id="mappingCompany" name="iCompanyId" class="form-control form-control-user @error('iCompanyId') is-invalid @enderror" required>
+                          @if($Company)
+                            <option value="{{ $Company->company_id }}" selected>{{ $Company->company_name }}</option>
+                          @else
+                            <option value="" selected disabled>Company not found</option>
+                          @endif
+                        </select>
+                        @error('iCompanyId')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                      </div>
 
-                        <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
-                            <span style="color:red;">*</span>Date</label>
-                            <input type="text"
-                                class="form-control form-control-user @error('entryDate') is-invalid @enderror"
-                                id="datepicker" placeholder="Select Date" name="entryDate" value="{{ $Data->entryDate }}"
-                                required>
-                        </div>
+                      {{-- Party (Select2 autosuggest or static) --}}
+                      <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
+                        <label for="mappingParty"><span style="color:red;">*</span> Party Name</label>
+                        <select
+                          class="form-control form-control-user @error('iPartyId') is-invalid @enderror"
+                          id="mappingParty"
+                          name="iPartyId"
+                          required
+                          style="width:100%;"
+                        >
+                          @php
+                            $selectedPartyId = old('iPartyId', $Data->iPartyId);
+                          @endphp
+                          @foreach ($Party as $party)
+                            <option value="{{ $party->partyId }}" @selected($selectedPartyId == $party->partyId)>{{ $party->strPartyName }}</option>
+                          @endforeach
+                        </select>
+                        @error('iPartyId')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                      </div>
 
-                        <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
-                            <span style="color:red;">*</span>Party Name</label>
-                            <select class="form-control form-control-user" id="mappingParty" @error('iPartyId') is-invalid @enderror
-                                name="iPartyId" required>
-                                <option selected disabled value="">Select Party Name</option>
-                                <!--@foreach ($Party as $party)-->
-                                <!--    <option value="{{ $party->partyId }}"-->
-                                <!--        {{ old('iPartyId') == $party->partyId ? 'selected' : '' }}>-->
-                                <!--        {{ $party->strPartyName }}</option>-->
-                                <!--@endforeach-->
-                            </select>
-                        </div>
+                      {{-- Year --}}
+                      <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
+                        <label for="year"><span style="color:red;">*</span> Year</label>
+                        <select class="form-control form-control-user @error('iYearId') is-invalid @enderror" id="year" name="iYearId" required>
+                          @foreach ($Year as $year)
+                            <option value="{{ $year->year_id }}" @selected(old('iYearId', $Data->iYearId) == $year->year_id)>{{ $year->strYear }}</option>
+                          @endforeach
+                        </select>
+                        @error('iYearId')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                      </div>
 
-                        <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
-                            <span style="color:red;">*</span>Quotation No</label>
-                            <input class="form-control" id="basic-form-name" name="iQuotationNo" type="text"
-                                   placeholder="Enter Quotation No" value="{{ old('iQuotationNo') }}" readonly>
+                      {{-- Date (d-m-Y UI) --}}
+                      <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
+                        <label for="datepicker"><span style="color:red;">*</span> Date</label>
+                        <input
+                          type="text"
+                          class="form-control form-control-user @error('entryDate') is-invalid @enderror"
+                          id="datepicker"
+                          placeholder="Select Date"
+                          name="entryDate"
+                          value="{{ old('entryDate', $Data->entryDate ?? '') }}"
+                          required
+                        >
+                        @error('entryDate')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                      </div>
 
-                        </div>
+                      {{-- Quotation No (readonly; auto-changes when company changes) --}}
+                      <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
+                        <label for="iQuotationNo"><span style="color:red;">*</span> Quotation No</label>
+                        <input
+                          class="form-control @error('iQuotationNo') is-invalid @enderror"
+                          id="iQuotationNo"
+                          name="iQuotationNo"
+                          type="text"
+                          placeholder="Enter Quotation No"
+                          value="{{ old('iQuotationNo', $Data->iQuotationNo) }}"
+                          readonly
+                        >
+                        @error('iQuotationNo')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                      </div>
 
-                        <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
-                            <span style="color:red;"></span>Quotation Validity</label>
-                            <input class="form-control" id="basic-form-name" name="quotationValidity" type="text"
-                                placeholder="Enter Quotation Validity" value="{{ old('quotationValidity') }}">
-                        </div>
+                      <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
+                        <label for="quotationValidity">Quotation Validity</label>
+                        <input class="form-control" id="quotationValidity" name="quotationValidity" type="text"
+                               placeholder="Enter Quotation Validity" value="{{ old('quotationValidity', $Data->quotationValidity) }}">
+                      </div>
 
-                        <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
-                            <span style="color:red;"></span>Mode Of Dispatch</label>
-                            <input class="form-control" id="basic-form-name" name="modeOfDespatch" type="text"
-                                placeholder="Enter Mode Of Dispatch" value="{{ old('modeOfDespatch') }}">
-                        </div>
+                      <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
+                        <label for="modeOfDespatch">Mode Of Dispatch</label>
+                        <input class="form-control" id="modeOfDespatch" name="modeOfDespatch" type="text"
+                               placeholder="Enter Mode Of Dispatch" value="{{ old('modeOfDespatch', $Data->modeOfDespatch) }}">
+                      </div>
 
-                        <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
-                            <span style="color:red;"></span>Delivery Terms</label>
-                            <input class="form-control" id="basic-form-name" name="deliveryTerm" type="text"
-                                placeholder="Enter Delivery Terms" value="{{ old('deliveryTerm') }}">
-                        </div>
+                      <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
+                        <label for="deliveryTerm">Delivery Terms</label>
+                        <input class="form-control" id="deliveryTerm" name="deliveryTerm" type="text"
+                               placeholder="Enter Delivery Terms" value="{{ old('deliveryTerm', $Data->deliveryTerm) }}">
+                      </div>
 
-                        <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
-                            <span style="color:red;"></span>Payment Terms</label>
-                            <input class="form-control" id="basic-form-name" name="paymentTerms" type="text"
-                                placeholder="Enter Payment Terms" value="{{ old('paymentTerms') }}">
-                        </div>
+                      <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
+                        <label for="paymentTerms">Payment Terms</label>
+                        <input class="form-control" id="paymentTerms" name="paymentTerms" type="text"
+                               placeholder="Enter Payment Terms" value="{{ old('paymentTerms', $Data->paymentTerms) }}">
+                      </div>
 
-                        <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
-                            <span style="color:red;">*</span>GST Type</label>
-                            <select class="form-control form-control-user" @error('iGstType') is-invalid @enderror
-                                name="iGstType" required>
-                                <option value="">Select GST Type</option>
-                                <option value="1">GST</option>
-                                <option value="2">IGST</option>
-                            </select>
-                        </div>
-                        <div class="col-sm-12 mb-3 mt-3 mb-sm-0">
-                            <span style="color:red;"></span>Terms & Condition</label>
-                            <textarea class="form-control" id="fetchtermcondition" name="strTermsCondition"> </textarea>
-                        </div>
+                      {{-- GST Type --}}
+                      <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
+                        <label for="iGstType"><span style="color:red;">*</span> GST Type</label>
+                        <select class="form-control form-control-user @error('iGstType') is-invalid @enderror" id="iGstType" name="iGstType" required>
+                          <option value="">Select GST Type</option>
+                          <option value="1" @selected(old('iGstType', $Data->iGstType) == 1)>GST</option>
+                          <option value="2" @selected(old('iGstType', $Data->iGstType) == 2)>IGST</option>
+                        </select>
+                        @error('iGstType')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                      </div>
+
+                      {{-- Terms & Conditions (CKEditor) --}}
+                      <div class="col-sm-12 mb-3 mt-3 mb-sm-0">
+                        <label for="fetchtermcondition">Terms & Condition</label>
+                        <textarea class="form-control @error('strTermsCondition') is-invalid @enderror" id="fetchtermcondition" name="strTermsCondition">{{ old('strTermsCondition', $Data->strTermsCondition) }}</textarea>
+                        @error('strTermsCondition')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                      </div>
+
                     </div>
-                </div>
+                  </div>
 
-                <div class="card-footer">
+                  <div class="card-footer">
                     <button type="submit" class="btn btn-success btn-user float-right mb-3">Save</button>
                     <a class="btn btn-primary float-right mr-3 mb-3" href="{{ route('quotation.index') }}">Cancel</a>
-                </div>
-            </form>
+                  </div>
+                </form>
+              </div> {{-- live-preview --}}
+            </div>
+          </div>
         </div>
+      </div>
+
     </div>
+  </div>
+</div>
 @endsection
 
 @section('scripts')
+  {{-- jQuery UI datepicker --}}
+  <link rel="stylesheet" href="//code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+  <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.js"></script>
 
-    <link rel="stylesheet" href="//code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
-    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.js"></script>
-    <script src="https://cdn.ckeditor.com/4.12.1/standard/ckeditor.js"></script>
-    <script>
-        CKEDITOR.replace('strTermsCondition');
-        $(function() {
-            $("#datepicker").datepicker({
-                dateFormat: 'd-m-yy',
-                // minDate: 0,
-            });
-            $("#datepicker").datepicker("setDate", new Date());
+  {{-- CKEditor --}}
+  <script src="https://cdn.ckeditor.com/4.12.1/standard/ckeditor.js"></script>
 
+  {{-- Select2 (optional for Party autosuggest) --}}
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.full.min.js"></script>
+
+  <script>
+    // CKEditor on the correct textarea id
+    CKEDITOR.replace('fetchtermcondition');
+
+    // Datepicker with d-m-yy
+    $(function () {
+      $("#datepicker").datepicker({ dateFormat: 'd-m-yy' });
+      // If entryDate is empty, set today; otherwise keep existing value
+      if (!$("#datepicker").val()) {
+        $("#datepicker").datepicker("setDate", new Date());
+      }
+    });
+
+    // Company -> get next quotation no
+    $('#mappingCompany').on('change', function () {
+      var companyId = $(this).val();
+      if (companyId) {
+        $.ajax({
+          url: "{{ route('quotation.getNextNo', ':companyId') }}".replace(':companyId', companyId),
+          type: 'GET',
+          success: function (data) {
+            $('input[name="iQuotationNo"]').val(data);
+          },
+          error: function (xhr) { console.error(xhr.responseText); }
         });
+      } else {
+        $('input[name="iQuotationNo"]').val('');
+      }
+    });
 
-        $(function() {
-            $("#EditentryDate").datepicker({
-                dateFormat: 'd-m-yy',
-                // minDate: 0
-            });
-            // $("#EditentryDate").datepicker("setDate", new Date());
-        });
-    </script>
-    
-    <script>
-        $('#mappingCompany').change(function() {
-            mapping();
-        });
-
-        function mapping() {
-            var company = $("#mappingCompany").val();
-
-            //alert(company);
-            var url = "{{ route('quotation.mapping', ':company') }}";
-            url = url.replace(":company", company);
-            $.ajax({
-                url: url,
-                type: 'GET',
-                data: {
-                    company: company,
-                },
-                success: function(data) {
-                    // $('#mappingsubject_id').html(data);
-                    //alert(data);
-                    //$("#mappingsubject_id").multiselect('');
-                    $("#mappingParty").html('');
-
-                    //$("#mappingsubject_id").multiselect('');
-                    $("#mappingParty").append(data);
-                    //$("#mappingsubject_id").append('<option value="option5">Option</option>');
-                    $("#mappingParty").multiselect('rebuild');
-                }
-            });
-        }
-    </script>
-    
-    <script>
-        function termconditionFetch() {
-            var fetchcompany = $('#mappingCompany').val();
-            //alert(fetchcompany);
-            $.ajax({
-                type: 'GET',
-                url: "{{ route('quotation.termconditionFetch') }}",
-                data: {
-                    fetchcompany: fetchcompany,
-                },
-                success: function(data) {
-                    var obj = JSON.parse(data);
-                    //alert(data);
-                    var des="";
-                    $.each(JSON.parse(data), function(i, item) {
-                            console.log(item.description);
-                                des+=item.description+"<br />";
-                                    //CKEDITOR.instances['fetchtermcondition'].setData(item.description);
-                                });
-                        
-                    CKEDITOR.instances['fetchtermcondition'].setData(des);
-                    
-                }
-            });
-
-        }
-    </script>
-    
-    
-    <script>
-        $('#mappingCompany').change(function () {
-            var companyId = $(this).val();
-            if (companyId) {
-                $.ajax({
-                    url: "{{ route('quotation.getNextNo', ':companyId') }}".replace(':companyId', companyId),
-                    type: 'GET',
-                    success: function (data) {
-                        $('input[name="iQuotationNo"]').val(data);
-                    },
-                    error: function (xhr, status, error) {
-                        console.error(xhr.responseText);
-                    }
-                });
-            } else {
-                $('input[name="iQuotationNo"]').val(''); // Clear the input if no company is selected
-            }
-        });
-    </script>
-
-
+   
+  </script>
 @endsection

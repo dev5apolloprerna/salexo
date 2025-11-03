@@ -108,11 +108,18 @@ class QuotationController extends Controller
 
     public function editview(Request $request, $Id)
     {
+                        $user = Auth::user();
+
         $Data = Quotation::where([
             'iStatus' => 1, 'isDelete' => 0, 'quotationId' => $Id
         ])->firstOrFail();
+        $Year = Year::orderBy('year_id', 'DESC')->where(['iStatus' => 1, 'isDelete' => 0])->get();
+        $Company = CompanyClient::orderBy('company_id', 'DESC')->where(['company_id'=>$user->company_id,'iStatus' => 1, 'isDeleted' => 0])->first();
+        $Party = Party::orderBy('partyId', 'DESC')->where(['party.iStatus' => 1, 'party.isDelete' => 0])->get();
 
-        return response()->json([
+
+        return view('company_client.quotation.edit',compact('Data','Company','Party','Year'));
+       /* return response()->json([
             'iYearId'           => $Data->iYearId,
             'iQuotationNo'      => $Data->iQuotationNo,
             'iPartyId'          => $Data->iPartyId,
@@ -125,7 +132,7 @@ class QuotationController extends Controller
             'entryDate'         => $Data->entryDate?->format('d-m-Y'),
             'iGstType'          => $Data->iGstType,
             'strTermsCondition' => $Data->strTermsCondition,
-        ]);
+        ]);*/
     }
 
 

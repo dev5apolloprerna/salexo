@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 
 use App\Http\Requests\StorePartyRequest;
 use App\Http\Requests\UpdatePartyRequest;
+use App\Models\State;
 use App\Models\Party;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -19,7 +20,7 @@ class PartyController extends Controller
         $q         = $request->get('q');
         $editId    = (int)$request->get('edit', 0);
 
-        $list = Party::with('company')
+        $list = Party::with('company','state')
             ->when($companyId > 0, fn($x) => $x->where('iCompanyId', $companyId))
             ->where('isDelete', 0)
             ->when($q, function ($x) use ($q) {
@@ -35,7 +36,6 @@ class PartyController extends Controller
             ->withQueryString();
 
         $editing = $editId ? Party::where('isDelete',0)->findOrFail($editId) : null;
-
         return view('company_client.party.index', [
             'list'       => $list,
             'company_id' => $companyId,
@@ -100,12 +100,16 @@ class PartyController extends Controller
     }
     public function create()
     {
-        return view('company_client.party.add');
+          $state=State::where(['iStatus'=>1,'isDelete'=>0])->get();
+      
+        return view('company_client.party.add',compact('state'));
     }
 
     public function edit(Party $party) // or findOrFail($id) if not using model binding
     {
-        return view('company_client.party.edit', compact('party'));
+         $state=State::where(['iStatus'=>1,'isDelete'=>0])->get();
+       
+        return view('company_client.party.edit', compact('party','state'));
     }
 
 
