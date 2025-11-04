@@ -3,6 +3,10 @@
 @section('title', 'Edit Quotation')
 
 @section('content')
+@php
+    $company_id = Auth::guard('web_employees')->user()->company_id ?? '0';
+@endphp
+
 <div class="main-content">
   <div class="page-content">
     <div class="container-fluid">
@@ -29,6 +33,7 @@
 
                   <div class="card-body">
                     <div class="form-group row">
+                     <input type="hidden" name="companyId" value="{{ $company_id }}" id="companyId">
 
                       {{-- Company (locked to logged-in user’s company) --}}
                      <!--  <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
@@ -222,7 +227,7 @@
     });
 
     // Company -> get next quotation no
-    $('#mappingCompany').on('change', function () {
+  /*  $('#mappingCompany').on('change', function () {
       var companyId = $(this).val();
       if (companyId) {
         $.ajax({
@@ -236,7 +241,7 @@
       } else {
         $('input[name="iQuotationNo"]').val('');
       }
-    });
+    });*/
 
  $('#EditcompanyID').change(function() {
             mapping();
@@ -264,5 +269,26 @@
             });
         }
    
+       $(function () {
+    const COMPANY_ID = Number($('#companyId').val() || 0);
+
+    function setQuotationNo() {
+      if (!COMPANY_ID) {
+        $('input[name="iQuotationNo"]').val('');
+        return;
+      }
+      $.ajax({
+        url: "{{ route('quotation.getNextNo', ':companyId') }}".replace(':companyId', COMPANY_ID),
+        type: 'GET',
+        success: function (data) {
+          $('input[name="iQuotationNo"]').val(data);
+        },
+        error: function (xhr) { console.error(xhr.responseText); }
+      });
+    }
+
+    // Hydrate on load
+    setQuotationNo();
+  });
   </script>
 @endsection

@@ -3,7 +3,9 @@
 @section('title', 'Add Quotation')
 
 @section('content')
-
+@php
+    $company_id = Auth::guard('web_employees')->user()->company_id ?? '0';
+@endphp
 <div class="main-content">
         <div class="page-content">
             <div class="container-fluid">
@@ -35,7 +37,7 @@
                 @csrf
                 <div class="card-body">
                     <div class="form-group row">
-                     
+                     <input type="hidden" name="companyId" value="{{ $company_id }}" id="companyId">
                         <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
                           <label for="mappingParty"><span style="color:red;">*</span> Party Name</label>
 
@@ -166,7 +168,7 @@
 
 
     <script>
-          $(function () {
+$(function () {
     $('#mappingParty').select2({
       placeholder: 'Select Party Name',
       allowClear: true,
@@ -277,23 +279,28 @@
     
     
     <script>
-        $('#mappingCompany').change(function () {
-            var companyId = $(this).val();
-            if (companyId) {
-                $.ajax({
-                    url: "{{ route('quotation.getNextNo', ':companyId') }}".replace(':companyId', companyId),
-                    type: 'GET',
-                    success: function (data) {
-                        $('input[name="iQuotationNo"]').val(data);
-                    },
-                    error: function (xhr, status, error) {
-                        console.error(xhr.responseText);
-                    }
-                });
-            } else {
-                $('input[name="iQuotationNo"]').val(''); // Clear the input if no company is selected
-            }
-        });
+$(function () {
+    const COMPANY_ID = Number($('#companyId').val() || 0);
+
+    function setQuotationNo() {
+      if (!COMPANY_ID) {
+        $('input[name="iQuotationNo"]').val('');
+        return;
+      }
+      $.ajax({
+        url: "{{ route('quotation.getNextNo', ':companyId') }}".replace(':companyId', COMPANY_ID),
+        type: 'GET',
+        success: function (data) {
+          $('input[name="iQuotationNo"]').val(data);
+        },
+        error: function (xhr) { console.error(xhr.responseText); }
+      });
+    }
+
+    // Hydrate on load
+    setQuotationNo();
+  });
+
     </script>
 
 
