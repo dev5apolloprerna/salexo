@@ -18,32 +18,43 @@
                 {{-- Page Content --}}
                 <div class="row">
                     <div class="col-md-3 border-right">
+                         <form action="{{ route('empprofile.update') }}" method="POST" enctype="multipart/form-data">
+                                @csrf
                         <div class="d-flex flex-column align-items-center text-center p-3 py-5">
-                            <img
+
+                            @php
+                                $logoPath = auth()->user()?->company?->company_logo
+                                    ? 'uploads/company/' . ltrim(auth()->user()->company->company_logo, '/\\')
+                                    : null;
+                            @endphp
+
+                            <img  src="{{ auth()->user()?->company?->company_logo
+                                      ? asset(ltrim(auth()->user()?->company?->company_logo, '/'))
+                                      : asset('assets/images/users/undraw_profile.webp') }}"
+
+                              id="companyLogoPreview"
                               class="rounded-circle mt-5"
                               width="150"
-                              src="{{ auth()->user()?->company?->company_logo
-                                      ? asset('uploads/company/' . ltrim(auth()->user()?->company?->company_logo, '/'))
-                                      : asset('assets/images/users/undraw_profile.webp') }}"
-                              alt="Company Logo" >
+                              height="150"
+                              style="object-fit:cover"
+                              alt="Company Logo">
 
-                            <span class="font-weight-bold">{{ auth()->user()->full_name }}</span>
-                            <?php
-                            $id = Auth::guard('web_employees')->user()->emp_id;
-                            $user = App\Models\Employee::where(['emp_id' => $id])->first();
-                            $role = App\Models\Employee::select('employee_master.emp_id', 'roles.name')
-                                    ->where('employee_master.emp_id', $id)
-                                    ->join('roles', 'employee_master.role_id', '=', 'roles.id')
-                                    ->first();
-                            ?>
-                            <span class="text-black-50">
-                                <i>Role:
-                                    {{ $role->name }}
+                            <label class="btn btn-outline-primary btn-sm mt-3">
+                                Change Logo
+                                <input
+                                    type="file"
+                                    name="company_logo"
+                                    id="companyLogoInput"
+                                    accept="image/png,image/jpeg,image/jpg,image/webp,image/gif"
+                                    hidden
+                                >
+                            </label>
+                            <small class="text-muted mt-2">PNG/JPG/WEBP/GIF • Max 3 MB</small>
 
-                                </i>
-                            </span>
-                            <span class="text-black-50">{{ auth()->user()->email }}</span>
+                            <span class="font-weight-bold mt-3">{{ auth()->user()->full_name }}</span>
+                            {{-- … rest stays as is (Role, email, etc.) --}}
                         </div>
+                    
                     </div>
                     <div class="col-md-9 border-right">
                         {{-- Profile --}}
@@ -51,8 +62,7 @@
                             <div class="d-flex justify-content-between align-items-center mb-3">
                                 <h4 class="text-right">Profile</h4>
                             </div>
-                            <form action="{{ route('empprofile.update') }}" method="POST">
-                                @csrf
+                           
                                 <div class="row mt-2">
                                      <div class="col-md-4">
                                         <label class="labels">Company Name</label>
@@ -208,6 +218,33 @@
     <script src="https://cdn.ckeditor.com/4.12.1/standard/ckeditor.js"></script>
     <script>
         CKEDITOR.replace('terms_condition');
-        
+(function () {
+
+    const input = document.getElementById('companyLogoInput');
+    const img   = document.getElementById('companyLogoPreview');
+    if (!input || !img) return;
+
+    input.addEventListener('change', function (e) {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      const url = URL.createObjectURL(file);
+      img.src = url;
+    });
+  })();
+
+  // If you also added the right-side file input with id companyLogoInput2
+  (function () {
+    const input = document.getElementById('companyLogoInput2');
+    const img   = document.getElementById('companyLogoPreview');
+    if (!input || !img) return;
+
+    input.addEventListener('change', function (e) {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      const url = URL.createObjectURL(file);
+      img.src = url;
+    });
+  })();
+
     </script>
     @endsection

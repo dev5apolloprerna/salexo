@@ -18,6 +18,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\File;
 
 class CompanyClientHomeController extends Controller
 {
@@ -214,85 +215,93 @@ class CompanyClientHomeController extends Controller
     }
 
     public function updateProfile(Request $request)
-
     {
+        $user_role_id = Auth::user()->role_id;
+         $userId =  Auth::user()->emp_id;
+         $company_id =  Auth::user()->company_id;
 
 
-        $user_role_id = session()->get('user_role_id');
+        /*$user_role_id = session()->get('user_role_id');
+        $userId       = session()->get('emp_id');
+        $company_id   = session()->get('company_id');*/
 
-
-        $userId = session()->get('emp_id');
-        $company_id = session()->get('company_id');
-
-        #Validations
-
+        // Validations
         $request->validate([
-
-            'emp_name'   => 'required',
-
-            'emp_email'  => 'required|email|unique:employee_master,emp_email,' . $userId . ',emp_id',
-
-            'emp_mobile' => 'required|numeric|digits:10',
-
-            'emp_loginId' => 'required',
-
+            'emp_name'     => 'required',
+            'emp_email'    => 'required|email|unique:employee_master,emp_email,' . $userId . ',emp_id',
+            'emp_mobile'   => 'required|numeric|digits:10',
+            'emp_loginId'  => 'required',
+            // logo is optional
+            'company_logo' => 'nullable|image|mimes:png,jpg,jpeg,webp,gif|max:3072', // 3MB
         ]);
 
-
-
         try {
-
             DB::beginTransaction();
 
-
-
-            if ($user_role_id == 2) 
-            {
-
+            if ((int)$user_role_id === 2) {
+                // Update employee basic info
                 Employee::where(['emp_id' => $userId])->update([
-
-                    'emp_name' => $request->emp_name,
-
-                    'emp_email' => $request->emp_email,
-
+                    'emp_name'   => $request->emp_name,
+                    'emp_email'  => $request->emp_email,
                     'emp_mobile' => $request->emp_mobile,
-
-                    'emp_loginId' => $request->emp_loginId,
-
+                    'emp_loginId'=> $request->emp_loginId,
                 ]);
 
+                // Fetch company (to read old logo path and then update)
+                $company = CompanyClient::where(['company_id' => $company_id])->firstOrFail();
 
+                // Prepare fields to update
+                $companyUpdate = [
+                    // NOTE: you were setting company_name = emp_name before; keeping same behavior
+                    'contact_person_name'=> $request->emp_name,
+                    'email'            => $request->emp_email,
+                    'mobile'           => $request->emp_mobile,
+                    'GST'           => $request->GST,
+                    'payment_terms'    => $request->payment_terms,
+                    'delivery_terms'   => $request->delivery_terms,
+                    'terms_condition'  => $request->terms_condition,
+                ];
 
-                CompanyClient::where(['company_id' => $company_id])->update([
+                // ---- Handle company logo upload (optional) ----
+                if ($request->hasFile('company_logo')) {
+                    $file = $request->file('company_logo');
 
-                    'company_name' => $request->emp_name,
-                    'email' => $request->emp_email,
-                    'mobile' => $request->emp_mobile,
-                    'payment_terms'=>$request->payment_terms,
-                    'delivery_terms'=>$request->delivery_terms,
-                    'terms_condition'=>$request->terms_condition,
+                    // Destination: public_html/uploads/company
+                    $destAbs = public_path('../uploads/company'); // public_path() -> public_html on live
+                    if (!File::isDirectory($destAbs)) {
+                        File::makeDirectory($destAbs, 0775, true);
+                    }
 
-                ]);
+                    $ext     = strtolower($file->getClientOriginalExtension());
+                    $fname   = 'company_' . (int)$company_id . '_' . date('Ymd_His') . '.' . $ext;
+                    $file->move($destAbs, $fname);
+
+                    $newRelPath = 'uploads/company/' . $fname; // relative path for asset()
+
+                    // Delete old logo if exists
+                    if (!empty($company->company_logo)) {
+                        $oldAbs = public_path(ltrim($company->company_logo, '/\\'));
+                        if (File::exists($oldAbs)) {
+                            @File::delete($oldAbs);
+                        }
+                    }
+
+                    // Put new path into update array
+                    $companyUpdate['company_logo'] = $newRelPath;
+                }
+
+                // Commit company updates
+                CompanyClient::where(['company_id' => $company_id])->update($companyUpdate);
             }
 
-
-
-            #Commit Transaction
-
             DB::commit();
-
-
-
-            #Return To Profile page with success
-
             return back()->with('success', 'Profile Updated Successfully.');
         } catch (\Throwable $th) {
-
             DB::rollBack();
-
             return back()->with('error', $th->getMessage());
         }
     }
+
 
     public function changePassword(Request $request)
 

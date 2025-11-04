@@ -503,7 +503,26 @@ class QuotationController extends Controller
 
         // Company logo → base64 inline
         $companyLogoUrl = null;
-        if ($get($company, ['strLogo'])) {
+        $root = base_path('../public_html/');
+
+        // 1) pick relative path (from DB or fallback)
+        $rel = data_get($company, 'company_logo'); // e.g. 'uploads/company/logo.png' or 'logo.png'
+        $rel = $rel ? (str_contains($rel, '/') ? $rel : "uploads/company/$rel")
+                    : 'assets/images/favicon.png';
+        
+        // 2) build absolute path and fallback if missing
+        $path = $root . ltrim($rel, '/');
+        if (!file_exists($path)) {
+            $path = $root . 'assets/images/favicon.png';
+        }
+        
+        // 3) make data URI
+        $ext  = strtolower(pathinfo($path, PATHINFO_EXTENSION) ?: 'png');
+        $mime = $ext === 'jpg' ? 'image/jpeg' : "image/$ext";
+        $companyLogoUrl = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($path));
+        
+
+       /* if ($get($company, ['company_logo'])) {
             $path = public_path('CompanyLogo/'.$company->company_logo);
             if (!file_exists($path)) $path = public_path('assets/images/favicon.png');
         } else {
@@ -513,7 +532,7 @@ class QuotationController extends Controller
             $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION)) ?: 'png';
             $mime = $ext === 'jpg' ? 'jpeg' : $ext;
             $companyLogoUrl = "data:image/{$mime};base64,".base64_encode(file_get_contents($path));
-        }
+        }*/
 
         /* -----------------  Party fields  ----------------- */
        $partyName  = $party->strPartyName ?? 'Party';
