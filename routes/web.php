@@ -43,6 +43,7 @@ use App\Http\Controllers\Company\QuotationDetailController;
 use App\Http\Controllers\Company\QuotationPdfController;
 
 use App\Http\Controllers\Company\QuotationDesignController;
+use App\Http\Controllers\Company\QuotationTemplateController;
 
 
 /*
@@ -219,6 +220,7 @@ Route::prefix('clients/service')->name('service.')->middleware(['auth:web_employ
     Route::get('/edit/{id}', [ServiceController::class, 'edit'])->name('edit');
     Route::post('/update', [ServiceController::class, 'update'])->name('update');
     Route::delete('/delete', [ServiceController::class, 'destroy'])->name('destroy');
+
 });
 
 Route::prefix('clients/')->name('leads.')->middleware(['auth:web_employees'])->group(function () {
@@ -403,8 +405,14 @@ Route::prefix('clients/quotationdetails')->name('quotationdetails.')->middleware
 Route::get('/{id}/edit',[QuotationDetailController::class, 'editview'])->name('edit');
     Route::post('/quotationdetails-update/{Id?}', [QuotationDetailController::class, 'update'])->name('update');
     Route::delete('/quotationdetails-delete/{Id}', [QuotationDetailController::class, 'delete'])->name('delete');
+Route::get('/services/lookup', [QuotationDetailController::class, 'serviceLookup'])
+    ->name('services.lookup');
 
-    // routes/web.php
+Route::get('/services/{id}', [QuotationDetailController::class, 'serviceById'])
+    ->whereNumber('id')
+    ->name('services.byId');
+
+
 
 });
 
@@ -429,6 +437,8 @@ Route::middleware(['auth:web_employees'])->group(function () {
     Route::post('/bulk-delete',   [PartyController::class, 'bulkDestroy'])->name('bulk-delete');
     Route::patch('/{party}/toggle-status', [PartyController::class, 'toggleStatus'])->name('toggle-status');
     Route::get('/lookup-by-mobile', [PartyController::class, 'lookupByMobile'])->name('lookup-by-mobile');
+    Route::get('/ajax/parties', [PartyController::class, 'search'])->name('search');
+
   });
 });
 
@@ -446,7 +456,7 @@ Route::prefix('company')->name('company.')->group(function () {
 });
 
 
-Route::prefix('company/quotations')->name('company.quotations.')->group(function () {
+/*Route::prefix('company/quotations')->name('company.quotations.')->group(function () {
     // Design picker UI (shows latest quotation in chosen design)
     Route::get('designs',               [QuotationDesignController::class, 'picker'])->name('designs');
     Route::get('latest/preview/{d}',    [QuotationDesignController::class, 'previewLatest'])->name('latest.preview');
@@ -455,4 +465,32 @@ Route::prefix('company/quotations')->name('company.quotations.')->group(function
     // (Optional) Preview/PDF for a specific quotation id
     Route::get('{id}/preview/{d}',      [QuotationDesignController::class, 'preview'])->name('preview');
     Route::get('{id}/pdf/{d}',          [QuotationDesignController::class, 'pdf'])->name('pdf');
+});*/
+
+
+Route::prefix('company/quotations')->name('company.quotations.')->middleware('auth:web_employees')->group(function () {
+
+    // Designs list + create/upload form
+    Route::get('/designs', [QuotationTemplateController::class, 'index'])->name('designs');
+    Route::get('/designs/new', [QuotationTemplateController::class, 'create'])->name('designs.create');
+    Route::post('/designs', [QuotationTemplateController::class, 'store'])->name('designs.store');
+
+    // Toggle/activate, delete (optional)
+    Route::patch('/designs/{template}/toggle', [QuotationTemplateController::class, 'toggle'])->name('designs.toggle');
+    Route::delete('/designs/{template}', [QuotationTemplateController::class, 'destroy'])->name('designs.destroy');
+
+    // Preview latest (by version, like v1..v5)
+    Route::get('/latest/preview/{version}', [QuotationTemplateController::class, 'previewLatest'])
+      ->whereIn('version', ['v1','v2','v3','v4','v5'])
+      ->name('latest.preview');
+
+    // Preview a specific template id (optional)
+    Route::get('/preview/template/{template}', [QuotationTemplateController::class, 'previewByTemplate'])
+      ->name('preview.template');
+Route::patch('/designs/{template}/default', [QuotationTemplateController::class, 'setDefault'])
+    ->name('designs.setDefault');
+
+
 });
+
+

@@ -235,5 +235,6 @@
         function editpassword(id) {
             $("#GetId").val(id);
         }
+        
     </script>
 @endsection

@@ -139,15 +139,17 @@ class QuotationController extends Controller
 
     public function update(Request $request, $Id)
     {
-        //dd($Id);
-        $quotationId = $request->quotationId;
+                $user = Auth::user();
+
+
+        $quotationId = $Id;
         $Company = DB::table('quotation')
-            ->where(['iStatus' => 1, 'isDelete' => 0, 'quotationId' => $request->quotationId])
+            ->where(['iStatus' => 1, 'isDelete' => 0, 'quotationId' => $Id])
             ->update([
                 'iYearId' => $request->iYearId,
                 'iQuotationNo' => $request->iQuotationNo,
                 'iPartyId' => $request->iPartyId,
-                'iCompanyId' => $request->iCompanyId,
+                'iCompanyId' => $user->company_id,
                 'quotationValidity' => $request->quotationValidity,
                 'modeOfDespatch' => $request->modeOfDespatch,
                 'deliveryTerm' => $request->deliveryTerm,
@@ -156,8 +158,10 @@ class QuotationController extends Controller
                 'iGstType' => $request->iGstType,
                 'strTermsCondition' => $request->strTermsCondition
             ]);
-        //dd($Company);
-        return redirect()->route('quotationdetails.index',$quotationId)->with('success', 'Quotation Updated Successfully.');
+    return redirect()
+        ->route('quotationdetails.index', ['getId' => $quotationId])
+        ->with('success', 'Quotation Updated Successfully.');
+
     }
 
     public function delete(Request $request, $Id)

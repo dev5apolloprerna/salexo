@@ -43,6 +43,24 @@ class PartyController extends Controller
             'editing'    => $editing,
         ]);
     }
+    public function search(Request $request)
+    {
+        $q          = trim($request->get('q', ''));
+        $companyId  = (int) $request->get('company_id', 0); // optional filter
+
+        $rows = Party::query()
+            ->when($companyId > 0, fn($w) => $w->where('company_id', $companyId)) // remove if not needed
+            ->where(['isDelete' => 0]) // adjust flags/columns if different
+            ->when($q !== '', fn($w) => $w->where('strPartyName', 'like', "%{$q}%"))
+            ->orderBy('strPartyName')
+            ->limit(20)
+            ->get([
+                'partyId as id',
+                'strPartyName as text',
+            ]);
+
+        return response()->json(['results' => $rows]);
+    }
     public function lookupByMobile(Request $request)
     {
         // sanitize: keep digits only

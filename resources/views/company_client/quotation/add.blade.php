@@ -4,25 +4,31 @@
 
 @section('content')
 
- <div class="main-content">
+<div class="main-content">
         <div class="page-content">
             <div class="container-fluid">
-            {{-- Alert Messages --}}
-            @include('common.alert')
 
-            <div class="row">
-                <div class="col-lg-12">
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title mb-0">
-                        <h5 class="mb-sm-0">Add Quotation </h5>
-                        
-                        <a href="{{ route('quotation.index') }}" style="float: right;"
-                                class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
-                                Back
-                            </a>
-                        </h5>
-        <hr> 
+                {{-- Alert Messages --}}
+                @include('common.alert')
+
+               
+
+                <div class="row">
+                    <div class="col-lg-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title mb-0">
+                            <h5 class="mb-sm-0">Add Quotation
+                            
+                            <a href="{{ route('quotation.index') }}" style="float: right;"
+                                    class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
+                                    Back
+                                </a>
+                            </h5>
+                          
+                               <hr> 
+
+
         <div class="live-preview">
 
             <form method="POST" action="{{ route('quotation.store') }}" enctype="multipart/form-data">
@@ -31,17 +37,35 @@
                     <div class="form-group row">
                      
                         <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
-                            <span style="color:red;">*</span>Party Name</label>
-                            <select class="form-control form-control-user" id="mappingParty" @error('iPartyId') is-invalid @enderror
-                                name="iPartyId" required>
-                                <option selected disabled value="">Select Party Name</option>
-                                @foreach ($Party as $party)
-                                    <option value="{{ $party->partyId }}"
-                                        {{ old('iPartyId') == $party->partyId ? 'selected' : '' }}>
-                                        {{ $party->strPartyName }}</option>
-                                @endforeach
-                            </select>
+                          <label for="mappingParty"><span style="color:red;">*</span> Party Name</label>
+
+                          @php
+                            // If you want to preserve old selected value after validation error:
+                            $oldPartyId   = old('iPartyId');
+                            $oldPartyName = null;
+                            if ($oldPartyId) {
+                                $oldPartyName = optional(\App\Models\Party::find($oldPartyId))->strPartyName;
+                            }
+                          @endphp
+
+                          <select
+                            class="form-control form-control-user @error('iPartyId') is-invalid @enderror"
+                            id="mappingParty"
+                            name="iPartyId"
+                            style="width: 100%;"
+                            required
+                          >
+                            @if($oldPartyId && $oldPartyName)
+                              {{-- Preload the selected option so Select2 shows it --}}
+                              <option value="{{ $oldPartyId }}" selected>{{ $oldPartyName }}</option>
+                            @endif
+                          </select>
+
+                          @error('iPartyId')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                          @enderror
                         </div>
+
 
 
                         <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
@@ -59,7 +83,7 @@
 
                         <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
                             <span style="color:red;">*</span>Date</label>
-                            <input type="text"
+                            <input type="date"
                                 class="form-control form-control-user @error('entryDate') is-invalid @enderror"
                                 id="datepicker" placeholder="Select Date" name="entryDate" value="{{ old('entryDate') }}"
                                 required>
@@ -135,7 +159,43 @@
     <link rel="stylesheet" href="//code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
     <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.js"></script>
     <script src="https://cdn.ckeditor.com/4.12.1/standard/ckeditor.js"></script>
+
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.full.min.js"></script>
+
+
     <script>
+          $(function () {
+    $('#mappingParty').select2({
+      placeholder: 'Select Party Name',
+      allowClear: true,
+      width: '100%',
+      minimumInputLength: 1, // start searching after 1 char
+      ajax: {
+        url: '{{ route('party.search') }}',
+        dataType: 'json',
+        delay: 250,
+        data: function (params) {
+          return {
+            q: params.term || '',
+            company_id: $('#mappingCompany').val() || '' // remove if you don’t filter by company
+          };
+        },
+        processResults: function (data) {
+          // expects { results: [{id, text}, ...] }
+          return data;
+        },
+        cache: true
+      }
+    });
+
+    // Optional: if company changes, clear the selected party so user re-picks in new scope
+    $('#mappingCompany').on('change', function () {
+      $('#mappingParty').val(null).trigger('change');
+    });
+  });
+
         CKEDITOR.replace('strTermsCondition');
         $(function() {
             $("#datepicker").datepicker({
