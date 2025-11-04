@@ -56,6 +56,13 @@ if (Auth::guard('web')->user()) {
                             <i class="fa-solid fa fa-images"></i>
                             <span data-key="t-dashboards">Joining Requests</span>
                         </a>
+                    </li> 
+                    <li class="nav-item">
+                        <a class="nav-link menu-link @if (request()->routeIs('admin.quotations.templates')) {{ 'active' }} @endif"
+                            href="{{ route('admin.quotations.templates') }}">
+                            <i class="fa-solid fa fa-images"></i>
+                            <span data-key="t-dashboards">Quotation Template</span>
+                        </a>
                     </li>
                 @endif
 

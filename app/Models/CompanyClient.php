@@ -32,6 +32,7 @@ class CompanyClient extends Model
         'delivery_terms',
         'terms_condition',
         'no_of_users',
+        'companyTemplate',
         'iStatus',
         'isDeleted',
         'created_at',

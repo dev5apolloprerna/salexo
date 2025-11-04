@@ -1,6 +1,6 @@
 @php
 
-    $company_id = Auth::guard('web_employees')->user()->company_id;
+    $company_id = Auth::guard('web_employees')->user()->company_id ?? '0';
 
     $roleid = Auth::guard('web_employees')->user()->role_id;
 
@@ -356,6 +356,21 @@
                             href="{{ route('employee.calender.index') }}">
                             <i class="fa fa-calendar-alt"></i>
                             <span>Calender</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                      <a href="{{ route('party.index') }}"
+                         class="nav-link {{ request()->routeIs('party.*') ? 'active' : '' }}">
+                        <i class="fa fa-users me-2"></i>
+                        <span>Party Master</span>
+                      </a>
+                    </li>
+
+                     <li class="nav-item">
+                        <a class="nav-link collapsed" href="{{ route('quotation.index') }}">
+                            <!-- <i class="fas fa-user-alt"></i> -->
+                            <i class="fas fa-file-pdf"></i>
+                            <span>Quotation Master</span>
                         </a>
                     </li>
                 @endif
