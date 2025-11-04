@@ -1,9 +1,19 @@
-@extends('layouts.app')
+@extends('layouts.client')
 
 @section('title','Quotation Designs')
 @section('page_title','Choose Quotation Design')
 
 @section('content')
+<div class="main-content">
+        <div class="page-content">
+            <div class="container-fluid">
+
+              <div class="row">
+                    <div class="col-lg-12">
+                        <div class="card">
+                          <div class="card-body">
+
+
   @if(!$latestId)
     <div class="alert alert-warning">No quotations found. Create one to preview.</div>
   @else
@@ -30,4 +40,12 @@
       @endforeach
     </div>
   @endif
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
 @endsection

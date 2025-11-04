@@ -31,7 +31,7 @@
                     <div class="form-group row">
 
                       {{-- Company (locked to logged-in user’s company) --}}
-                      <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
+                     <!--  <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
                         <label for="mappingCompany"><span style="color:red;">*</span> Company</label>
                         <select id="mappingCompany" name="iCompanyId" class="form-control form-control-user @error('iCompanyId') is-invalid @enderror" required>
                           @if($Company)
@@ -41,7 +41,7 @@
                           @endif
                         </select>
                         @error('iCompanyId')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                      </div>
+                      </div> -->
 
                       {{-- Party (Select2 autosuggest or static) --}}
                       <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
@@ -75,15 +75,16 @@
                       </div>
 
                       {{-- Date (d-m-Y UI) --}}
+                      <?php $date = date('Y-m-d',strtotime($Data->entryDate)) ?>
                       <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
                         <label for="datepicker"><span style="color:red;">*</span> Date</label>
                         <input
-                          type="text"
+                          type="date"
                           class="form-control form-control-user @error('entryDate') is-invalid @enderror"
                           id="datepicker"
                           placeholder="Select Date"
                           name="entryDate"
-                          value="{{ old('entryDate', $Data->entryDate ?? '') }}"
+                          value="{{ old('entryDate', $date ?? '') }}"
                           required
                         >
                         @error('entryDate')<div class="invalid-feedback">{{ $message }}</div>@enderror
@@ -179,6 +180,35 @@
   <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.full.min.js"></script>
 
   <script>
+    $(function () {
+    $('#mappingParty').select2({
+      placeholder: 'Select Party Name',
+      allowClear: true,
+      width: '100%',
+      minimumInputLength: 1, // start searching after 1 char
+      ajax: {
+        url: '{{ route('party.search') }}',
+        dataType: 'json',
+        delay: 250,
+        data: function (params) {
+          return {
+            q: params.term || '',
+            company_id: $('#mappingCompany').val() || '' // remove if you don’t filter by company
+          };
+        },
+        processResults: function (data) {
+          // expects { results: [{id, text}, ...] }
+          return data;
+        },
+        cache: true
+      }
+    });
+
+    // Optional: if company changes, clear the selected party so user re-picks in new scope
+    $('#mappingCompany').on('change', function () {
+      $('#mappingParty').val(null).trigger('change');
+    });
+  });
     // CKEditor on the correct textarea id
     CKEDITOR.replace('fetchtermcondition');
 
@@ -208,6 +238,31 @@
       }
     });
 
+ $('#EditcompanyID').change(function() {
+            mapping();
+        });
+
+        function mapping() {
+            var company = $("#EditcompanyID").val();
+
+            var url = "{{ route('quotation.mapping', ':company') }}";
+            url = url.replace(":company", company);
+            $.ajax({
+                url: url,
+                type: 'GET',
+                data: {
+                    company: company,
+                },
+                success: function(data) {
+
+                    $("#EditiPartyId").html('');
+
+                    $("#EditiPartyId").append(data);
+
+                    // $("#EditiPartyId").multiselect('rebuild');
+                }
+            });
+        }
    
   </script>
 @endsection

@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Auth;
 
 use Illuminate\Validation\Rule;
 
-class serviceController extends Controller
+class ServiceController extends Controller
 {
     protected $service;
 
@@ -34,6 +34,7 @@ class serviceController extends Controller
         }
     }
 
+   
     public function create()
     {
         try {

@@ -12,6 +12,41 @@ use Illuminate\Support\Facades\DB;
 
 class QuotationDetailController extends Controller
 {
+    public function serviceLookup(Request $request)
+    {
+        $q = trim($request->get('q', ''));
+
+        $rows = Service::query()
+            ->when($q !== '', fn($x) => $x->where('service_name', 'like', "%{$q}%"))
+            ->where('isDelete', 0) // if you have this flag
+            ->orderBy('service_name')
+            ->limit(20)
+            ->get([
+                'service_id as id',
+                'service_name as text',
+                'HSN',
+                'service_description',
+            ]);
+
+        // Select2 wants { results: [{id, text, ...}] }
+        return response()->json([
+            'results' => $rows,
+        ]);
+    }
+
+    public function serviceById(int $id)
+    {
+        $row = Service::query()
+            ->where('service_id', $id)
+            ->first(['service_id as id', 'service_name as text', 'HSN', 'service_description']);
+
+        if (!$row) {
+            return response()->json(['message' => 'Not found'], 404);
+        }
+        return response()->json($row);
+    }
+
+
     public function index(Request $request, $id)
     {
         // Services for dropdown
@@ -76,39 +111,54 @@ class QuotationDetailController extends Controller
 
     public function create(Request $request)
     {
-        if($request->productID == 'other')
-        {
-            $service=Service::create([
-                'company_id' => auth()->user()->company_id,
-                'service_name' => $request->service_name,
-                'HSN' => $request->uom,
-                'service_description' => $request->description,
-                'created_at' => now(),
-            ]);
-                $productId = $service->service_id; 
-            } else {
-                // Ensure numeric id
-                $productId = $request->productID;
-            }
+         $data = $request->validate([
+        'quotationID'      => ['required', 'integer'],
+        'productID'        => ['required'], // can be numeric id OR '__new__:name' OR 'other'
+        'service_name'     => ['nullable', 'string', 'max:255'], // used when new
+        'description'      => ['required', 'string'],
+        'uom'              => ['required', 'string', 'max:50'],  // you’re using this as HSN too
+        'quantity'         => ['required', 'numeric'],
+        'rate'             => ['required', 'numeric'],
+        'amount'           => ['nullable', 'numeric'],
+        'discount'         => ['nullable', 'numeric'],
+        'netAmount'        => ['required', 'numeric'],
+        'iGstPercentage'   => ['required', 'numeric'],
+    ]);
+        $serviceId = $this->resolveServiceIdForRequest($request);
 
-        $Data = array(
-            'productID' => $productId,
-            'quotationID' => $request->quotationID,
-            'description' => $request->description,
-            'uom' => $request->uom,
-            'quantity' => $request->quantity,
-            'rate' => $request->rate,
-            'amount' => $request->amount ?? 0,
-            'discount' => $request->discount ?? 0,
-            'netAmount' => $request->netAmount,
-            'iGstPercentage' => $request->iGstPercentage
-        );
-        //dd($Data);
-        DB::table('quotationdetails')->insert($Data);
+    // ---- Compute amounts safely (server truth) ----
+    $qty       = (float)$data['quantity'];
+    $rate      = (float)$data['rate'];
+    $amountSrv = $qty * $rate; // server truth
+    $discount  = isset($data['discount']) ? (float)$data['discount'] : 0.0;
+
+    // If you want to trust UI netAmount, keep it; else recompute your own here.
+    $netAmount = (float)$data['netAmount'];
+
+    DB::table('quotationdetails')->insert([
+        'productID'       => $serviceId,
+        'quotationID'     => (int)$data['quotationID'],
+        'description'     => $data['description'],
+        'uom'             => $data['uom'],
+        'quantity'        => $qty,
+        'rate'            => $rate,
+        'amount'          => $amountSrv,           // prefer server calc to request
+        'discount'        => $discount,
+        'netAmount'       => $netAmount,
+        'iGstPercentage'  => (float)$data['iGstPercentage'],
+        'iStatus'         => 1,                    // set defaults if your table uses them
+        'isDelete'        => 0,
+        'created_at'      => now(),
+        'updated_at'      => now(),
+    ]);
+
+    return redirect()
+        ->route('quotationdetails.index', [$data['quotationID']])
+        ->with('success', 'Quotation Details Created Successfully.');
 
 
-        return redirect()->route('quotationdetails.index', [$request->quotationID])->with('success', 'Quotation Details Created Successfully.');
-    }
+/*        return redirect()->route('quotationdetails.index', [$request->quotationID])->with('success', 'Quotation Details Created Successfully.');
+*/    }
 
     // QuotationDetailController.php
         public function editview($id)
@@ -137,22 +187,53 @@ class QuotationDetailController extends Controller
 
     public function update(Request $request, $Id)
     {
-        $Company = DB::table('quotationdetails')
-            ->where(['iStatus' => 1, 'isDelete' => 0, 'quotationdetailsId' => $request->quotationdetailsId])
-            ->update([
-                'productID' => $request->productID,
-                'quotationID' => $request->quotationID,
-                'description' => $request->description,
-                'uom' => $request->uom,
-                'quantity' => $request->quantity,
-                'rate' => $request->rate,
-                'amount' => $request->amount ?? 0,
-                'discount' => $request->discount ?? 0,
-                'netAmount' => $request->netAmount,
-                'iGstPercentage' => $request->iGstPercentage
-            ]);
-        //dd($Company);
-        return redirect()->route('quotationdetails.index', [$request->quotationID])->with('success', 'Quotation Details Updated Successfully.');
+         $data = $request->validate([
+        'quotationdetailsId'=> ['required', 'integer'],
+        'quotationID'       => ['required', 'integer'],
+        'productID'         => ['required'],                   // numeric or '__new__:' or 'other'
+        'service_name'      => ['nullable', 'string', 'max:255'],
+        'description'       => ['required', 'string'],
+        'uom'               => ['required', 'string', 'max:50'],
+        'quantity'          => ['required', 'numeric'],
+        'rate'              => ['required', 'numeric'],
+        'amount'            => ['nullable', 'numeric'],
+        'discount'          => ['nullable', 'numeric'],
+        'netAmount'         => ['required', 'numeric'],
+        'iGstPercentage'    => ['required', 'numeric'],
+    ]);
+
+        $serviceId = $this->resolveServiceIdForRequest($request);
+
+    // ---- Compute amounts safely (server truth) ----
+    $qty       = (float)$data['quantity'];
+    $rate      = (float)$data['rate'];
+    $amountSrv = $qty * $rate;
+    $discount  = isset($data['discount']) ? (float)$data['discount'] : 0.0;
+    $netAmount = (float)$data['netAmount'];
+
+    DB::table('quotationdetails')
+        ->where([
+            'quotationdetailsId' => (int)$data['quotationdetailsId'],
+            'iStatus'            => 1,
+            'isDelete'           => 0,
+        ])
+        ->update([
+            'productID'       => $serviceId,
+            'quotationID'     => (int)$data['quotationID'],
+            'description'     => $data['description'],
+            'uom'             => $data['uom'],
+            'quantity'        => $qty,
+            'rate'            => $rate,
+            'amount'          => $amountSrv,
+            'discount'        => $discount,
+            'netAmount'       => $netAmount,
+            'iGstPercentage'  => (float)$data['iGstPercentage'],
+            'updated_at'      => now(),
+        ]);
+
+    return redirect()
+        ->route('quotationdetails.index', [$data['quotationID']])
+        ->with('success', 'Quotation Details Updated Successfully.');
     }
 
     public function delete(Request $request, $Id)
@@ -202,5 +283,53 @@ class QuotationDetailController extends Controller
 
         return  json_encode($product);
     }*/
+
+    private function resolveServiceIdForRequest(Request $request): int
+{
+    $raw = $request->input('productID');
+
+    // Case 1: Select2 "tags": "__new__:Some Service Name"
+    if (is_string($raw) && str_starts_with($raw, '__new__:')) {
+        $typed = trim(substr($raw, 8));
+        $name  = $request->string('service_name')->trim()->value() ?: $typed;
+
+        $svc = Service::create([
+            'company_id'          => auth()->user()->company_id ?? null,
+            'service_name'        => $name,
+            'HSN'                 => $request->input('uom', ''),                // or dedicate a separate HSN field
+            'service_description' => $request->input('description', ''),
+            'created_at'          => now(),
+            'updated_at'          => now(),
+        ]);
+        return (int)$svc->service_id;
+    }
+
+    // Case 2: Old "other" option
+    if ($raw === 'other') {
+        $name = $request->string('service_name')->trim()->value();
+        if (!$name) {
+            abort(422, 'Please enter Service Name for "Other".');
+        }
+
+        $svc = Service::create([
+            'company_id'          => auth()->user()->company_id ?? null,
+            'service_name'        => $name,
+            'HSN'                 => $request->input('uom', ''),
+            'service_description' => $request->input('description', ''),
+            'created_at'          => now(),
+            'updated_at'          => now(),
+        ]);
+        return (int)$svc->service_id;
+    }
+
+    // Case 3: Existing numeric id
+    if (is_numeric($raw)) {
+        return (int)$raw;
+    }
+
+    // Invalid payload
+    abort(422, 'Invalid product/service selection.');
+}
+
 
 }
