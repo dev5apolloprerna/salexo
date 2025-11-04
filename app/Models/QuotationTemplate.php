@@ -6,8 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 class QuotationTemplate extends Model
 {
     protected $fillable = [
-        'company_id','name','version','engine','file_path','inline_html','is_active','meta'
+         'id', 'company_id', 'name', 'file_path', 'guid', 'is_active', 'created_at', 'updated_at'
     ];
-    protected $casts = ['is_active'=>'bool','meta'=>'array'];
+    protected $casts = ['is_active'=>'bool'];
 }
 ?>

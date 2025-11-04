@@ -11,52 +11,64 @@ use App\Models\Party;
 use App\Models\Quotation;
 use App\Models\QuotationDetail;
 use App\Models\TermCondition;
+use App\Models\QuotationTemplate;
 use App\Models\Service;
-use Illuminate\Support\Facades\DB;
+
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\View;
+use Illuminate\Support\Facades\Blade;
+use Barryvdh\DomPDF\Facade\Pdf as PDF; // barryvdh/laravel-dompdf
 
-//use PDF;
+use Carbon\Carbon;
 
-use Barryvdh\DomPDF\Facade\Pdf as PDF;
 
 use Illuminate\Support\Facades\Auth;
 
 class QuotationController extends Controller
 {
 
-    public function index(Request $request)
+   public function index(Request $request)
     {
-        
-         $CompanyName = $request->companyName;
-         $ProductName = $request->productName;
-         $PartyName = $request->partyName;
-        
-        $Product = Service::orderBy('service_id', 'DESC')->where(['iStatus' => 1, 'isDelete' => 0])->get();
-        $Year = Year::orderBy('year_id', 'DESC')->where(['iStatus' => 1, 'isDelete' => 0])->get();
-        $Company = CompanyClient::orderBy('company_id', 'DESC')->where(['iStatus' => 1, 'isDeleted' => 0])->get();
-        $Party = Party::orderBy('partyId', 'DESC')->where(['party.iStatus' => 1, 'party.isDelete' => 0])->get();
-        $Quotation = Quotation::orderBy('quotationId', 'DESC')->where(['quotation.iStatus' => 1, 'quotation.isDelete' => 0])
-            
-            ->when($request->companyName, fn ($query, $CompanyName) => $query
-                ->where('quotation.iCompanyId', '=', $CompanyName))
-            ->when($ProductName, fn ($query, $productName) => $query->WhereIn(
-                'quotation.quotationId',
-                function ($query) use ($productName) {
-                    $query->select('quotationdetails.quotationID')
-                        ->from(with(new QuotationDetail)->getTable())
-                        ->whereIn('productID', $productName);
-                }
-            ))
-            ->when($request->partyName, fn ($query, $PartyName) => $query
-                ->where('quotation.iPartyId', '=', $PartyName))
-                
-            ->join('company_client_master', 'quotation.iCompanyId', '=', 'company_client_master.company_id')
-            ->join('party', 'quotation.iPartyId', '=', 'party.partyId')
-            ->join('year', 'quotation.iYearId', '=', 'year.year_id')
+        $PartyName = $request->partyName;
+        $fromDate  = $request->fromDate;     // dd-mm-YYYY or yyyy-mm-dd (we will convert)
+        $toDate    = $request->toDate;       // dd-mm-YYYY or yyyy-mm-dd
+
+        $Year    = Year::orderBy('year_id','DESC')->where(['iStatus'=>1,'isDelete'=>0])->get();
+        $Company = CompanyClient::orderBy('company_id','DESC')->where(['iStatus'=>1,'isDeleted'=>0])->get();
+        $Party   = Party::orderBy('partyId','DESC')->where(['party.iStatus'=>1,'party.isDelete'=>0])->get();
+        $Product = Service::orderBy('service_id','DESC')->where(['iStatus'=>1,'isDelete'=>0])->get();
+
+        $Quotation = Quotation::orderBy('quotationId','DESC')
+            ->where(['quotation.iStatus'=>1,'quotation.isDelete'=>0])
+
+            // ✅ Filter by Party
+            ->when($PartyName, function($q) use($PartyName) {
+                return $q->where('quotation.iPartyId', $PartyName);
+            })
+
+            // ✅ Filter From-Date
+            ->when($fromDate, function($q) use($fromDate) {
+                $from = date('Y-m-d', strtotime($fromDate));
+                return $q->whereDate('quotation.entryDate', '>=', $from);
+            })
+
+            // ✅ Filter To-Date
+            ->when($toDate, function($q) use($toDate) {
+                $to = date('Y-m-d', strtotime($toDate));
+                return $q->whereDate('quotation.entryDate', '<=', $to);
+            })
+
+            ->join('company_client_master','quotation.iCompanyId','=','company_client_master.company_id')
+            ->join('party','quotation.iPartyId','=','party.partyId')
+            ->join('year','quotation.iYearId','=','year.year_id')
             ->paginate(25);
-        //dd($Party);
-        return view('company_client.quotation.index', compact('Year', 'Company', 'Party', 'Quotation','Product','CompanyName','ProductName','PartyName'));
+
+        return view('company_client.quotation.index', compact(
+            'Year','Company','Party','Quotation','Product','PartyName','fromDate','toDate'
+        ));
     }
+
     
     public function getNextQuotationNo($companyId)
     {
@@ -195,38 +207,99 @@ class QuotationController extends Controller
 
     public function detailPDF(Request $request, $id)
     {
-        //dd($id);
-        $Year = Year::orderBy('year_id', 'DESC')->where(['iStatus' => 1, 'isDelete' => 0])->get();
-        $Company = CompanyClient::orderBy('company_id', 'DESC')->where(['iStatus' => 1, 'isDeleted' => 0])->get();
-        $Party = Party::orderBy('partyId', 'DESC')->where(['party.iStatus' => 1, 'party.isDelete' => 0])->get();
+        // 1) Load quotation with relations
+        $quotation = Quotation::with(['company','party'])
+            ->where(['iStatus' => 1, 'isDelete' => 0, 'quotationId' => $id])
+            ->firstOrFail();
 
-        $Quotation = Quotation::select('party.address1','company_client_master.company_name','company_client_master.Address','company_client_master.email','company_client_master.mobile','company_client_master.plan_id','company_client_master.GST','party.strPartyName','party.address2','party.address3','party.iMobile','party.strEmail','quotation.iQuotationNo','quotation.entryDate','quotation.iCompanyId','quotation.quotationValidity','quotation.modeOfDespatch','quotation.deliveryTerm','quotation.paymentTerms','quotation.iGstType','quotation.strTermsCondition')
-        
-        ->orderBy('quotation.quotationId', 'ASC')->where(['quotation.iStatus' => 1, 'quotation.isDelete' => 0, 'quotation.quotationId' => $id])
-            ->join('company_client_master', 'quotation.iCompanyId', '=', 'company_client_master.company_id')
-            ->join('party', 'quotation.iPartyId', '=', 'party.partyId')
-            ->join('year', 'quotation.iYearId', '=', 'year.year_id')
-            ->first();
-            // $path = ("https://quotation.sanjay-sales.com/CompanyLogo/" . $Quotation->strLogo);
-            $path = ("https://salexo.in/assets/images/logo.png");
-            $type = pathinfo($path, PATHINFO_EXTENSION);
-            $data = file_get_contents($path);
-            $pic = 'data:CompanyLogo/' . $type . ';base64,' . base64_encode(($data));
+        // 2) Resolve the default template for THIS quotation's company
+        $tpl = $this->getDefaultTemplateForCompany($quotation->iCompanyId);
 
+        // 3) Build payload for the template (your existing function)
+        $data = $this->previewData($quotation);
 
-        $QuotationDetail = QuotationDetail::orderBy('quotationdetailsId', 'ASC')->where(['quotationdetails.iStatus' => 1, 'quotationdetails.isDelete' => 0, 'quotationdetails.quotationID' => $id])->get();
+        // (Optional) If you still need TermCondition per company in the HTML:
+        $data['extraTerms'] = DB::table('termcondition')
+            ->where(['iStatus' => 1, 'isDelete' => 0, 'companyID' => $quotation->iCompanyId])
+            ->orderBy('termconditionId')
+            ->pluck('description')
+            ->filter()
+            ->values()
+            ->all();
 
-        //$Quotation->iCompanyId;
-        $TermCondition = TermCondition::orderBy('termconditionId', 'ASC')->where(['termcondition.iStatus' => 1, 'termcondition.isDelete' => 0, 'termcondition.companyID'=>$Quotation->iCompanyId])
-            //  ->join('quotation', 'termcondition.companyID', '=', 'quotation.iCompanyId')
-            ->get();
-        //dd($TermCondition);
+        // 4) Render template to HTML (from /public path)
+        $html = $this->renderTemplateToHtml($tpl, $data);
 
-        $pdf = PDF::setOptions(['isHtml5ParserEnabled' => true, 'isRemoteEnabled' => true])->loadview('company_client.quotation.detailPDF', ['Quotation' => $Quotation, 'QuotationDetail' => $QuotationDetail, 'TermCondition' => $TermCondition, 'pic' => $pic]);
-        
-        return $pdf->download($Quotation->strPartyName . $Quotation->iQuotationNo . '.' . 'pdf');
-        //return PDF::setOptions(['isHtml5ParserEnabled' => true, 'isRemoteEnabled' => true])->loadView('reports.invoiceSell')->stream();
+        // 5) Make the PDF and download
+        $fileName = trim(($data['partyName'] ?? 'Party') . ' ' . ($data['quotationNumber'] ?? 'QTN')) . '.pdf';
+
+        $pdf = PDF::setOptions([
+                'isHtml5ParserEnabled' => true,
+                'isRemoteEnabled'      => true,
+            ])->loadHTML($html);
+
+        return $pdf->download($fileName);
     }
+    protected function getDefaultTemplateForCompany(int $companyId): QuotationTemplate
+    {
+        // Read GUID from company table
+        $guid = DB::table('company_client_master')
+            ->where('company_id', $companyId)
+            ->value('companyTemplate');
+
+        // Try: active template by GUID
+        if ($guid) {
+            $tpl = QuotationTemplate::where('guid', $guid)
+                ->where('is_active', 1)
+                ->first();
+            if ($tpl) return $tpl;
+        }
+
+        // Fallback: first active template marked default, else any active template
+        $tpl = QuotationTemplate::where('is_active', 1)
+            ->where('is_default', 1)
+            ->first();
+
+        if (!$tpl) {
+            $tpl = QuotationTemplate::where('is_active', 1)->first();
+        }
+
+        if (!$tpl) {
+            abort(422, 'No active quotation template found. Please upload or activate a template.');
+        }
+
+        return $tpl;
+    }
+
+    protected function renderTemplateToHtml(QuotationTemplate $tpl, array $data): string
+    {
+        $full = public_path($tpl->file_path);
+        if (!File::exists($full)) {
+            abort(422, 'Template file not found: ' . $tpl->file_path);
+        }
+
+        $ext = strtolower(pathinfo($full, PATHINFO_EXTENSION));
+
+        // If the template is a Blade/PHP file stored under public
+        if ($ext === 'php' || str_ends_with($full, '.blade.php')) {
+            return View::file($full, $data)->render();
+        }
+
+        // If it's an HTML file: render through Blade if it contains directives/placeholders
+        if ($ext === 'html' || $ext === 'htm') {
+            $raw = file_get_contents($full);
+            // If HTML includes any Blade syntax, run it through Blade
+            if (preg_match('/@php|@foreach|@if|{{\s*[\w\[\]\'"\.\-\>]+\s*}}/m', $raw)) {
+                return Blade::render($raw, $data);
+            }
+            // Plain HTML (no Blade) – optionally do a minimal {{ key }} replace:
+            // return $this->simpleReplace($raw, $data);
+            return $raw;
+        }
+
+        abort(422, 'Unsupported template format: ' . $ext);
+    }
+
 
     public function search(Request $request)
     {
@@ -365,5 +438,180 @@ class QuotationController extends Controller
 
         return back()->with('success', 'Quotation sent on WhatsApp!');
     }
-   
+   protected function previewData($quotation): array
+    {
+       
+        // If only ID passed instead of full object
+        if (!is_object($quotation)) {
+            $quotation = Quotation::findOrFail($quotation);
+        }
+
+        $qId = $quotation->quotationId ?? $quotation->id;
+
+        // Safely load company & party (no login, no company filter)
+        $company =CompanyClient::with('state')->where('company_id', $quotation->iCompanyId)->first();
+
+        $party = Party::with('state')->where('partyId', $quotation->iPartyId)->first();
+
+
+
+        /* -----------------  Helper closures  ----------------- */
+        $clean = function($v) {
+            if (is_null($v)) return null;
+            $v = trim((string)$v);
+            return $v === '' ? null : $v;
+        };
+
+        $get = function($obj, $keys) use ($clean) {
+            foreach ($keys as $k) {
+                if (is_object($obj) && isset($obj->{$k})) {
+                    $val = $clean($obj->{$k});
+                    if ($val !== null) return $val;
+                }
+            }
+            return null;
+        };
+
+        $fmtDate = function($val,$fallback=null) {
+            if (!$val) return $fallback ? \Carbon\Carbon::parse($fallback)->format('d-m-Y') : '';
+            try {
+                return \Carbon\Carbon::parse($val)->format('d-m-Y');
+            } catch (\Throwable $e) {
+                return $fallback ? \Carbon\Carbon::parse($fallback)->format('d-m-Y') : '';
+            }
+        };
+
+        $address = function(...$parts) {
+            $good = [];
+            foreach ($parts as $p) {
+                $p = trim((string)$p);
+                if ($p !== '') $good[] = $p;
+            }
+            return implode(', ', $good);
+        };
+
+        /* -----------------  Company fields  ----------------- */
+        $companyName  = $company->company_name ?? 'Your Company Pvt. Ltd.';
+        $companyPhone = $company->mobile ?? null;
+        $companyEmail = $company->email ?? null;
+        $companyGST   = $company->GST ?? '-';
+        $companyState = $company->state->stateName ?? null;
+        $companyCity  = $company->city ?? null;
+        $companyAddr1 = $company->Address ?? null;
+        $companyPin   = $company->pincode ?? null;
+        $companyAddr  = $address($companyAddr1, $companyCity, $companyState, $companyPin);
+
+        // Company logo → base64 inline
+        $companyLogoUrl = null;
+        if ($get($company, ['strLogo'])) {
+            $path = public_path('CompanyLogo/'.$company->company_logo);
+            if (!file_exists($path)) $path = public_path('assets/images/favicon.png');
+        } else {
+            $path = public_path('assets/images/favicon.png');
+        }
+        if (file_exists($path)) {
+            $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION)) ?: 'png';
+            $mime = $ext === 'jpg' ? 'jpeg' : $ext;
+            $companyLogoUrl = "data:image/{$mime};base64,".base64_encode(file_get_contents($path));
+        }
+
+        /* -----------------  Party fields  ----------------- */
+       $partyName  = $party->strPartyName ?? 'Party';
+        $partyPhone = $party->iMobile ?? null;
+        $partyGST   = $party->strGST ?? null;
+        $partyCity  = $party->city ?? null;
+        $partyAddr1 = $party->address1 ?? null;
+        $partyStateName = $party->state->stateName ?? $party->state->name ?? null;
+
+        $partyAddr  = implode(', ', array_filter([$partyAddr1, $partyCity, $partyStateName], fn($x)=>$x!==null && trim($x)!==''));
+
+        /* -----------------  Line items  ----------------- */
+        $details = \DB::table('quotationdetails')
+            ->where(['quotationID'=>$qId,'isDelete'=>0])
+            ->get();
+
+        $items = [];
+        foreach ($details as $d) {
+            $qty  = (float)($d->quantity ?? $d->qty ?? 0);
+            $rate = (float)($d->rate ?? 0);
+            $items[] = [
+                'name' => $clean($d->strProductName ?? $d->productName ?? $d->service_name ?? 'Item'),
+                'desc' => $clean($d->strDescription ?? $d->description ?? ''),
+                'hsn'  => $clean($d->HSN ?? $d->hsn ?? ''),
+                'gst'  => $clean($d->iGstPercentage ?? $d->iGstPercentage ?? ''),
+                'qty'  => $qty,
+                'rate' => $rate,
+            ];
+        }
+
+        /* -----------------  Terms  ----------------- */
+        $extraTerms = \DB::table('termcondition')
+            ->where(['iStatus'=>1,'isDelete'=>0])
+            ->orderBy('termconditionId')
+            ->pluck('description')
+            ->filter()
+            ->values()
+            ->all();
+
+        /* -----------------  Quotation meta  ----------------- */
+        $discount     = (float)($quotation->discount ?? 0);
+        $gstRate      = (float)($quotation->gstRate ?? 18);
+        $isInterState = (bool)($quotation->isInterState ?? 0);
+
+        $quotationNumber = $clean($quotation->iQuotationNo ?? $quotation->iQuotationNo) ?? ('QTN-'.$qId);
+      
+        $quotationDate   = $fmtDate($quotation->quotationDate ?? $quotation->entryDate, now());
+        $validTill       = $fmtDate($quotation->valid_till ?? $quotation->quotationValidity, now()->addDays(7));
+
+        /* -----------------  Footer  ----------------- */
+        $paymentTerms = $clean($quotation->paymentTerms) ?? '50% advance, balance on delivery';
+        $delivery     = $clean($quotation->deliveryTerm) ?? 'Within 7–10 business days from PO';
+        $modeOfDespatch = $clean($quotation->modeOfDespatch) ?? '';
+        $warranty     = $clean($quotation->warranty) ?? '12 months from invoice date';
+
+        $bankName   = $get($company, ['bank_account_name','company_name']) ?? $companyName;
+        $bankAcc    = $get($company, ['bank_account_no','account_no','acno']);
+        $bankIfsc   = $get($company, ['bank_ifsc','ifsc']);
+        $bankBranch = $get($company, ['bank_branch','branch']);
+
+
+
+        /* -----------------  FINAL RETURN  ----------------- */
+        return [
+            'companyLogoUrl' => $companyLogoUrl,
+            'companyName'    => $companyName,
+            'companyAddress' => $companyAddr,
+            'companyGstin'   => $companyGST,
+            'companyPhone'   => $companyPhone,
+            'companyEmail'   => $companyEmail,
+            'companyState'   => $companyState,
+
+            'quotationNumber'=> $quotationNumber,
+            'quotationDate'  => $quotationDate,
+            'validTill'      => $validTill,
+
+            'partyName'    => $partyName,
+            'partyAddress' => $partyAddr,
+            'partyGstin'   => $partyGST,
+            'partyPhone'   => $partyPhone,
+
+            'items'        => $items,
+            'discount'     => $discount,
+            'gstRate'      => $gstRate,
+            'isInterState' => $isInterState,
+
+            'paymentTerms' => $paymentTerms,
+            'delivery'     => $delivery,
+            'modeOfDespatch' => $modeOfDespatch,
+            'warranty'     => $warranty,
+
+            'bankName'   => $bankName,
+            'bankAccount'=> $bankAcc,
+            'bankIfsc'   => $bankIfsc,
+            'bankBranch' => $bankBranch,
+
+            'extraTerms' => $extraTerms,
+        ];
+    }
+
 }

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Quotation {{ $quotationNumber }}</title>
+<style>
+    body      { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #222; }
+    .head     { display:flex; justify-content:space-between; align-items:center; }
+    .logo img { max-height:70px; }
+    .wrap     { max-width:900px; margin:0 auto; }
+    .titleBox { text-align:right; }
+    .titleBox .chip { background:#e5e5ff; padding:4px 10px; border-radius:4px; font-size:13px; }
+    table     { width:100%; border-collapse: collapse; font-size:14px; margin-top:18px; }
+    th, td    { border:1px solid #ddd; padding:6px; }
+    th        { background:#f2f2f2; }
+    .no-border td, .no-border th { border:none; }
+    .fw-bold  { font-weight:bold; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+    {{-- HEADER --}}
+    <div class="head">
+        <div class="logo">
+            @if($companyLogoUrl)
+                <img src="{{ $companyLogoUrl }}" alt="Logo">
+            @endif
+        </div>
+
+        <div class="titleBox">
+            <div class="chip">Quotation</div>
+            <div>No: <strong>{{ $quotationNumber }}</strong></div>
+            <div>Date: <strong>{{ $quotationDate }}</strong></div>
+            <div>Valid Till: <strong>{{ $validTill }}</strong></div>
+        </div>
+    </div>
+
+    <h2 style="margin-top:10px;">{{ $companyName }}</h2>
+    <p style="margin:0;">
+        {{ $companyAddress }}<br>
+        GSTIN: {{ $companyGstin }} &nbsp; | &nbsp;
+        Phone: {{ $companyPhone }} &nbsp; | &nbsp;
+        Email: {{ $companyEmail }}
+    </p>
+
+    {{-- BILLING DETAILS --}}
+    <table class="no-border" style="margin-top:25px;">
+        <tr>
+            <td style="width:50%; vertical-align:top;">
+                <h3 style="margin:0 0 5px 0;">Quotation To</h3>
+                <div><strong>{{ $partyName }}</strong></div>
+                <div>{{ $partyAddress }}</div>
+                <div>GSTIN: {{ $partyGstin }}</div>
+                <div>Contact: {{ $partyPhone }}</div>
+            </td>
+            <td style="width:50%; vertical-align:top;">
+                <h3 style="margin:0 0 5px 0;">COMPANY</h3>
+                <div><strong>{{ $companyName }}</strong></div>
+                <div>{{ $companyAddress }}</div>
+                <div>GSTIN: {{ $companyGstin }}</div>
+                <div>State: {{ $companyState }}</div>
+            </td>
+        </tr>
+    </table>
+
+    {{-- ITEMS --}}
+    @php $subTotal = 0; @endphp
+    <h3 style="margin-top:25px;">Items</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Product / Service</th>
+                <th>HSN/SAC</th>
+                <th>Qty</th>
+                <th>Rate (₹)</th>
+                <th>Amount (₹)</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($items ?? [] as $i => $it)
+                @php
+                    $amt = ($it['qty'] ?? 0) * ($it['rate'] ?? 0);
+                    $subTotal += $amt;
+                @endphp
+                <tr>
+                    <td>{{ $i+1 }}</td>
+                    <td>
+                        <strong>{{ $it['name'] }}</strong>
+                        <br>{{ $it['desc'] ?? '' }}
+                    </td>
+                    <td>{{ $it['hsn'] ?? '' }}</td>
+                    <td>{{ number_format($it['qty'] ?? 0, 2) }}</td>
+                    <td>{{ number_format($it['rate'] ?? 0, 2) }}</td>
+                    <td>{{ number_format($amt, 2) }}</td>
+                </tr>
+            @endforeach
+        </tbody>
+    </table>
+
+    {{-- TOTALS --}}
+    @php
+        $discount = $discount ?? 0;
+        $taxable  = max(0, $subTotal - $discount);
+        $gstValue = round($taxable * ($gstRate ?? 18) / 100, 2);
+        $grand    = round($taxable + $gstValue, 2);
+    @endphp
+
+    <table style="width:300px; float:right; margin-top:15px;">
+        <tr><td>SubTotal</td><td class="fw-bold">₹ {{ number_format($subTotal,2) }}</td></tr>
+        <tr><td>Discount</td><td class="fw-bold">₹ {{ number_format($discount,2) }}</td></tr>
+        <tr><td>Taxable</td><td class="fw-bold">₹ {{ number_format($taxable,2) }}</td></tr>
+        <tr><td>GST ({{ $gstRate }}%)</td><td class="fw-bold">₹ {{ number_format($gstValue,2) }}</td></tr>
+        <tr><td>Grand Total</td><td class="fw-bold">₹ {{ number_format($grand,2) }}</td></tr>
+    </table>
+    <div style="clear:both;"></div>
+
+    {{-- NOTES --}}
+    <h3 style="margin-top:30px;">Notes</h3>
+    <ul>
+        <li>Prices in INR; taxes extra as applicable</li>
+        <li>Payment Terms: {{ $paymentTerms }}</li>
+        <li>Delivery: {{ $delivery }}</li>
+        @if(!empty($modeOfDespatch))
+            <li>Mode of Despatch: {{ $modeOfDespatch }}</li>
+        @endif
+        <li>Warranty: {{ $warranty }}</li>
+    </ul>
+
+    {{-- EXTRA TERMS --}}
+    @if(!empty($extraTerms))
+        <h3>Terms & Conditions</h3>
+        <ul>
+            @foreach($extraTerms as $t)
+                <li>{{ $t }}</li>
+            @endforeach
+        </ul>
+    @endif
+
+    {{-- FOOTER --}}
+    <p style="margin-top:40px; text-align:center; font-size:12px; color:#888;">
+        Thank you for your business!
+    </p>
+
+</div>
+</body>
+</html>

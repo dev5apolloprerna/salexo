@@ -335,7 +335,7 @@
                             Delete It!
                         </a>
                         <button type="button" class="btn w-sm btn-primary mx-2" data-bs-dismiss="modal">Close</button>
-                        <form action="{{ route('quotationdetails.delete', $detail->quotationdetailsId) }}" id="user-delete-form"
+                        <form action="{{ route('quotationdetails.delete', $detail->quotationdetailsId ?? '') }}" id="user-delete-form"
                             method="POST">
                             @csrf
                             @method('DELETE')

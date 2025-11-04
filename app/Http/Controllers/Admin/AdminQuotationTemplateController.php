@@ -1,0 +1,339 @@
+<?php
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+
+use App\Models\QuotationTemplate;
+use App\Models\Quotation;
+use App\Models\QuotationDetail;
+use App\Models\CompanyClient;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\View;
+use Illuminate\Support\Str;
+
+    use Illuminate\Support\Facades\Blade;
+
+class AdminQuotationTemplateController extends Controller
+{
+   public function index(Request $request)
+    {
+        // Logged-in company id (guard: web_employees)
+        $companyId = auth()->user()->company_id;
+
+        // All templates (global list). If you keep per-company templates, filter here instead.
+        $templates = QuotationTemplate::orderByDesc('id')->get();
+
+        // Read this company’s default (we store the template GUID here; switch to 'id' if you prefer)
+        $currentDefaultGuid = DB::table('company_client_master')
+            ->where('company_id', $companyId)
+            ->value('companyTemplate');
+
+        return view('admin.quotation_template.designs_index', compact('templates','currentDefaultGuid'));
+    }
+
+    public function create()
+    {
+        return view('admin.quotation_template.designs_create');
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|max:200',
+            'file' => 'required|file|mimes:php,html,htm'
+        ]);
+
+        $guid = (string) Str::uuid();
+
+        $baseDir = public_path("quotation_templates/{$guid}");
+        if (!File::isDirectory($baseDir)) {
+            File::makeDirectory($baseDir, 0775, true);
+        }
+
+        $file    = $request->file('file');
+        $name    = preg_replace('/[^a-zA-Z0-9\.\-_]/','_', $file->getClientOriginalName());
+        $path    = $baseDir . '/' . $name;
+
+        $file->move($baseDir, $name);
+
+        $relativePath = "quotation_templates/{$guid}/{$name}";
+
+        QuotationTemplate::create([
+            'guid'       => $guid,
+            'name'       => $request->name,
+            'file_path'  => $relativePath,
+            'is_active'  => 1,
+            'is_default' => 0,
+        ]);
+
+        return redirect()->route('admin.quotations.templates')
+            ->with('success', 'Template uploaded successfully');
+    }
+
+    public function toggle(QuotationTemplate $template)
+    {
+        $template->is_active = !$template->is_active;
+        $template->save();
+        return back()->with('success', 'Template status changed.');
+    }
+
+    public function setDefault(QuotationTemplate $template)
+    {
+        $companyId = auth()->user()->company_id;
+
+        // Value you want to store as default for this company:
+        // If you prefer ID, change to (string)$template->id and keep it consistent everywhere.
+        $valueToStore = (string) $template->guid;
+
+        DB::table('company_client_master')
+            ->where('company_id', $companyId)
+            ->update(['companyTemplate' => $valueToStore]);
+
+        return back()->with('success', 'Default template set for your company.');
+    }
+
+
+    public function destroy(QuotationTemplate $template)
+    {
+        if ($template->file_path) {
+            $abs = public_path($template->file_path);
+            if (File::exists($abs)) File::delete($abs);
+        }
+
+        // delete folder if empty
+        $folder = dirname(public_path($template->file_path));
+        if (File::exists($folder)) @File::deleteDirectory($folder);
+
+        $template->delete();
+
+        return back()->with('success', 'Template deleted.');
+    }
+
+    // ✅ Preview specific template
+    public function preview(QuotationTemplate $template, $quotationId)
+    {
+        $quotation = Quotation::with('party','company')
+            ->findOrFail($quotationId);
+        $data = $this->previewData($quotation);
+        return $this->renderTemplate($template, $data);
+    }
+
+        public function previewDefault()
+        {
+            $companyId = auth()->user()->company_id;
+
+            $guid = DB::table('company_client_master')
+                ->where('company_id', $companyId)
+                ->value('companyTemplate');
+
+            abort_if(!$guid, 404, 'No default template set for your company.');
+
+            // Reuse your existing previewLatest($guid)
+            return $this->previewLatest(request(), $guid);
+        }
+
+
+    protected function renderTemplate(QuotationTemplate $tpl, array $data)
+    {
+        $full = public_path($tpl->file_path);
+        if (!file_exists($full)) abort(422, 'Template file not found.');
+
+        $ext = strtolower(pathinfo($full, PATHINFO_EXTENSION));
+        $html = file_get_contents($full);
+
+        // If the HTML contains Blade directives, render it through Blade:
+        if ($ext === 'html' || $ext === 'htm') {
+            if (preg_match('/@php|@foreach|@if|{{/', $html)) {
+                // Laravel 9+: Blade::render() compiles + renders a string
+                $out = Blade::render($html, $data);
+                return response($out, 200)->header('Content-Type', 'text/html; charset=UTF-8');
+            } else {
+                // Plain placeholders: {{ key }} only (optional)
+                $out = $this->simpleReplace($html, $data);
+                return response($out, 200)->header('Content-Type','text/html; charset=UTF-8');
+            }
+        }
+
+        // Fallback for php/blade files
+        return View::file($full, $data);
+    }
+
+
+    protected function previewData($quotation): array
+{
+   
+    // If only ID passed instead of full object
+    if (!is_object($quotation)) {
+        $quotation = Quotation::findOrFail($quotation);
+    }
+
+    $qId = $quotation->quotationId ?? $quotation->id;
+
+    // Safely load company & party (no login, no company filter)
+    $company =CompanyClient::where('company_id', $quotation->iCompanyId)->first();
+
+    $party = $quotation->iPartyId
+        ?? \DB::table('party')->where('partyId', $quotation->iPartyId)->first();
+
+
+    /* -----------------  Helper closures  ----------------- */
+    $clean = function($v) {
+        if (is_null($v)) return null;
+        $v = trim((string)$v);
+        return $v === '' ? null : $v;
+    };
+
+    $get = function($obj, $keys) use ($clean) {
+        foreach ($keys as $k) {
+            if (is_object($obj) && isset($obj->{$k})) {
+                $val = $clean($obj->{$k});
+                if ($val !== null) return $val;
+            }
+        }
+        return null;
+    };
+
+    $fmtDate = function($val,$fallback=null) {
+        if (!$val) return $fallback ? \Carbon\Carbon::parse($fallback)->format('d-m-Y') : '';
+        try {
+            return \Carbon\Carbon::parse($val)->format('d-m-Y');
+        } catch (\Throwable $e) {
+            return $fallback ? \Carbon\Carbon::parse($fallback)->format('d-m-Y') : '';
+        }
+    };
+
+    $address = function(...$parts) {
+        $good = [];
+        foreach ($parts as $p) {
+            $p = trim((string)$p);
+            if ($p !== '') $good[] = $p;
+        }
+        return implode(', ', $good);
+    };
+
+    /* -----------------  Company fields  ----------------- */
+    $companyName  = $get($company, ['company_name']) ?? 'Your Company Pvt. Ltd.';
+    $companyPhone = $get($company, ['strPhone','mobile','phone']);
+    $companyEmail = $get($company, ['strEmail','email']);
+    $companyGST   = $get($company, ['strGST','gstno','gst','gstin']);
+    $companyState = $get($company, ['strState','state','stateName']);
+    $companyCity  = $get($company, ['strCity','city','cityName']);
+    $companyAddr1 = $get($company, ['strAddress','address','addr1']);
+    $companyPin   = $get($company, ['strPincode','pincode','pin','zip']);
+    $companyAddr  = $address($companyAddr1, $companyCity, $companyState, $companyPin);
+
+    // Company logo → base64 inline
+    $companyLogoUrl = null;
+    if ($get($company, ['strLogo'])) {
+        $path = public_path('CompanyLogo/'.$company->company_logo);
+        if (!file_exists($path)) $path = public_path('assets/images/favicon.png');
+    } else {
+        $path = public_path('assets/images/favicon.png');
+    }
+    if (file_exists($path)) {
+        $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION)) ?: 'png';
+        $mime = $ext === 'jpg' ? 'jpeg' : $ext;
+        $companyLogoUrl = "data:image/{$mime};base64,".base64_encode(file_get_contents($path));
+    }
+
+    /* -----------------  Party fields  ----------------- */
+    $partyName  = $get($party, ['strPartyName','party_name','name']) ?? 'Party';
+    $partyPhone = $get($party, ['iMobile','mobile','phone']);
+    $partyGST   = $get($party, ['strGST','gst','gstin']);
+    $partyState = $get($party, ['strState','state','stateName']);
+    $partyCity  = $get($party, ['strCity','city','cityName']);
+    $partyAddr1 = $get($party, ['strAddress','address']);
+    $partyPin   = $get($party, ['strPincode','pincode','pin']);
+    $partyAddr  = $address($partyAddr1, $partyCity, $partyState, $partyPin);
+
+    /* -----------------  Line items  ----------------- */
+    $details = \DB::table('quotationdetails')
+        ->where(['quotationID'=>$qId,'isDelete'=>0])
+        ->get();
+
+    $items = [];
+    foreach ($details as $d) {
+        $qty  = (float)($d->quantity ?? $d->qty ?? 0);
+        $rate = (float)($d->rate ?? 0);
+        $items[] = [
+            'name' => $clean($d->strProductName ?? $d->productName ?? $d->service_name ?? 'Item'),
+            'desc' => $clean($d->strDescription ?? $d->description ?? ''),
+            'hsn'  => $clean($d->HSN ?? $d->hsn ?? ''),
+            'qty'  => $qty,
+            'rate' => $rate,
+        ];
+    }
+
+    /* -----------------  Terms  ----------------- */
+    $extraTerms = \DB::table('termcondition')
+        ->where(['iStatus'=>1,'isDelete'=>0])
+        ->orderBy('termconditionId')
+        ->pluck('description')
+        ->filter()
+        ->values()
+        ->all();
+
+    /* -----------------  Quotation meta  ----------------- */
+    $discount     = (float)($quotation->discount ?? 0);
+    $gstRate      = (float)($quotation->gstRate ?? 18);
+    $isInterState = (bool)($quotation->isInterState ?? 0);
+
+    $quotationNumber = $clean($quotation->iQuotationNo ?? $quotation->iQuotationNo) ?? ('QTN-'.$qId);
+  
+    $quotationDate   = $fmtDate($quotation->quotationDate ?? $quotation->entryDate, now());
+    $validTill       = $fmtDate($quotation->valid_till ?? $quotation->quotationValidity, now()->addDays(7));
+
+    /* -----------------  Footer  ----------------- */
+    $paymentTerms = $clean($quotation->paymentTerms) ?? '50% advance, balance on delivery';
+    $delivery     = $clean($quotation->deliveryTerm) ?? 'Within 7–10 business days from PO';
+    $modeOfDespatch = $clean($quotation->modeOfDespatch) ?? '';
+    $warranty     = $clean($quotation->warranty) ?? '12 months from invoice date';
+
+    $bankName   = $get($company, ['bank_account_name','company_name']) ?? $companyName;
+    $bankAcc    = $get($company, ['bank_account_no','account_no','acno']);
+    $bankIfsc   = $get($company, ['bank_ifsc','ifsc']);
+    $bankBranch = $get($company, ['bank_branch','branch']);
+
+
+
+    /* -----------------  FINAL RETURN  ----------------- */
+    return [
+        'companyLogoUrl' => $companyLogoUrl,
+        'companyName'    => $companyName,
+        'companyAddress' => $companyAddr,
+        'companyGstin'   => $companyGST,
+        'companyPhone'   => $companyPhone,
+        'companyEmail'   => $companyEmail,
+        'companyState'   => $companyState,
+
+        'quotationNumber'=> $quotationNumber,
+        'quotationDate'  => $quotationDate,
+        'validTill'      => $validTill,
+
+        'partyName'    => $partyName,
+        'partyAddress' => $partyAddr,
+        'partyGstin'   => $partyGST,
+        'partyPhone'   => $partyPhone,
+
+        'items'        => $items,
+        'discount'     => $discount,
+        'gstRate'      => $gstRate,
+        'isInterState' => $isInterState,
+
+        'paymentTerms' => $paymentTerms,
+        'delivery'     => $delivery,
+        'modeOfDespatch' => $modeOfDespatch,
+        'warranty'     => $warranty,
+
+        'bankName'   => $bankName,
+        'bankAccount'=> $bankAcc,
+        'bankIfsc'   => $bankIfsc,
+        'bankBranch' => $bankBranch,
+
+        'extraTerms' => $extraTerms,
+    ];
+}
+
+}

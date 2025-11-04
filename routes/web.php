@@ -9,6 +9,9 @@ use App\Http\Controllers\Admin\CompanyClientController;
 use App\Http\Controllers\admin\JoiningRequestsController;
 
 use App\Http\Controllers\admin\RequestsForJoiningController;
+use App\Http\Controllers\Admin\AdminQuotationTemplateController;
+
+
 use App\Http\Controllers\AdminLoginController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Company\ApiDataController;
@@ -468,29 +471,44 @@ Route::prefix('company')->name('company.')->group(function () {
 });*/
 
 
-Route::prefix('company/quotations')->name('company.quotations.')->middleware('auth:web_employees')->group(function () {
+Route::prefix('admin/quotations')->name('admin.quotations.')->middleware('auth')->group(function () {
 
-    // Designs list + create/upload form
-    Route::get('/designs', [QuotationTemplateController::class, 'index'])->name('designs');
-    Route::get('/designs/new', [QuotationTemplateController::class, 'create'])->name('designs.create');
-    Route::post('/designs', [QuotationTemplateController::class, 'store'])->name('designs.store');
+    Route::get('/templates', [AdminQuotationTemplateController::class, 'index'])->name('templates');
+    Route::get('/templates/new', [AdminQuotationTemplateController::class, 'create'])->name('templates.create');
+    Route::post('/templates', [AdminQuotationTemplateController::class, 'store'])->name('templates.store');
 
-    // Toggle/activate, delete (optional)
-    Route::patch('/designs/{template}/toggle', [QuotationTemplateController::class, 'toggle'])->name('designs.toggle');
-    Route::delete('/designs/{template}', [QuotationTemplateController::class, 'destroy'])->name('designs.destroy');
+    Route::patch('/templates/{template}/toggle', [AdminQuotationTemplateController::class, 'toggle'])->name('templates.toggle');
+    Route::patch('/templates/{template}/default', [AdminQuotationTemplateController::class, 'setDefault'])->name('templates.default');
+    Route::delete('/templates/{template}', [AdminQuotationTemplateController::class, 'destroy'])->name('templates.destroy');
 
-    // Preview latest (by version, like v1..v5)
-    Route::get('/latest/preview/{version}', [QuotationTemplateController::class, 'previewLatest'])
-      ->whereIn('version', ['v1','v2','v3','v4','v5'])
-      ->name('latest.preview');
+    // ✅ Preview specific template
+    Route::get('/template/preview/{template}/{quotationId}', [AdminQuotationTemplateController::class, 'preview'])
+        ->name('templates.preview');
 
-    // Preview a specific template id (optional)
-    Route::get('/preview/template/{template}', [QuotationTemplateController::class, 'previewByTemplate'])
-      ->name('preview.template');
-Route::patch('/designs/{template}/default', [QuotationTemplateController::class, 'setDefault'])
-    ->name('designs.setDefault');
+    // ✅ Preview default template
+    Route::get('/designs/preview-default', [AdminQuotationTemplateController::class, 'previewDefaultForMyCompany'])
+    ->name('designs.previewDefault');
+});
 
 
+
+Route::prefix('company/quotations')->name('quotations.')->middleware('auth:web_employees')->group(function () {
+
+    Route::get('/templates', [QuotationTemplateController::class, 'index'])->name('templates');
+    Route::get('/templates/new', [QuotationTemplateController::class, 'create'])->name('templates.create');
+    Route::post('/templates', [QuotationTemplateController::class, 'store'])->name('templates.store');
+
+    Route::patch('/templates/{template}/toggle', [QuotationTemplateController::class, 'toggle'])->name('templates.toggle');
+    Route::patch('/templates/{template}/default', [QuotationTemplateController::class, 'setDefault'])->name('templates.default');
+    Route::delete('/templates/{template}', [QuotationTemplateController::class, 'destroy'])->name('templates.destroy');
+
+    // ✅ Preview specific template
+    Route::get('/template/preview/{template}/{quotationId}', [QuotationTemplateController::class, 'preview'])
+        ->name('templates.preview');
+
+    // ✅ Preview default template
+    Route::get('/designs/preview-default', [QuotationTemplateController::class, 'previewDefaultForMyCompany'])
+    ->name('designs.previewDefault');
 });
 
 

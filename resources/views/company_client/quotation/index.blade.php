@@ -25,72 +25,44 @@
                             </div>
                             <div class="card-body">
 
-                                <form method="get" action="{{ route('quotation.index') }}">
+                                <form method="GET" action="{{ route('quotation.index') }}">
 
-                                    <div class="row">
-                                        <div class="col-md-3 ">
-                                             <div class="form-group">
-                                              <label class="mb-1">Company Name</label>
-                                              <select
-                                                id="mappingCompany"
-                                                name="companyName"
-                                                class="form-control @error('companyName') is-invalid @enderror">
-                                                <option value="" disabled {{ empty($CompanyName) ? 'selected' : '' }}>Select Company</option>
-                                                @foreach ($Company as $company)
-                                                  <option value="{{ $company->companyId }}" {{ $CompanyName == $company->companyId ? 'selected' : '' }}>
-                                                    {{ $company->company_name }}
-                                                  </option>
-                                                @endforeach
-                                              </select>
-                                              @error('companyName')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                            </div>
-                                        </div>
-                                        <div class="col-md-3 ">
-                                          <div class="form-group">
-                                            <label class="mb-1">Party Name</label>
-                                            <select
-                                              name="partyName"
-                                              id="filterParty"
-                                              class="form-control @error('partyName') is-invalid @enderror">
-                                              <option value="" disabled {{ empty($PartyName) ? 'selected' : '' }}>Select Party</option>
-                                              @foreach ($Party as $party)
-                                                <option value="{{ $party->partyId }}" {{ $PartyName == $party->partyId ? 'selected' : '' }}>
-                                                  {{ $party->strPartyName }}
-                                                </option>
-                                              @endforeach
-                                            </select>
-                                            @error('partyName')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                          </div>
-                                           
-                                        </div>
-                                        <div class="col-md-3 ">
-                                           <div class="form-group">
-                                            <label class="mb-1">Product Name</label>
-                                            <select
-                                              id="getproductID"
-                                              name="productName"
-                                              class="form-control @error('productName') is-invalid @enderror">
-                                              <option value="" disabled {{ empty($ProductName) ? 'selected' : '' }}>Select Product</option>
-                                              @foreach ($Product as $product)
-                                                <option value="{{ $product->productId }}" {{ $ProductName == $product->productId ? 'selected' : '' }}>
-                                                  {{ $product->productName }}
-                                                </option>
-                                              @endforeach
-                                            </select>
-                                            @error('productName')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                          </div>
-                                        </div>
+                                  <div class="row">
 
-                                        <div class="col-md-3" style="padding-top:30px">
-                                            <div class="form-group ">
-
-                                                <input class="btn btn-primary" type="submit" value="{{ 'Search' }}">
-                                                <a href="{{ route('quotation.index') }}" class="btn btn-secondary">Reset</a>
-
-                                            </div>
-                                        </div>
+                                    <div class="col-md-3">
+                                      <label>Party</label>
+                                      <select name="partyName" class="form-control">
+                                        <option value="">All</option>
+                                        @foreach($Party as $p)
+                                          <option value="{{ $p->partyId }}" {{ $PartyName == $p->partyId ? 'selected' : '' }}>
+                                            {{ $p->strPartyName }}
+                                          </option>
+                                        @endforeach
+                                      </select>
                                     </div>
+
+                                    <div class="col-md-3">
+                                      <label>From Date</label>
+                                      <input type="date" name="fromDate" class="form-control"
+                                             value="{{ $fromDate ?? '' }}">
+                                    </div>
+
+                                    <div class="col-md-3">
+                                      <label>To Date</label>
+                                      <input type="date" name="toDate" class="form-control"
+                                             value="{{ $toDate ?? '' }}">
+                                    </div>
+
+                                    <div class="col-md-3">
+                                      <label>&nbsp;</label><br>
+                                      <button class="btn btn-primary">Search</button>
+                                      <a href="{{ route('quotation.index') }}" class="btn btn-secondary">Reset</a>
+                                    </div>
+
+                                  </div>
+
                                 </form>
+
                             </div>
                             <div class="row">
                                 <div class="col-lg-12">
@@ -99,13 +71,12 @@
                                             <table class=" table table-bordered table-striped table-hover datatable">
                                                 <thead>
                                                     <tr>
-                                                        <th >Company Name</th>
-                                                        <th >Year</th>
-                                                        <th >Date</th>
                                                         <th >Party Name</th>
                                                         <th >Party Mobile No</th>
+                                                        <th >Year</th>
+                                                        <th >Date</th>
                                                         <th >Quotation No</th>
-                                                        <th >Quotation Validity</th>
+                                                        <!-- <th >Quotation Validity</th> -->
                                                         <!--<th >Mode Of Dispatch</th>-->
                                                         <!--<th >Delivery Terms</th>-->
                                                         <!--<th >Payment Terms</th>-->
@@ -115,16 +86,15 @@
                                                 <tbody>
                                                    @foreach ($Quotation as $quotation)
                                                     <tr>
-                                                        <td>{{ $quotation->company_name }}</td>
+                                                        <td>{{ $quotation->strPartyName }}</td>
+                                                        <td>{{ $quotation->iMobile }}</td>
                                                         <td>{{ $quotation->strYear }}</td>
                                                         <td>
                                                             <?php $datestore = $quotation->entryDate;
                                                             echo date('d-m-Y', strtotime($datestore)); ?>
                                                         </td>
-                                                        <td>{{ $quotation->strPartyName }}</td>
-                                                        <td>{{ $quotation->iMobile }}</td>
                                                         <td>{{ $quotation->iQuotationNo }}</td>
-                                                        <td>{{ $quotation->quotationValidity }}</td>
+                                                        <!-- <td>{{ $quotation->quotationValidity }}</td> -->
                                                         <!--<td>{{ $quotation->modeOfDespatch }}</td>-->
                                                         <!--<td>{{ $quotation->deliveryTerm }}</td>-->
                                                         <!--<td>{{ $quotation->paymentTerms }}</td>-->
@@ -144,9 +114,10 @@
                                         <a href="{{ route('quotation.showDetails', $quotation->quotationId) }}" title="View" target="blank"
                                             class="m-2"> <i class="fa fa-eye"> </i></a>
 
-                                        <a href="{{ route('quotation.DetailPDF', $quotation->quotationId) }}"  class="m-2" title="Download"> 
-                                            <i class="fa fa-file-pdf" ></i>
+                                        <a href="{{ route('quotation.DetailPDF', $quotation->quotationId) }}" class="m-2" title="Download">
+                                            <i class="fa fa-file-pdf"></i>
                                         </a>
+
                                                 
                                                 
                                            @php
