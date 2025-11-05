@@ -228,9 +228,9 @@ class CompanyClientHomeController extends Controller
         // Validations
         $request->validate([
             'emp_name'     => 'required',
-            'emp_email'    => 'required|email|unique:employee_master,emp_email,' . $userId . ',emp_id',
+            'emp_email'    => 'nullable|email|unique:employee_master,emp_email,' . $userId . ',emp_id',
             'emp_mobile'   => 'required|numeric|digits:10',
-            'emp_loginId'  => 'required',
+            'emp_loginId'  => 'nullable',
             // logo is optional
             'company_logo' => 'nullable|image|mimes:png,jpg,jpeg,webp,gif|max:3072', // 3MB
         ]);

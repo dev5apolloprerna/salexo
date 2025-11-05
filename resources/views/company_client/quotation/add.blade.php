@@ -291,6 +291,7 @@ $(function () {
         url: "{{ route('quotation.getNextNo', ':companyId') }}".replace(':companyId', COMPANY_ID),
         type: 'GET',
         success: function (data) {
+            console.log(data);
           $('input[name="iQuotationNo"]').val(data);
         },
         error: function (xhr) { console.error(xhr.responseText); }

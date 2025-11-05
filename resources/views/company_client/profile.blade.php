@@ -3,6 +3,11 @@
 @section('title', 'Profile')
 
 @section('content')
+
+@php
+    $roleid = Auth::guard('web_employees')->user()->role_id;
+@endphp
+
     <div class="main-content">
         <div class="page-content">
             <div class="container-fluid">
@@ -38,7 +43,7 @@
                               height="150"
                               style="object-fit:cover"
                               alt="Company Logo">
-
+@if($roleid == 2)
                             <label class="btn btn-outline-primary btn-sm mt-3">
                                 Change Logo
                                 <input
@@ -50,7 +55,7 @@
                                 >
                             </label>
                             <small class="text-muted mt-2">PNG/JPG/WEBP/GIF • Max 3 MB</small>
-
+@endif
                             <span class="font-weight-bold mt-3">{{ auth()->user()->full_name }}</span>
                             {{-- … rest stays as is (Role, email, etc.) --}}
                         </div>
@@ -99,7 +104,7 @@
                                     <div class="col-md-4">
                                         <label class="labels">Email</label>
                                         <input type="email" class="form-control @error('emp_email') is-invalid @enderror"
-                                            name="emp_email" placeholder="First Name"
+                                            name="emp_email" placeholder="Enter Email"
                                             value="{{ old('emp_email') ? old('emp_email') : auth()->user()->emp_email }}">
 
                                         @error('emp_email')
@@ -127,6 +132,8 @@
                                             <span class="text-danger">{{ $message }}</span>
                                         @enderror
                                     </div>
+
+                                    @if($roleid == 2)
                                     
                                      <div class="col-md-6 mt-2">
                                             <label class="labels">Delivery Terms</label>
@@ -150,7 +157,7 @@
                                             <span style="color:red;"></span>Terms & Condition</label>
                                             <textarea class="form-control" id="fetchtermcondition" name="terms_condition">{{ old('terms_condition') ? old('terms_condition') : $users1->terms_condition }} </textarea>
                                         </div>
-
+                                        @endif
                                 </div>
                                 <div class="mt-5 text-center">
                                     <button class="btn btn-primary profile-button" type="submit">Update Profile</button>

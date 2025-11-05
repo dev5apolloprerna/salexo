@@ -269,14 +269,19 @@
             });
         }
    
-       $(function () {
+$(function () 
+{
     const COMPANY_ID = Number($('#companyId').val() || 0);
+    const QuotationNo = $('#iQuotationNo').val();
 
-    function setQuotationNo() {
+    function setQuotationNo() 
+    {
       if (!COMPANY_ID) {
         $('input[name="iQuotationNo"]').val('');
         return;
       }
+      if(!QuotationNo)
+      {
       $.ajax({
         url: "{{ route('quotation.getNextNo', ':companyId') }}".replace(':companyId', COMPANY_ID),
         type: 'GET',
@@ -285,10 +290,7 @@
         },
         error: function (xhr) { console.error(xhr.responseText); }
       });
+        }
     }
-
-    // Hydrate on load
-    setQuotationNo();
-  });
   </script>
 @endsection
