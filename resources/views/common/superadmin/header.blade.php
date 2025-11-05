@@ -1,9 +1,12 @@
 <?php
-if (Auth::guard('web')->user()) {
+if (Auth::guard('web')->user()) 
+{
     $roleid = Auth::guard('web')->user()->role_id;
 } else {
     $roleid = Auth::guard('web_employees')->user()->role_id;
 }
+
+
 ?>
 
 <header id="page-topbar">
@@ -94,10 +97,12 @@ if (Auth::guard('web')->user()) {
                                 class="mdi mdi-account-circle text-muted fs-16 align-middle me-1"></i>
                             <span class="align-middle">API</span>
                         </a>
+                        @if($roleid == 2)
                         <a class="dropdown-item" href="{{ route('quotations.templates') }}"><i
                                 class="fa fa-file-text text-muted fs-16 align-middle me-1"></i> <span
                                 class="align-middle" data-key="t-template">Quotation Templates</span>
                         </a>
+                        @endif
                         <a class="dropdown-item" href="{{ route('empuserlogout') }}"><i
                                 class="mdi mdi-logout text-muted fs-16 align-middle me-1"></i> <span
                                 class="align-middle" data-key="t-logout">Logout</span>

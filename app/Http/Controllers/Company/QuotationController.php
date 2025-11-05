@@ -70,37 +70,26 @@ class QuotationController extends Controller
         ));
     }
 
-    
+    public function getNextQuotationNo()
+    {
+        // Get last saved value, e.g. "0012/24-25" or "0012"
+        $last = Quotation::orderByDesc('quotationId')->value('iQuotationNo');
 
-public function getNextQuotationNo() // no param now
-{
-    // 1) Get the last stored quotation number (string or int)
-    $last = Quotation::orderByDesc('quotationId')->value('iQuotationNo'); // adjust PK/column names if needed
+        // Take only the left part before '/', keep digits only
+        $n = 0;
+        if (!empty($last)) {
+            $left = explode('/', trim($last))[0];     // "0012"
+            $n    = (int) preg_replace('/\D/', '', $left); // 12
+        }
 
-    // 2) Extract numeric part safely, increment, and pad (e.g., 0001, 0002...)
-    $num = is_numeric($last) ? (int)$last : (int)preg_replace('/\D+/', '', (string)$last);
-    $nextCore = $num + 1;
-    $nextPadded = str_pad((string)$nextCore, 4, '0', STR_PAD_LEFT); // change 4 to 5/6 if you need more digits
+        // +1 and pad to 4 digits: 0001, 0002, ...
+        $next = str_pad((string)($n + 1), 4, '0', STR_PAD_LEFT);
+            $year = Year::where(['iStatus'=>1,'isDelete'=>0])->orderByDesc('year_id')->value('strYear');
+            if (!$year) $year = now('Asia/Kolkata')->format('y').'-'.now('Asia/Kolkata')->addYear()->format('y');
 
-    // 3) Fetch year label from year master (prefer Active + not deleted; else latest; else fallback)
-    $yearLabel = Year::where(['iStatus' => 1, 'isDelete' => 0])
-        ->orderByDesc('year_id')
-        ->value('strYear');
-
-    if (!$yearLabel) {
-        // Fallback to computed FY like 24-25
-        $y = (int)now('Asia/Kolkata')->format('Y');
-        $m = (int)now('Asia/Kolkata')->format('n');
-        $start = $m >= 4 ? $y : $y - 1;
-        $end   = $start + 1;
-        $yearLabel = substr((string)$start, -2) . '-' . substr((string)$end, -2);
+            return response()->json($next . '/' . $year);
     }
 
-    // 4) Build final number
-    $nextQuotationNo = $nextPadded . '/' . $yearLabel;
-
-    return response()->json($nextQuotationNo);
-}
 
 
     public function createview()
