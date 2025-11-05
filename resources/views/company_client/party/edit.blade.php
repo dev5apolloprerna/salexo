@@ -63,10 +63,10 @@
                                   </div>
                                   <div class="col-md-6">
                                     <label class="form-label">State</label>
-                                    <select class="form-control" name="state" id="state">
+                                    <select class="form-control" name="state_id" id="state_id">
                                       <option value="">Select State</option>
                                         @foreach($state as $s)
-                                        <option value="{{$s->stateId}}"  @if($s->stateId == $party->state){{ 'selected' }} @endif> {{ $s->stateName }} </option>
+                                        <option value="{{$s->stateId}}"  @if($s->stateId == $party->state_id){{ 'selected' }} @endif> {{ $s->stateName }} </option>
                                         @endforeach
                                     </select>
                                   </div>

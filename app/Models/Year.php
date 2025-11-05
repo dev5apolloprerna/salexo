@@ -9,6 +9,10 @@ class Year extends Model
 {
     use HasFactory;
     public $table = 'year';
+   protected $primaryKey = 'year_id';
+    public $timestamps = true;
+
+
     protected $fillable = [
        'strYear',
        'strIP',

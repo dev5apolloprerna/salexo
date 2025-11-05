@@ -214,39 +214,48 @@ class AdminQuotationTemplateController extends Controller
     };
 
     /* -----------------  Company fields  ----------------- */
-    $companyName  = $get($company, ['company_name']) ?? 'Your Company Pvt. Ltd.';
-    $companyPhone = $get($company, ['strPhone','mobile','phone']);
-    $companyEmail = $get($company, ['strEmail','email']);
-    $companyGST   = $get($company, ['strGST','gstno','gst','gstin']);
-    $companyState = $get($company, ['strState','state','stateName']);
-    $companyCity  = $get($company, ['strCity','city','cityName']);
-    $companyAddr1 = $get($company, ['strAddress','address','addr1']);
-    $companyPin   = $get($company, ['strPincode','pincode','pin','zip']);
+    $companyName  = $company->company_name ?? 'Your Company Pvt. Ltd.';
+    $companyPhone = $company->mobile ?? null;
+    $companyEmail = $company->email ?? null;
+    $companyGST   = $company->GST ?? '-';
+    $companyState = $company->state->stateName ?? null;
+    $companyCity  = $company->city ?? null;
+    $companyAddr1 = $company->Address ?? null;
+    $companyPin   = $company->pincode ?? null;
     $companyAddr  = $address($companyAddr1, $companyCity, $companyState, $companyPin);
+
 
     // Company logo → base64 inline
     $companyLogoUrl = null;
-    if ($get($company, ['strLogo'])) {
-        $path = public_path('CompanyLogo/'.$company->company_logo);
-        if (!file_exists($path)) $path = public_path('assets/images/favicon.png');
-    } else {
-        $path = public_path('assets/images/favicon.png');
+    $root = base_path('../public_html/');
+
+    // 1) pick relative path (from DB or fallback)
+    $rel = data_get($company, 'company_logo'); // e.g. 'uploads/company/logo.png' or 'logo.png'
+    $rel = $rel ? (str_contains($rel, '/') ? $rel : "uploads/company/$rel")
+                : 'assets/images/favicon.png';
+    
+    // 2) build absolute path and fallback if missing
+    $path = $root . ltrim($rel, '/');
+    if (!file_exists($path)) {
+        $path = $root . 'assets/images/favicon.png';
     }
-    if (file_exists($path)) {
-        $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION)) ?: 'png';
-        $mime = $ext === 'jpg' ? 'jpeg' : $ext;
-        $companyLogoUrl = "data:image/{$mime};base64,".base64_encode(file_get_contents($path));
-    }
+    
+    // 3) make data URI
+    $ext  = strtolower(pathinfo($path, PATHINFO_EXTENSION) ?: 'png');
+    $mime = $ext === 'jpg' ? 'image/jpeg' : "image/$ext";
+    $companyLogoUrl = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($path));
+    
 
     /* -----------------  Party fields  ----------------- */
-    $partyName  = $get($party, ['strPartyName','party_name','name']) ?? 'Party';
-    $partyPhone = $get($party, ['iMobile','mobile','phone']);
-    $partyGST   = $get($party, ['strGST','gst','gstin']);
-    $partyState = $get($party, ['strState','state','stateName']);
-    $partyCity  = $get($party, ['strCity','city','cityName']);
-    $partyAddr1 = $get($party, ['strAddress','address']);
-    $partyPin   = $get($party, ['strPincode','pincode','pin']);
-    $partyAddr  = $address($partyAddr1, $partyCity, $partyState, $partyPin);
+   $partyName  = $party->strPartyName ?? 'Party';
+    $partyPhone = $party->iMobile ?? null;
+    $partyGST   = $party->strGST ?? null;
+    $partyCity  = $party->city ?? null;
+    $partyAddr1 = $party->address1 ?? null;
+    $partyStateName = $party->state->stateName ?? $party->state->name ?? null;
+
+    $partyAddr  = implode(', ', array_filter([$partyAddr1, $partyCity, $partyStateName], fn($x)=>$x!==null && trim($x)!==''));
+
 
     /* -----------------  Line items  ----------------- */
     $details = \DB::table('quotationdetails')
@@ -260,7 +269,7 @@ class AdminQuotationTemplateController extends Controller
         $items[] = [
             'name' => $clean($d->strProductName ?? $d->productName ?? $d->service_name ?? 'Item'),
             'desc' => $clean($d->strDescription ?? $d->description ?? ''),
-            'hsn'  => $clean($d->HSN ?? $d->hsn ?? ''),
+            'hsn'  => $clean($d->uom ?? $d->uom ?? ''),
             'qty'  => $qty,
             'rate' => $rate,
         ];

@@ -148,7 +148,11 @@
                                         <input type="text" class="form-control" name="service_name" id="Editservice_name"
                                             placeholder="Enter Service Name" maxlength="100" autocomplete="off" required>
                                     </div>
-
+                                    <div class="mb-3">
+                                        HSN <span style="color:red;">*</span>
+                                        <input type="text" class="form-control" name="HSN" id="EditHSN"
+                                            placeholder="Enter HSN" maxlength="100" autocomplete="off" required>
+                                    </div>
                                     <div class="mb-3">
                                         Description Name <span style="color:red;">*</span>
                                         <textarea class="form-control" name="service_description" id="Editservice_description" cols="30"
@@ -229,6 +233,7 @@
                     success: function(data) {
                         var obj = JSON.parse(data);
                         $("#Editservice_name").val(obj.service_name);
+                        $("#EditHSN").val(obj.HSN);
                         $("#Editservice_description").val(obj.service_description);
                         $('#service_id').val(id);
                     },

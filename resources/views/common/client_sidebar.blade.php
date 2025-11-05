@@ -223,6 +223,14 @@
                         </a>
                     </li>
                     @if($company_id == 5)
+                      <li class="nav-item">
+                          <a href="{{ route('year.index') }}"
+                             class="nav-link {{ request()->routeIs('year.*') ? 'active' : '' }}">
+                            <i class="fa fa-calendar-alt"></i>
+                            <span>Year Master</span>
+                          </a>
+                    </li>
+
                     <li class="nav-item">
                       <a href="{{ route('party.index') }}"
                          class="nav-link {{ request()->routeIs('party.*') ? 'active' : '' }}">
