@@ -227,17 +227,24 @@ class QuotationTemplateController extends Controller
 
     // Company logo → base64 inline
     $companyLogoUrl = null;
-    if ($get($company, ['strLogo'])) {
-        $path = public_path('CompanyLogo/'.$company->company_logo);
-        if (!file_exists($path)) $path = public_path('assets/images/favicon.png');
-    } else {
-        $path = public_path('assets/images/favicon.png');
-    }
-    if (file_exists($path)) {
-        $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION)) ?: 'png';
-        $mime = $ext === 'jpg' ? 'jpeg' : $ext;
-        $companyLogoUrl = "data:image/{$mime};base64,".base64_encode(file_get_contents($path));
-    }
+        $root = base_path('../public_html/');
+
+        // 1) pick relative path (from DB or fallback)
+        $rel = data_get($company, 'company_logo'); // e.g. 'uploads/company/logo.png' or 'logo.png'
+        $rel = $rel ? (str_contains($rel, '/') ? $rel : "uploads/company/$rel")
+                    : 'assets/images/favicon.png';
+        
+        // 2) build absolute path and fallback if missing
+        $path = $root . ltrim($rel, '/');
+        if (!file_exists($path)) {
+            $path = $root . 'assets/images/favicon.png';
+        }
+        
+        // 3) make data URI
+        $ext  = strtolower(pathinfo($path, PATHINFO_EXTENSION) ?: 'png');
+        $mime = $ext === 'jpg' ? 'image/jpeg' : "image/$ext";
+        $companyLogoUrl = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($path));
+        
 
     /* -----------------  Party fields  ----------------- */
    $partyName  = $party->strPartyName ?? 'Party';
@@ -261,7 +268,7 @@ class QuotationTemplateController extends Controller
         $items[] = [
             'name' => $clean($d->strProductName ?? $d->productName ?? $d->service_name ?? 'Item'),
             'desc' => $clean($d->strDescription ?? $d->description ?? ''),
-            'hsn'  => $clean($d->HSN ?? $d->hsn ?? ''),
+            'hsn'  => $clean($d->uom ?? $d->uom ?? ''),
             'gst'  => $clean($d->iGstPercentage ?? $d->iGstPercentage ?? ''),
             'qty'  => $qty,
             'rate' => $rate,

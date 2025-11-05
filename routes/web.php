@@ -47,6 +47,7 @@ use App\Http\Controllers\Company\QuotationPdfController;
 
 use App\Http\Controllers\Company\QuotationDesignController;
 use App\Http\Controllers\Company\QuotationTemplateController;
+use App\Http\Controllers\Company\YearController;
 
 
 /*
@@ -512,3 +513,11 @@ Route::prefix('company/quotations')->name('quotations.')->middleware('auth:web_e
 });
 
 
+
+Route::prefix('company/year')->middleware(['auth:web_employees'])->group(function () {
+    Route::get('/year',                 [YearController::class, 'index'])->name('year.index');
+    Route::post('/year/store',          [YearController::class, 'store'])->name('year.store');
+    Route::post('/year/{year}/update',  [YearController::class, 'update'])->name('year.update');
+    Route::delete('/year/{year}',       [YearController::class, 'destroy'])->name('year.destroy');
+    Route::post('/year/{year}/status',  [YearController::class, 'toggleStatus'])->name('year.status');
+});

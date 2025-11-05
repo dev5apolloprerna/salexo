@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use App\Models\CompanyClient;
 use App\Models\Year;
 use App\Models\Party;
+use App\Models\State;
 use App\Models\Quotation;
 use App\Models\QuotationDetail;
 use App\Models\TermCondition;
@@ -70,13 +71,37 @@ class QuotationController extends Controller
     }
 
     
-    public function getNextQuotationNo($companyId)
-    {
-        $nextQuotationNo = Quotation::getNextQuotationNo($companyId);
-        $nextQuotationNo = $nextQuotationNo . "/24-25";
-        
-        return response()->json($nextQuotationNo);
+
+public function getNextQuotationNo() // no param now
+{
+    // 1) Get the last stored quotation number (string or int)
+    $last = Quotation::orderByDesc('quotationId')->value('iQuotationNo'); // adjust PK/column names if needed
+
+    // 2) Extract numeric part safely, increment, and pad (e.g., 0001, 0002...)
+    $num = is_numeric($last) ? (int)$last : (int)preg_replace('/\D+/', '', (string)$last);
+    $nextCore = $num + 1;
+    $nextPadded = str_pad((string)$nextCore, 4, '0', STR_PAD_LEFT); // change 4 to 5/6 if you need more digits
+
+    // 3) Fetch year label from year master (prefer Active + not deleted; else latest; else fallback)
+    $yearLabel = Year::where(['iStatus' => 1, 'isDelete' => 0])
+        ->orderByDesc('year_id')
+        ->value('strYear');
+
+    if (!$yearLabel) {
+        // Fallback to computed FY like 24-25
+        $y = (int)now('Asia/Kolkata')->format('Y');
+        $m = (int)now('Asia/Kolkata')->format('n');
+        $start = $m >= 4 ? $y : $y - 1;
+        $end   = $start + 1;
+        $yearLabel = substr((string)$start, -2) . '-' . substr((string)$end, -2);
     }
+
+    // 4) Build final number
+    $nextQuotationNo = $nextPadded . '/' . $yearLabel;
+
+    return response()->json($nextQuotationNo);
+}
+
 
     public function createview()
     {
@@ -238,7 +263,10 @@ class QuotationController extends Controller
                 'isRemoteEnabled'      => true,
             ])->loadHTML($html);
 
-        return $pdf->download($fileName);
+$pdf->setPaper('a4');
+
+        /*return $pdf->download($fileName);*/
+        return $pdf->stream($fileName);
     }
     protected function getDefaultTemplateForCompany(int $companyId): QuotationTemplate
     {
@@ -257,8 +285,9 @@ class QuotationController extends Controller
 
         // Fallback: first active template marked default, else any active template
         $tpl = QuotationTemplate::where('is_active', 1)
-            ->where('is_default', 1)
+            ->where('is_default', 1 ?? 0)
             ->first();
+
 
         if (!$tpl) {
             $tpl = QuotationTemplate::where('is_active', 1)->first();
@@ -500,6 +529,7 @@ class QuotationController extends Controller
         $companyAddr1 = $company->Address ?? null;
         $companyPin   = $company->pincode ?? null;
         $companyAddr  = $address($companyAddr1, $companyCity, $companyState, $companyPin);
+        $extraTerms  = $company->terms_condition ?? null;
 
         // Company logo → base64 inline
         $companyLogoUrl = null;
@@ -556,7 +586,7 @@ class QuotationController extends Controller
             $items[] = [
                 'name' => $clean($d->strProductName ?? $d->productName ?? $d->service_name ?? 'Item'),
                 'desc' => $clean($d->strDescription ?? $d->description ?? ''),
-                'hsn'  => $clean($d->HSN ?? $d->hsn ?? ''),
+                'hsn'  => $clean($d->uom ?? $d->uom ?? '-'),
                 'gst'  => $clean($d->iGstPercentage ?? $d->iGstPercentage ?? ''),
                 'qty'  => $qty,
                 'rate' => $rate,
@@ -564,13 +594,15 @@ class QuotationController extends Controller
         }
 
         /* -----------------  Terms  ----------------- */
-        $extraTerms = \DB::table('termcondition')
+        
+
+        /*$extraTerms = \DB::table('termcondition')
             ->where(['iStatus'=>1,'isDelete'=>0])
             ->orderBy('termconditionId')
             ->pluck('description')
             ->filter()
             ->values()
-            ->all();
+            ->all();*/
 
         /* -----------------  Quotation meta  ----------------- */
         $discount     = (float)($quotation->discount ?? 0);

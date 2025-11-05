@@ -87,14 +87,14 @@
                                     <div class="row g-3 mb-3">
                                       <div class="col-md-6">
                                         <label class="form-label">City</label>
-                                        <input type="text" class="form-control" name="address2" value="{{ old('city') }}">
+                                        <input type="text" class="form-control" name="city" value="{{ old('city') }}">
                                       </div>
                                       <div class="col-md-6">
                                         <label class="form-label">State</label>
-                                        <select class="form-control" name="state" id="state">
+                                        <select class="form-control" name="state_id" id="state_id">
                                           <option value="">Select State</option>
                                             @foreach($state as $s)
-                                            <option value="{{$s->stateId}}" {{ old('state')== $s->stateId ? 'selected' :'' }}> {{ $s->stateName }} </option>
+                                            <option value="{{$s->stateId}}" {{ old('state_id')== $s->stateId ? 'selected' :'' }}> {{ $s->stateName }} </option>
                                             @endforeach
                                         </select>
                                       </div>

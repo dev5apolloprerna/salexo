@@ -23,7 +23,7 @@ class UpdatePartyRequest extends FormRequest
             ],
             'address1'     => ['nullable','string','max:255'],
             'city'     => ['nullable','string','max:255'],
-            'state'     => ['nullable','string','max:255'],
+            'state_id'     => ['nullable','string','max:255'],
             'strGST'       => [
                 'nullable','string','max:15',
                 Rule::unique('party')
