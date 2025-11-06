@@ -27,21 +27,22 @@ class QuotationApiController extends Controller
      */
     public function index(Request $request)
     {
-        $companyId   = $request->integer('company_id');
-        $partyId     = $request->integer('party_id');
-        $productIds  = (array) $request->input('product_ids', []);
-        $perPage     = min(max((int) $request->input('per_page', 25), 1), 100);
+        $PartyName = $request->partyName;
+        $fromDate  = $request->fromDate;     // dd-mm-YYYY or yyyy-mm-dd (we will convert)
+        $toDate    = $request->toDate;  
 
         $query = Quotation::query()
             ->where(['quotation.iStatus' => 1, 'quotation.isDelete' => 0])
-            ->when($companyId, fn($q) => $q->where('quotation.iCompanyId', $companyId))
-            ->when($partyId,   fn($q) => $q->where('quotation.iPartyId', $partyId))
-            ->when(!empty($productIds), function ($q) use ($productIds) {
-                $q->whereIn('quotation.quotationId', function ($sub) use ($productIds) {
-                    $sub->select('quotationdetails.quotationID')
-                        ->from((new QuotationDetail)->getTable())
-                        ->whereIn('productID', $productIds);
-                });
+            ->when($PartyName, function($q) use($PartyName) {
+                return $q->where('quotation.iPartyId', $PartyName);
+            })
+            ->when($fromDate, function($q) use($fromDate) {
+                $from = date('Y-m-d', strtotime($fromDate));
+                return $q->whereDate('quotation.entryDate', '>=', $from);
+            })
+            ->when($toDate, function($q) use($toDate) {
+                $to = date('Y-m-d', strtotime($toDate));
+                return $q->whereDate('quotation.entryDate', '<=', $to);
             })
             ->join('company_client_master', 'quotation.iCompanyId', '=', 'company_client_master.company_id')
             ->join('party', 'quotation.iPartyId', '=', 'party.partyId')
@@ -51,19 +52,16 @@ class QuotationApiController extends Controller
                 'quotation.*',
                 'company_client_master.company_name',
                 'party.strPartyName',
-                'year.year'
+                'year.year_id'
             ]);
 
-        $paginated = $query->paginate($perPage);
+        $paginated = $query->get();
 
         return response()->json([
-            'data' => $paginated->items(),
-            'meta' => [
-                'current_page' => $paginated->currentPage(),
-                'per_page'     => $paginated->perPage(),
-                'total'        => $paginated->total(),
-                'last_page'    => $paginated->lastPage(),
-            ]
+            'status'=>'success',
+            'message'=>'Quotation List',
+            'data' => $paginated,
+            
         ]);
     }
 

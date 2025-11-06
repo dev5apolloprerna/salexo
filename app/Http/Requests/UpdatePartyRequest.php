@@ -22,6 +22,7 @@ class UpdatePartyRequest extends FormRequest
                     ->ignore($partyId, 'partyId'),
             ],
             'address1'     => ['nullable','string','max:255'],
+            'address2'     => ['nullable','string'],
             'city'     => ['nullable','string','max:255'],
             'state_id'     => ['nullable','string','max:255'],
             'strGST'       => [
@@ -32,6 +33,8 @@ class UpdatePartyRequest extends FormRequest
             ],
             'iMobile'      => ['nullable','string','max:20'],
             'strEmail'     => ['nullable','email','max:255'],
+            'strContactPersonName'     => ['required','string'],
+            'pincode'     => ['nullable','int'],
             'strIP'        => ['nullable','ip'],
             'strEntryDate' => ['required','date'],
             'iStatus'      => ['nullable','integer','in:0,1'],

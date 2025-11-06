@@ -14,11 +14,7 @@ class Party extends Model
     public $timestamps = true;
 
     protected $fillable = [
-        'strPartyName',
-        'iCompanyId',
-        'address1','city','state_id',
-        'strGST','iMobile','strEmail','strIP',
-        'strEntryDate','iStatus','isDelete'
+        'strPartyName', 'strContactPersonName', 'iCompanyId', 'address1', 'address2', 'address3', 'strGST', 'iMobile', 'strEmail', 'city', 'state_id', 'pincode', 'strIP','strEntryDate','iStatus','isDelete'
     ];
 
     protected $casts = [

@@ -110,34 +110,39 @@ Route::prefix('employee')->group(function () {
         Route::post('/firebase/device/update', [EmployeeApiController::class, 'firebase_device_update']);
 
 //party 
+
             Route::post('party', [PartyApiController::class, 'index']);
             Route::post('party/detail',        [PartyApiController::class, 'show']);
             Route::post('party/create',        [PartyApiController::class, 'store']);
             Route::post('party/update',        [PartyApiController::class, 'update']);
             Route::post('party/delete',        [PartyApiController::class, 'destroy']);
-            Route::post('party/bulk-delete',   [PartyApiController::class, 'bulkDestroy']);
+
+            Route::post('/party/search', [PartyApiController::class, 'search']);
+            Route::post('/party/lookup/name', [PartyApiController::class, 'lookupByName']);
+            Route::post('/party/lookup/mobile', [PartyApiController::class, 'lookupByMobile']);
+
             Route::post('party/toggle-status', [PartyApiController::class, 'toggleStatus']);
 
 
 
 
-Route::prefix('quotations')->group(function () {
-    Route::get('/',              [QuotationApiController::class, 'index'])->name('api.quotations.index');
-    Route::get('/next-number',   [QuotationApiController::class, 'getNextQuotationNo'])->name('api.quotations.next');
-    Route::post('/create',             [QuotationApiController::class, 'store'])->name('api.quotations.store');
-    Route::get('/{id}',          [QuotationApiController::class, 'show'])->name('api.quotations.show');
-    Route::put('/{id}',          [QuotationApiController::class, 'update'])->name('api.quotations.update');
-    Route::patch('/{id}',        [QuotationApiController::class, 'update']);
-    Route::delete('/{id}',       [QuotationApiController::class, 'destroy'])->name('api.quotations.destroy');
+        Route::prefix('quotations')->group(function () {
+            Route::post('/',              [QuotationApiController::class, 'index'])->name('api.quotations.index');
+            Route::post('/next-number',   [QuotationApiController::class, 'getNextQuotationNo'])->name('api.quotations.next');
+            Route::post('/create',       [QuotationApiController::class, 'store'])->name('api.quotations.store');
+            Route::post('/{id}',          [QuotationApiController::class, 'show'])->name('api.quotations.show');
+            Route::put('/{id}',          [QuotationApiController::class, 'update'])->name('api.quotations.update');
+            Route::patch('/{id}',        [QuotationApiController::class, 'update']);
+            Route::delete('/{id}',       [QuotationApiController::class, 'destroy'])->name('api.quotations.destroy');
 
-    Route::get('/{id}/details',  [QuotationApiController::class, 'details'])->name('api.quotations.details');
-    Route::get('/{id}/pdf',      [QuotationApiController::class, 'pdf'])->name('api.quotations.pdf');
-    Route::post('/{id}/copy',    [QuotationApiController::class, 'copy'])->name('api.quotations.copy');
-    Route::post('/{id}/send-whatsapp', [QuotationApiController::class, 'sendWhatsApp'])->name('api.quotations.whatsapp');
-});
+            Route::post('/{id}/details',  [QuotationApiController::class, 'details'])->name('api.quotations.details');
+            Route::post('/{id}/pdf',      [QuotationApiController::class, 'pdf'])->name('api.quotations.pdf');
+            Route::post('/{id}/copy',    [QuotationApiController::class, 'copy'])->name('api.quotations.copy');
+            Route::post('/{id}/send-whatsapp', [QuotationApiController::class, 'sendWhatsApp'])->name('api.quotations.whatsapp');
+        });
 
-Route::get('/party-mapping',     [QuotationApiController::class, 'mapping'])->name('api.party.mapping');
-Route::get('/term-conditions',   [QuotationApiController::class, 'termConditions'])->name('api.termconditions.index');
+        Route::post('/party-mapping',     [QuotationApiController::class, 'mapping'])->name('api.party.mapping');
+        Route::post('/term-conditions',   [QuotationApiController::class, 'termConditions'])->name('api.termconditions.index');
 
 
         // 14-10-2025
