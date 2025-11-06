@@ -31,7 +31,7 @@ class PartyController extends Controller
                       ->orWhere('iMobile', 'like', "%$q%");
                 });
             })
-            ->orderBy('strPartyName')
+            ->orderBy('partyId','desc')
             ->paginate(15)
             ->withQueryString();
 
@@ -61,6 +61,84 @@ class PartyController extends Controller
 
         return response()->json(['results' => $rows]);
     }
+    public function lookupByName(Request $request)
+    {
+        $q = trim((string) $request->query('q', ''));
+        if (mb_strlen($q) < 3) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Please type at least 3 characters.',
+            ], 422);
+        }
+
+        // Optional company scoping
+        $companyId = (int) $request->query('company_id', 0);
+
+        $query = DB::table('lead_master')
+            ->select([
+                'lead_id',
+                'company_name',
+                'customer_name',
+                'mobile',
+                'email',
+                'address',
+                'GST_No',
+                'remarks',
+                'iCustomerId',
+                'isDelete',
+                'created_at',
+            ])
+            ->where('isDelete', 0)
+            ->when($companyId > 0, fn($w) => $w->where('iCustomerId', $companyId))
+            ->where(function ($w) use ($q) {
+                $like = "%{$q}%";
+                $w->where('company_name', 'like', $like)
+                  ->orWhere('customer_name', 'like', $like);
+            })
+            // Prioritize exact matches, then partial, then newest
+            ->orderByRaw(
+                "CASE 
+                    WHEN company_name = ? OR customer_name = ? THEN 0
+                    WHEN company_name LIKE ? OR customer_name LIKE ? THEN 1
+                    ELSE 2
+                 END",
+                [$q, $q, "%{$q}%", "%{$q}%"]
+            )
+            ->orderByDesc('lead_id');
+
+        // Take a few hits in case you want to show options in UI later
+        $hits = $query->limit(10)->get();
+
+        if ($hits->isEmpty()) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'No lead found for this name.',
+            ], 404);
+        }
+
+        // Use the best match (first row) to prefill
+        $lead = $hits->first();
+
+        $prefill = [
+            // Map to your Party form input names
+            'strPartyName'           => $lead->company_name ?: ($lead->customer_name ?: ''),
+            'strContactPersonName'   => $lead->customer_name ?: '',
+            'iMobile'                => $lead->mobile ?: '',
+            'strEmail'               => $lead->email ?: '',
+            'address1'               => $lead->address ?: '',
+            'strGST'                 => $lead->GST_No ?: '',
+            'remarks'                => $lead->remarks ?: '',
+        ];
+
+        return response()->json([
+            'ok'    => true,
+            'count' => $hits->count(),
+            'lead'  => $lead,
+            'hits'  => $hits,   // keep for future (optional UI list)
+            'data'  => $prefill,
+        ]);
+    }
+
     public function lookupByMobile(Request $request)
     {
         // sanitize: keep digits only
@@ -137,6 +215,7 @@ class PartyController extends Controller
         $data = $request->validated();
         $data['iCompanyId']    = $user->company_id;
         $data['strIP']    = $request->ip();
+
 
         Party::create($data);
 

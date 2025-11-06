@@ -441,6 +441,7 @@ Route::middleware(['auth:web_employees'])->group(function () {
     Route::post('/bulk-delete',   [PartyController::class, 'bulkDestroy'])->name('bulk-delete');
     Route::patch('/{party}/toggle-status', [PartyController::class, 'toggleStatus'])->name('toggle-status');
     Route::get('/lookup-by-mobile', [PartyController::class, 'lookupByMobile'])->name('lookup-by-mobile');
+    Route::get('/lookup-by-name', [PartyController::class, 'lookupByName'])->name('lookup-by-name');
     Route::get('/ajax/parties', [PartyController::class, 'search'])->name('search');
 
   });

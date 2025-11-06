@@ -31,21 +31,18 @@
                                   <input type="text" class="form-control" name="strPartyName" value="{{ old('strPartyName', $party->strPartyName) }}" required>
                                 </div>
                                 <div class="col-md-4">
-                                  <label class="form-label">GST</label>
-                                  <input type="text" class="form-control" name="strGST" value="{{ old('strGST', $party->strGST) }}">
+                                  <label class="form-label">Contact Person Name</label>
+                                  <input type="text" class="form-control" name="strContactPersonName" value="{{ old('strContactPersonName', $party->strContactPersonName) }}" required>
                                 </div>
-                                <div class="col-md-4">
-                                  <label class="form-label">Entry Date</label>
-                                  <input type="date" class="form-control" name="strEntryDate"
-                                         value="{{ old('strEntryDate', \Carbon\Carbon::parse($party->strEntryDate ?? now())->format('Y-m-d')) }}" required>
-                                </div>
-                              </div>
-
-                              <div class="row g-3 mb-2">
-                                <div class="col-md-4">
+                                 <div class="col-md-4">
                                   <label class="form-label">Mobile</label>
                                   <input type="text" class="form-control" name="iMobile" value="{{ old('iMobile', $party->iMobile) }}">
                                 </div>
+                                
+                              </div>
+
+                              <div class="row g-3 mb-2">
+                               
                                 <div class="col-md-4">
                                   <label class="form-label">Email</label>
                                   <input type="email" class="form-control" name="strEmail" value="{{ old('strEmail', $party->strEmail) }}">
@@ -54,14 +51,18 @@
                                   <label class="form-label">Address 1</label>
                                   <input type="text" class="form-control" name="address1" value="{{ old('address1', $party->address1) }}">
                                 </div>
+                                 <div class="col-md-4">
+                                  <label class="form-label">Address 2</label>
+                                  <input type="text" class="form-control" name="address2" value="{{ old('address2', $party->address2) }}">
+                                </div>
                               </div>
 
                               <div class="row g-3 mb-3">
-                                  <div class="col-md-6">
+                                  <div class="col-md-4">
                                     <label class="form-label">City</label>
                                     <input type="text" class="form-control" name="city" value="{{ old('city', $party->city) }}">
                                   </div>
-                                  <div class="col-md-6">
+                                  <div class="col-md-4">
                                     <label class="form-label">State</label>
                                     <select class="form-control" name="state_id" id="state_id">
                                       <option value="">Select State</option>
@@ -70,6 +71,21 @@
                                         @endforeach
                                     </select>
                                   </div>
+                                  <div class="col-md-4">
+                                    <label class="form-label">Pincode</label>
+                                    <input type="text" class="form-control" name="pincode" value="{{ old('pincode', $party->pincode) }}">
+                                  </div>
+                                </div>
+                                <div class="row g-3 mb-2">
+                                  <div class="col-md-4">
+                                  <label class="form-label">GST</label>
+                                  <input type="text" class="form-control" name="strGST" value="{{ old('strGST', $party->strGST) }}">
+                                </div>
+                                <div class="col-md-4">
+                                  <label class="form-label">Entry Date</label>
+                                  <input type="date" class="form-control" name="strEntryDate"
+                                         value="{{ old('strEntryDate', \Carbon\Carbon::parse($party->strEntryDate ?? now())->format('Y-m-d')) }}" required>
+                                </div>
                                 </div>
 
                               <div class="card-footer mt-2">

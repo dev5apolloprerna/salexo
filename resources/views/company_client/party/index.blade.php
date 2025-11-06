@@ -56,11 +56,12 @@
                                                     <tr class="text-center">
                                                         <th>Sr.No</th>
                                                         <th>Party</th>
-                                                        <th>GST</th>
+                                                        <th>Name</th>
                                                         <th>Mobile</th>
                                                         <th>Email</th>
                                                         <th>City</th>
                                                         <th>State</th>
+                                                        <th>GST</th>
                                                         <th>Date</th>
                                                         <th>Actions</th>
                                                     </tr>
@@ -85,16 +86,17 @@
 
                                                            <td>{{ $list->firstItem() + $index }}</td>
                                                           <td>{{ $row->strPartyName }}
+                                                          <td>{{ $row->strContactPersonName }}
 <!--                                                             <div class="fw-semibold">{{ $row->strPartyName }}</div>
                                                             @if(!empty($row->company?->company_name))
                                                               <small class="text-muted">Company: {{ $row->company->company_name }}</small>
                                                             @endif -->
                                                           </td>
-                                                          <td>{{ $row->strGST }}</td>
                                                           <td>{{ $row->iMobile }}</td>
                                                           <td>{{ $row->strEmail }}</td>
                                                           <td>{{ $row->city }}</td>
                                                           <td>{{ $row->state->stateName ?? '-' }}</td>
+                                                          <td>{{ $row->strGST }}</td>
                                                           <td>{{ $dateDMY }}</td>
                                                             <td>
                                                                 <a href="{{ route('party.edit', $pid) }}"><i

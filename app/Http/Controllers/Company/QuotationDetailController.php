@@ -115,7 +115,7 @@ class QuotationDetailController extends Controller
         'quotationID'      => ['required', 'integer'],
         'productID'        => ['required'], // can be numeric id OR '__new__:name' OR 'other'
         'service_name'     => ['nullable', 'string', 'max:255'], // used when new
-        'description'      => ['required', 'string'],
+        'description'      => ['nullable', 'string'],
         'uom'              => ['required', 'string', 'max:50'],  // you’re using this as HSN too
         'quantity'         => ['required', 'numeric'],
         'rate'             => ['required', 'numeric'],
@@ -192,7 +192,7 @@ class QuotationDetailController extends Controller
         'quotationID'       => ['required', 'integer'],
         'productID'         => ['required'],                   // numeric or '__new__:' or 'other'
         'service_name'      => ['nullable', 'string', 'max:255'],
-        'description'       => ['required', 'string'],
+        'description'       => ['nullable', 'string'],
         'uom'               => ['required', 'string', 'max:50'],
         'quantity'          => ['required', 'numeric'],
         'rate'              => ['required', 'numeric'],

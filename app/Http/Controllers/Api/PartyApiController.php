@@ -9,6 +9,8 @@ use App\Models\Party;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+
 
 class PartyApiController extends Controller
 {
@@ -57,6 +59,149 @@ class PartyApiController extends Controller
             ], 500);
         }
     }
+     public function search(Request $request)
+    {
+        $q         = trim($request->query('q', ''));
+        $companyId = (int) $request->query('company_id', 0);
+
+        $rows = Party::query()
+            ->when($companyId > 0, fn($w) => $w->where('iCompanyId', $companyId))
+            ->where('isDelete', 0)
+            ->when($q !== '', fn($w) => $w->where('strPartyName', 'like', "%{$q}%"))
+            ->orderBy('strPartyName')
+            ->limit(20)
+            ->get([
+                'partyId as id',
+                'strPartyName as text',
+            ]);
+
+        return response()->json(['results' => $rows]);
+    }
+
+    // GET /api/parties/lookup/name?q=&company_id=
+    public function lookupByName(Request $request)
+    {
+
+
+            $q = trim((string) $request->input('name', $request->input('q', '')));
+            if (mb_strlen($q) < 3) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => 'Please type at least 3 characters.',
+                ], 422);
+            }
+
+
+        $companyId = (int) $request->query('company_id', 0);
+
+        $query = DB::table('lead_master')
+            ->select([
+                'lead_id',
+                'company_name',
+                'customer_name',
+                'mobile',
+                'email',
+                'address',
+                'GST_No',
+                'remarks',
+                'iCustomerId',
+                'isDelete',
+                'created_at',
+            ])
+            ->where('isDelete', 0)
+            ->when($companyId > 0, fn($w) => $w->where('iCustomerId', $companyId))
+            ->where(function ($w) use ($q) {
+                $like = "%{$q}%";
+                $w->where('company_name', 'like', $like)
+                  ->orWhere('customer_name', 'like', $like);
+            })
+            ->orderByRaw(
+                "CASE 
+                    WHEN company_name = ? OR customer_name = ? THEN 0
+                    WHEN company_name LIKE ? OR customer_name LIKE ? THEN 1
+                    ELSE 2
+                 END",
+                [$q, $q, "%{$q}%", "%{$q}%"]
+            )
+            ->orderByDesc('lead_id');
+
+        $hits = $query->limit(1)->get();
+
+        if ($hits->isEmpty()) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'No lead found for this name.',
+            ], 404);
+        }
+
+        $lead = $hits->first();
+
+        $prefill = [
+            'strPartyName'         => $lead->company_name ?: ($lead->customer_name ?: ''),
+            'strContactPersonName' => $lead->customer_name ?: '',
+            'iMobile'              => $lead->mobile ?: '',
+            'strEmail'             => $lead->email ?: '',
+            'address1'             => $lead->address ?: '',
+            'strGST'               => $lead->GST_No ?: '',
+            'remarks'              => $lead->remarks ?: '',
+        ];
+
+        return response()->json([
+            'status'    => 'success',
+            'message'    => 'Get Data From Lead Master',
+            // 'count' => $hits->count(),
+            // 'lead'  => $lead,
+            'lead_data'  => $prefill,
+        ]);
+    }
+
+    // GET /api/parties/lookup/mobile?mobile=&company_id=
+    public function lookupByMobile(Request $request)
+    {
+        $mobile = preg_replace('/\D+/', '', (string) $request->query('mobile', ''));
+
+        if (strlen($mobile) < 6) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Please provide a valid mobile number.',
+            ], 422);
+        }
+
+        $companyId = (int) $request->query('company_id', 0);
+
+        $query = DB::table('lead_master')
+            ->where('isDelete', 0)
+            ->where('mobile', $mobile);
+
+        if ($companyId > 0) {
+            $query->where('iCustomerId', $companyId);
+        }
+
+        $lead = $query->orderByDesc('lead_id')->first();
+
+        if (!$lead) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'No lead found for this mobile.',
+            ], 404);
+        }
+
+        $prefill = [
+            'strPartyName'     => $lead->company_name ?: ($lead->customer_name ?: ''),
+            'strContactPerson' => $lead->customer_name ?: '',
+            'iMobile'          => $lead->mobile ?: '',
+            'strEmail'         => $lead->email ?: '',
+            'address1'         => $lead->address ?: '',
+            'strGST'           => $lead->GST_No ?: '',
+            'remarks'          => $lead->remarks ?: '',
+        ];
+
+        return response()->json([
+            'ok'   => true,
+            'lead' => $lead,
+            'data' => $prefill,
+        ]);
+    }
 
     /**
      * Party detail
@@ -94,10 +239,10 @@ class PartyApiController extends Controller
         try {
             $row = Party::create($data);
             // return response()->json(['message' => 'Party created successfully', 'party' => $row], 201);
-            return response()->json(['message' => 'Party created successfully'], 201);
+            return response()->json(['status'=>'success','message' => 'Party created successfully'], 201);
         } catch (QueryException $e) {
             if ((int) $e->getCode() === 23000) {
-                return response()->json(['message' => 'This GST is already registered for your company.'], 422);
+                return response()->json(['status'=>'error','message' => 'This GST is already registered for your company.'], 422);
             }
             throw $e;
         }
@@ -126,10 +271,10 @@ class PartyApiController extends Controller
         try {
             $row->update($data);
             // return response()->json(['message' => 'Party updated successfully', 'party' => $row->fresh()]);
-            return response()->json(['message' => 'Party updated successfully']);
+            return response()->json(['status'=>'success','message' => 'Party updated successfully']);
         } catch (QueryException $e) {
             if ((int) $e->getCode() === 23000) {
-                return response()->json(['message' => 'This GST is already registered for your company.'], 422);
+                return response()->json(['status'=>'error','message' => 'This GST is already registered for your company.'], 422);
             }
             throw $e;
         }

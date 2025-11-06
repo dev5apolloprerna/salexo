@@ -11,6 +11,16 @@
 
                 {{-- Alert Messages --}}
                 @include('common.alert')
+@if ($errors->any())
+  <div class="alert alert-danger">
+    <strong>Please fix the following errors:</strong>
+    <ul class="mb-0 mt-2">
+      @foreach ($errors->all() as $error)
+        <li>{{ $error }}</li>
+      @endforeach
+    </ul>
+  </div>
+@endif
 
                
 
@@ -36,8 +46,12 @@
                                   <div class="card-body">
                                     <div class="row g-2">
                                       <div class="col-md-6">
-                                        <label class="form-label">Mobile to Check</label>
-                                        <input type="text" class="form-control" id="lookup_mobile" placeholder="e.g. 9876543210">
+                                        <!-- <label class="form-label">Mobile to Check</label>
+                                        <input type="text" class="form-control" id="lookup_mobile" placeholder="e.g. 9876543210"> -->
+
+                                        <label class="form-label">Company Name to Check</label>
+                                        <input type="text" class="form-control" id="lookup_name" placeholder="e.g. ABCD..">
+
                                         <small id="lead_fetch_status" class="text-muted"></small>
                                       </div>
                                       <div class="col-md-2" style="padding-top:30px">
@@ -59,21 +73,19 @@
                                         <label class="form-label">Party Name</label>
                                         <input type="text" class="form-control" name="strPartyName" value="{{ old('strPartyName') }}" required>
                                       </div>
-                                      <div class="col-md-4">
-                                        <label class="form-label">GST</label>
-                                        <input type="text" class="form-control" name="strGST" value="{{ old('strGST') }}">
+                                       <div class="col-md-4">
+                                        <label class="form-label">Contact Person Name</label>
+                                        <input type="text" class="form-control" name="strContactPersonName" value="{{ old('strContactPersonName') }}" required>
                                       </div>
-                                      <div class="col-md-4">
-                                        <label class="form-label">Entry Date</label>
-                                        <input type="date" class="form-control" name="strEntryDate" value="{{ old('strEntryDate', now()->format('Y-m-d')) }}" required>
-                                      </div>
-                                    </div>
-
-                                    <div class="row g-3 mb-2">
                                       <div class="col-md-4">
                                         <label class="form-label">Mobile</label>
                                         <input type="text" class="form-control" name="iMobile" id="strContactNo" value="{{ old('iMobile') }}">
                                       </div>
+                                      
+                                    </div>
+
+                                    <div class="row g-3 mb-2">
+                                      
                                       <div class="col-md-4">
                                         <label class="form-label">Email</label>
                                         <input type="email" class="form-control" name="strEmail" value="{{ old('strEmail') }}">
@@ -82,14 +94,18 @@
                                         <label class="form-label">Address 1</label>
                                         <input type="text" class="form-control" name="address1" value="{{ old('address1') }}">
                                       </div>
+                                       <div class="col-md-4">
+                                        <label class="form-label">Address 2</label>
+                                        <input type="text" class="form-control" name="address2" value="{{ old('address2') }}">
+                                      </div>
                                     </div>
 
                                     <div class="row g-3 mb-3">
-                                      <div class="col-md-6">
+                                      <div class="col-md-4">
                                         <label class="form-label">City</label>
                                         <input type="text" class="form-control" name="city" value="{{ old('city') }}">
                                       </div>
-                                      <div class="col-md-6">
+                                      <div class="col-md-4">
                                         <label class="form-label">State</label>
                                         <select class="form-control" name="state_id" id="state_id">
                                           <option value="">Select State</option>
@@ -98,6 +114,21 @@
                                             @endforeach
                                         </select>
                                       </div>
+                                       <div class="col-md-4">
+                                        <label class="form-label">Pincode</label>
+                                        <input type="text" class="form-control" name="pincode" value="{{ old('pincode') }}">
+                                      </div>
+                                    </div>
+                                    <div class="row g-3 mb-2">
+                                      <div class="col-md-4">
+                                        <label class="form-label">GST</label>
+                                        <input type="text" class="form-control" name="strGST" value="{{ old('strGST') }}">
+                                      </div>
+                                      <div class="col-md-4">
+                                        <label class="form-label">Entry Date</label>
+                                        <input type="date" class="form-control" name="strEntryDate" value="{{ old('strEntryDate', now()->format('Y-m-d')) }}" required>
+                                      </div>
+                                      
                                     </div>
                                     <div class="card-footer mt-2">
                                             <div class="mb-3" style="float: right;">
@@ -121,9 +152,72 @@
 
 @section('scripts')
 <script>
+
 (function () {
   const fetchBtn = document.getElementById('btn-fetch-lead');
-  const mobileIn = document.getElementById('lookup_mobile');
+  const nameIn  = document.getElementById('lookup_name');
+  const statusEl = document.getElementById('lead_fetch_status');
+  const LOOKUP_URL = "{{ route('party.lookup-by-name') }}";
+
+  function setStatus(msg, type='muted'){
+    statusEl.className = type==='error'?'text-danger':(type==='success'?'text-success':'text-muted');
+    statusEl.textContent = msg || '';
+  }
+
+  function fillField(name, val){
+    const el = document.querySelector(`[name="${name}"]`) || document.getElementById(name);
+    if(!el) return;
+    el.value = (val ?? '');
+    el.dispatchEvent(new Event('input', { bubbles:true }));
+    el.dispatchEvent(new Event('change', { bubbles:true }));
+  }
+
+  function applyPrefill(d){
+    Object.entries(d || {}).forEach(([k,v]) => fillField(k, v));
+  }
+
+  async function doLookup(){
+    setStatus('');
+    const q = (nameIn.value || '').trim();
+    if (q.length < 3){
+      setStatus('Please type at least 3 characters.', 'error');
+      nameIn.focus();
+      return;
+    }
+    try {
+      setStatus('Searching leads…');
+      const url = new URL(LOOKUP_URL, window.location.origin);
+      url.searchParams.set('q', q);
+      // If you want to scope by company: url.searchParams.set('company_id', '123');
+
+      const res = await fetch(url.toString(), { headers: { 'Accept':'application/json' }});
+      const json = await res.json();
+
+      if(!res.ok || !json.ok){
+        setStatus(json.message || 'No lead found.', 'muted');
+        return;
+      }
+
+      applyPrefill(json.data);
+      setStatus(json.count > 1 ? `Auto-filled from best match. (${json.count} matches found)` : 'Auto-filled from lead.', 'success');
+    } catch (e) {
+      console.error(e);
+      setStatus('Error while searching lead.', 'error');
+    }
+  }
+
+  fetchBtn?.addEventListener('click', doLookup);
+  nameIn?.addEventListener('blur', function(){
+    const q = (this.value || '').trim();
+    if (q.length >= 3) doLookup();
+  });
+})();
+
+
+  //search by mobile number 
+/*(function () {
+  const fetchBtn = document.getElementById('btn-fetch-lead');
+   const mobileIn = document.getElementById('lookup_mobile');
   const statusEl = document.getElementById('lead_fetch_status');
   const LOOKUP_URL = "{{ route('party.lookup-by-mobile') }}";
 
@@ -146,6 +240,6 @@
   }
   fetchBtn?.addEventListener('click', doLookup);
   mobileIn?.addEventListener('blur', function(){ const d=(this.value||'').replace(/\D+/g,''); if(d.length>=6) doLookup(); });
-})();
+})();*/
 </script>
 @endsection
