@@ -130,10 +130,9 @@ Route::prefix('employee')->group(function () {
             Route::post('/',              [QuotationApiController::class, 'index'])->name('api.quotations.index');
             Route::post('/next-number',   [QuotationApiController::class, 'getNextQuotationNo'])->name('api.quotations.next');
             Route::post('/create',       [QuotationApiController::class, 'store'])->name('api.quotations.store');
-            Route::post('/{id}',          [QuotationApiController::class, 'show'])->name('api.quotations.show');
-            Route::put('/{id}',          [QuotationApiController::class, 'update'])->name('api.quotations.update');
-            Route::patch('/{id}',        [QuotationApiController::class, 'update']);
-            Route::delete('/{id}',       [QuotationApiController::class, 'destroy'])->name('api.quotations.destroy');
+            Route::post('/{id}/show',          [QuotationApiController::class, 'show'])->name('api.quotations.show');
+            Route::post('/{id}/update',          [QuotationApiController::class, 'update'])->name('api.quotations.update');
+            Route::post('/{id}/delete',       [QuotationApiController::class, 'destroy'])->name('api.quotations.destroy');
 
             Route::post('/{id}/details',  [QuotationApiController::class, 'details'])->name('api.quotations.details');
             Route::post('/{id}/pdf',      [QuotationApiController::class, 'pdf'])->name('api.quotations.pdf');

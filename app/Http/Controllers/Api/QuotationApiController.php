@@ -65,18 +65,27 @@ class QuotationApiController extends Controller
         ]);
     }
 
-    /**
-     * GET /api/quotations/next-number?company_id=123
-     */
-    public function getNextQuotationNo(Request $request)
+    public function getNextQuotationNo()
     {
-        $companyId = $request->integer('company_id');
-        if (!$companyId) {
-            return response()->json(['message' => 'company_id is required'], 422);
+        // Get last saved value, e.g. "0012/24-25" or "0012"
+        $last = Quotation::orderByDesc('quotationId')->value('iQuotationNo');
+
+        // Take only the left part before '/', keep digits only
+        $n = 0;
+        if (!empty($last)) {
+            $left = explode('/', trim($last))[0];     // "0012"
+            $n    = (int) preg_replace('/\D/', '', $left); // 12
         }
-        $nextQuotationNo = Quotation::getNextQuotationNo($companyId) . '/24-25';
-        return response()->json(['next_quotation_no' => $nextQuotationNo]);
+
+        // +1 and pad to 4 digits: 0001, 0002, ...
+        $next = str_pad((string)($n + 1), 4, '0', STR_PAD_LEFT);
+            $year = Year::where(['iStatus'=>1,'isDelete'=>0])->orderByDesc('year_id')->value('strYear');
+            if (!$year) $year = now('Asia/Kolkata')->format('y').'-'.now('Asia/Kolkata')->addYear()->format('y');
+
+            $nextQuotationNo=$next . '/' . $year;
+            return response()->json(['next_quotation_no' => $nextQuotationNo] );
     }
+
 
     /**
      * POST /api/quotations
@@ -293,8 +302,10 @@ class QuotationApiController extends Controller
         $downloadName = $header->strPartyName . $header->iQuotationNo . '.pdf';
 
         return response()->json([
-            'header' => $header,
-            'items'  => $items,
+            'status' => 'success',
+            'message' => 'Quotation details',
+            'quotation_details' => $header,
+            'products'  => $items,
             'terms'  => $terms,
             'logo_url' => $logoUrl,
             'pdf' => [
@@ -384,9 +395,12 @@ class QuotationApiController extends Controller
         $list = Party::where(['iStatus' => 1, 'isDelete' => 0])
             ->whereIn('iCompanyId', $companyIds)
             ->orderByDesc('partyId')
-            ->get(['partyId as id', 'strPartyName as name']);
+            ->get(['partyId as id', 'strPartyName as name','iCompanyId as company_id']);
 
-        return response()->json(['data' => $list]);
+        return response()->json([
+            'status'=>'success',
+            'message'=>"party mapping list",
+            'data' => $list]);
     }
 
     /**
