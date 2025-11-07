@@ -31,6 +31,8 @@ class QuotationController extends Controller
 
    public function index(Request $request)
     {
+        $user = Auth::user();
+
         $PartyName = $request->partyName;
         $fromDate  = $request->fromDate;     // dd-mm-YYYY or yyyy-mm-dd (we will convert)
         $toDate    = $request->toDate;       // dd-mm-YYYY or yyyy-mm-dd
@@ -58,9 +60,14 @@ class QuotationController extends Controller
             ->when($toDate, function($q) use($toDate) {
                 $to = date('Y-m-d', strtotime($toDate));
                 return $q->whereDate('quotation.entryDate', '<=', $to);
-            })
+            });
 
-            ->join('company_client_master','quotation.iCompanyId','=','company_client_master.company_id')
+            if($user->role_id == '3')
+            {
+                $Quotation->where(['created_by'=>$user->emp_id]);
+            }
+
+            $Quotation = $Quotation->join('company_client_master','quotation.iCompanyId','=','company_client_master.company_id')
             ->join('party','quotation.iPartyId','=','party.partyId')
             ->join('year','quotation.iYearId','=','year.year_id')
             ->paginate(25);
@@ -94,7 +101,7 @@ class QuotationController extends Controller
 
     public function createview()
     {
-                $user = Auth::user();
+        $user = Auth::user();
 
         $Year = Year::orderBy('year_id', 'DESC')->where(['iStatus' => 1, 'isDelete' => 0])->get();
         $Company = CompanyClient::orderBy('company_id', 'DESC')->where(['company_id'=>$user->company_id,'iStatus' => 1, 'isDeleted' => 0])->first();
@@ -124,7 +131,8 @@ class QuotationController extends Controller
             'paymentTerms' => $request->paymentTerms,
             'entryDate' => date('Y-m-d', strtotime($request->entryDate)),
             'iGstType' => $request->iGstType,
-            'strTermsCondition' => $request->strTermsCondition
+            'strTermsCondition' => $request->strTermsCondition,
+            'created_by' => $user->emp_id
         );
         // dd($Data);
         $getId=DB::table('quotation')->insertGetId($Data);
@@ -165,8 +173,7 @@ class QuotationController extends Controller
 
     public function update(Request $request, $Id)
     {
-                $user = Auth::user();
-
+        $user = Auth::user();
 
         $quotationId = $Id;
         $Company = DB::table('quotation')
@@ -182,7 +189,8 @@ class QuotationController extends Controller
                 'paymentTerms' => $request->paymentTerms,
                 'entryDate' => date('Y-m-d', strtotime($request->entryDate)),
                 'iGstType' => $request->iGstType,
-                'strTermsCondition' => $request->strTermsCondition
+                'strTermsCondition' => $request->strTermsCondition,
+                'updated_by' => $user->emp_id
             ]);
     return redirect()
         ->route('quotationdetails.index', ['getId' => $quotationId])
@@ -374,7 +382,10 @@ $pdf->setPaper('a4');
 
     public function copyQuotation(Request $request, $Id)
     {
-        //dd($Id);
+
+        $user = Auth::user();
+
+
         $Quotation = Quotation::where(['iStatus' => 1, 'isDelete' => 0, 'quotationId' => $Id])->first();
 
         //dd($Quotation);
@@ -390,7 +401,8 @@ $pdf->setPaper('a4');
             'paymentTerms' => $Quotation->paymentTerms,
             'entryDate' => date('Y-m-d', strtotime($Quotation->entryDate)),
             'iGstType' => $Quotation->iGstType,
-            'strTermsCondition' => $Quotation->strTermsCondition
+            'strTermsCondition' => $Quotation->strTermsCondition,
+            'created_by' => $user->emp_id
         );
         //dd($Data);
         $getId = DB::table('quotation')->insertGetId($Data);
@@ -411,7 +423,8 @@ $pdf->setPaper('a4');
                 'amount' => $detailcopy->amount,
                 'discount' => $detailcopy->discount,
                 'netAmount' => $detailcopy->netAmount,
-                'iGstPercentage' => $detailcopy->iGstPercentage
+                'iGstPercentage' => $detailcopy->iGstPercentage,
+                'created_by' => $user->emp_id
             );
 
             DB::table('quotationdetails')->insert($Data);

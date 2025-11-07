@@ -94,6 +94,7 @@ class QuotationApiController extends Controller
     public function store(Request $request)
     {
         $user = $request->user(); // if using Sanctum/Passport (optional)
+        $user = Auth::user();
 
         $v = Validator::make($request->all(), [
             'iYearId'            => 'required|integer|exists:year,year_id',
@@ -128,6 +129,7 @@ class QuotationApiController extends Controller
             'entryDate'         => $entryDate->format('Y-m-d'),
             'iGstType'          => $request->input('iGstType', 0),
             'strTermsCondition' => $request->input('strTermsCondition'),
+            'created_by'        => $user->emp_id,
             'iStatus'           => 1,
             'isDelete'          => 0,
         ];
@@ -180,6 +182,7 @@ class QuotationApiController extends Controller
      */
     public function update(Request $request, $id)
     {
+        $user = Auth::user();
         $v = Validator::make($request->all(), [
             'iYearId'            => 'required|integer|exists:year,year_id',
             'iQuotationNo'       => 'required|string|max:50',
@@ -214,6 +217,7 @@ class QuotationApiController extends Controller
                 'entryDate'         => $entryDate->format('Y-m-d'),
                 'iGstType'          => $request->input('iGstType', 0),
                 'strTermsCondition' => $request->input('strTermsCondition'),
+                'updated_by'        => $user->emp_id,
             ]);
 
         if (!$affected) {

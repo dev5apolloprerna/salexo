@@ -9,6 +9,7 @@ use App\Models\QuotationDetail;
 use App\Models\Quotation;
 use App\Models\Service;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class QuotationDetailController extends Controller
 {
@@ -111,6 +112,8 @@ class QuotationDetailController extends Controller
 
     public function create(Request $request)
     {
+        $user = Auth::user();
+
          $data = $request->validate([
         'quotationID'      => ['required', 'integer'],
         'productID'        => ['required'], // can be numeric id OR '__new__:name' OR 'other'
@@ -146,6 +149,7 @@ class QuotationDetailController extends Controller
         'discount'        => $discount,
         'netAmount'       => $netAmount,
         'iGstPercentage'  => (float)$data['iGstPercentage'],
+        'created_by' => $user->emp_id,
         'iStatus'         => 1,                    // set defaults if your table uses them
         'isDelete'        => 0,
         'created_at'      => now(),
@@ -187,6 +191,8 @@ class QuotationDetailController extends Controller
 
     public function update(Request $request, $Id)
     {
+        $user = Auth::user();
+
          $data = $request->validate([
         'quotationdetailsId'=> ['required', 'integer'],
         'quotationID'       => ['required', 'integer'],
@@ -228,6 +234,7 @@ class QuotationDetailController extends Controller
             'discount'        => $discount,
             'netAmount'       => $netAmount,
             'iGstPercentage'  => (float)$data['iGstPercentage'],
+            'updated_by'      => $user->emp_id,
             'updated_at'      => now(),
         ]);
 
