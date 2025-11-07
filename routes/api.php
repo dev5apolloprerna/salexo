@@ -16,6 +16,8 @@ use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\Api\PartyApiController;
 use App\Http\Controllers\Api\QuotationApiController;
+use App\Http\Controllers\Api\ListingController;
+use App\Http\Controllers\Api\QuotationDetailApiController;
 
 /*
 |--------------------------------------------------------------------------
@@ -127,21 +129,29 @@ Route::prefix('employee')->group(function () {
 
 
         Route::prefix('quotations')->group(function () {
-            Route::post('/',              [QuotationApiController::class, 'index'])->name('api.quotations.index');
-            Route::post('/next-number',   [QuotationApiController::class, 'getNextQuotationNo'])->name('api.quotations.next');
-            Route::post('/create',       [QuotationApiController::class, 'store'])->name('api.quotations.store');
-            Route::post('/{id}/show',          [QuotationApiController::class, 'show'])->name('api.quotations.show');
-            Route::post('/{id}/update',          [QuotationApiController::class, 'update'])->name('api.quotations.update');
-            Route::post('/{id}/delete',       [QuotationApiController::class, 'destroy'])->name('api.quotations.destroy');
+            Route::post('/',              [QuotationApiController::class, 'index']);
+            Route::post('/next-number',   [QuotationApiController::class, 'getNextQuotationNo']);
+            Route::post('/create',       [QuotationApiController::class, 'store']);
+            Route::post('/{id}/show',          [QuotationApiController::class, 'show']);
+            Route::post('/{id}/update',          [QuotationApiController::class, 'update']);
+            Route::post('/{id}/delete',       [QuotationApiController::class, 'destroy']);
 
-            Route::post('/{id}/details',  [QuotationApiController::class, 'details'])->name('api.quotations.details');
-            Route::post('/{id}/pdf',      [QuotationApiController::class, 'pdf'])->name('api.quotations.pdf');
-            Route::post('/{id}/copy',    [QuotationApiController::class, 'copy'])->name('api.quotations.copy');
-            Route::post('/{id}/send-whatsapp', [QuotationApiController::class, 'sendWhatsApp'])->name('api.quotations.whatsapp');
+            Route::post('/{id}/details',  [QuotationApiController::class, 'details']);
+            Route::post('/{id}/pdf',      [QuotationApiController::class, 'pdf']);
+            Route::post('/{id}/copy',    [QuotationApiController::class, 'copy']);
+            Route::post('/{id}/send-whatsapp', [QuotationApiController::class, 'sendWhatsApp']);
         });
 
-        Route::post('/party-mapping',     [QuotationApiController::class, 'mapping'])->name('api.party.mapping');
-        Route::post('/term-conditions',   [QuotationApiController::class, 'termConditions'])->name('api.termconditions.index');
+         // 07-11
+
+        // Quotation details (scoped to quotation)
+        Route::post('/quotations-detail/list', [QuotationDetailApiController::class, 'index']);
+        Route::post('/quotations-detail/create', [QuotationDetailApiController::class, 'store']);
+
+        // Single detail by id
+        Route::post('/quotation-detail/productshow',  [QuotationDetailApiController::class, 'productshow']);
+        Route::post('/quotation-detail/update',  [QuotationDetailApiController::class, 'update']);
+        Route::post('/quotation-detail/delete',  [QuotationDetailApiController::class, 'destroy']);
 
 
         // 14-10-2025
@@ -149,8 +159,18 @@ Route::prefix('employee')->group(function () {
         Route::post('udf/create', [UDFMasterApiController::class, 'udf_create']);
         Route::post('udf/update', [UDFMasterApiController::class, 'udf_update']);
         Route::post('udf/delete', [UDFMasterApiController::class, 'udf_delete']);
+
+
+    Route::post('/party-mapping',     [QuotationApiController::class, 'mapping'])->name('api.party.mapping');
+    Route::post('/term-conditions',   [QuotationApiController::class, 'termConditions'])->name('api.termconditions.index');
+
+   
     });
 });
+
+Route::post('/dropdown-list', [ListingController::class, 'dropdown_list'])->name('api.dropdown.list');
+
+
 Route::post('forgot/password', [EmployeeApiController::class, 'forgot_password']);
 Route::post('otp/verify', [EmployeeApiController::class, 'otp_verify']);
 Route::post('set/new/password', [EmployeeApiController::class, 'set_new_password']);

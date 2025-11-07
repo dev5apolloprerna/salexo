@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
 use Barryvdh\DomPDF\Facade\Pdf as PDF;
+use Illuminate\Support\Facades\Auth;
 
 use App\Models\CompanyClient;
 use App\Models\Year;
@@ -18,6 +19,7 @@ use App\Models\QuotationDetail;
 use App\Models\TermCondition;
 use App\Models\Service; // products table in your original code looked like Service
 use Illuminate\Support\Carbon;
+use Illuminate\Validation\Rule;
 
 class QuotationApiController extends Controller
 {
@@ -58,7 +60,7 @@ class QuotationApiController extends Controller
         $paginated = $query->get();
 
         return response()->json([
-            'status'=>'success',
+            'success'=>true,
             'message'=>'Quotation List',
             'data' => $paginated,
             
@@ -98,7 +100,15 @@ class QuotationApiController extends Controller
 
         $v = Validator::make($request->all(), [
             'iYearId'            => 'required|integer|exists:year,year_id',
-            'iQuotationNo'       => 'required|string|max:50',
+            'iQuotationNo' => [
+                'required', 'string', 'max:50',
+                Rule::unique('quotation', 'iQuotationNo')
+                    ->where(fn ($q) => $q
+                        ->where('iCompanyId', $request->iCompanyId ?? optional($request->user())->company_id)
+                        ->where('iYearId', $request->iYearId)
+                        ->where('isDelete', 0)
+                    ),
+            ],
             'iPartyId'           => 'required|integer|exists:party,partyId',
             // If you want to force the company from auth: omit iCompanyId and use $user->company_id
             'iCompanyId'         => 'nullable|integer|exists:company_client_master,company_id',
@@ -137,6 +147,7 @@ class QuotationApiController extends Controller
         $id = DB::table('quotation')->insertGetId($data);
 
         return response()->json([
+            'success'=>true,
             'message' => 'Quotation created successfully',
             'quotation_id' => $id,
             'redirect_to_details' => route('api.quotations.details', $id)
@@ -170,7 +181,7 @@ class QuotationApiController extends Controller
             ->first();
 
         if (!$q) {
-            return response()->json(['message' => 'Not found'], 404);
+            return response()->json(['success'=>false,'message' => 'Not found'], 404);
         }
 
         return response()->json(['data' => $q]);
@@ -185,7 +196,16 @@ class QuotationApiController extends Controller
         $user = Auth::user();
         $v = Validator::make($request->all(), [
             'iYearId'            => 'required|integer|exists:year,year_id',
-            'iQuotationNo'       => 'required|string|max:50',
+            'iQuotationNo' => [
+                'required', 'string', 'max:50',
+                Rule::unique('quotation', 'iQuotationNo')
+                    ->ignore($id, 'quotationId')                // ignore current row
+                    ->where(fn($q) => $q
+                        ->where('iCompanyId', $request->iCompanyId ?? optional($request->user())->company_id)
+                        ->where('iYearId',    $request->iYearId)
+                        ->where('isDelete',   0)
+                    ),
+            ],
             'iPartyId'           => 'required|integer|exists:party,partyId',
             'iCompanyId'         => 'required|integer|exists:company_client_master,company_id',
             'quotationValidity'  => 'nullable|string|max:255',
@@ -221,10 +241,11 @@ class QuotationApiController extends Controller
             ]);
 
         if (!$affected) {
-            return response()->json(['message' => 'Not found or no changes'], 404);
+            return response()->json(['success'=>false,'message' => 'Not found or no changes'], 404);
         }
 
         return response()->json([
+            'success'=>true,
             'message' => 'Quotation updated successfully',
             'quotation_id' => (int) $id
         ]);
@@ -240,10 +261,10 @@ class QuotationApiController extends Controller
             ->delete();
 
         if (!$deleted) {
-            return response()->json(['message' => 'Not found'], 404);
+            return response()->json(['success'=>false,'message' => 'Not found'], 404);
         }
 
-        return response()->json(['message' => 'Quotation deleted successfully']);
+        return response()->json(['success'=>true,'message' => 'Quotation deleted successfully']);
     }
 
     /**
@@ -283,7 +304,7 @@ class QuotationApiController extends Controller
             ->first();
 
         if (!$header) {
-            return response()->json(['message' => 'Not found'], 404);
+            return response()->json(['success'=>false,'message' => 'Not found'], 404);
         }
 
         // Prefer a static logo URL; avoid embedding base64 in API
@@ -402,7 +423,7 @@ class QuotationApiController extends Controller
             ->get(['partyId as id', 'strPartyName as name','iCompanyId as company_id']);
 
         return response()->json([
-            'status'=>'success',
+            'success'=>true,
             'message'=>"party mapping list",
             'data' => $list]);
     }
@@ -476,6 +497,7 @@ class QuotationApiController extends Controller
         }
 
         return response()->json([
+            'success'=>true,
             'message' => 'Quotation copied successfully',
             'new_quotation_id' => $copyId
         ], 201);
@@ -518,6 +540,7 @@ class QuotationApiController extends Controller
         if (!$resp->ok()) {
             $err = $resp->json();
             return response()->json([
+                'success'=>false,
                 'message' => 'Failed to send WhatsApp message',
                 'error'   => $err['error']['message'] ?? $resp->body()
             ], 502);
