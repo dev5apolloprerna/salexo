@@ -24,6 +24,9 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
+use Illuminate\Support\Facades\File;
+
+
 class EmployeeApiController extends Controller
 {
     public function login(Request $request)
@@ -932,49 +935,98 @@ class EmployeeApiController extends Controller
         }
     }
 
-    public function profile_update(Request $request)
-    {
-        try {
-            $employee = Auth::guard('employee_api')->user();
-            $company_id = Auth::guard('employee_api')->user()->company_id;
+   public function profile_update(Request $request)
+{
+    try {
+        $employee = Auth::guard('employee_api')->user();
 
-            if (!$employee) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Unauthorized access',
-                ], 401);
-            }
-
-            $validated = $request->validate([
-                'emp_name' => 'required|string|max:255',
-                'emp_email' => 'required|email'
-            ]);
-
-            $employee->update($validated);
-
-            CompanyClient::where(['company_id' => $company_id])->update([
-                    'payment_terms'=>$request->payment_terms,
-                    'delivery_terms'=>$request->delivery_terms,
-                    'terms_condition'=>$request->terms_condition,
-
-                ]);
-
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Profile updated successfully',
-                'data'    => $employee,
-            ], 200);
-        } catch (ValidationException $e) {
-            return response()->json(['errors' => $e->errors()], 422);
-        } catch (\Throwable $th) {
+        if (!$employee) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update profile',
-                'error'   => $th->getMessage(),
-            ], 500);
+                'message' => 'Unauthorized access',
+            ], 401);
         }
+
+        $company_id = $employee->company_id;
+
+        // ✅ Validate
+        $validated = $request->validate([
+            'emp_name'   => 'required|string|max:255',
+            'emp_email'  => 'nullable|email|unique:employee_master,emp_email,' . $employee->emp_id . ',emp_id',
+            'emp_mobile' => 'nullable|numeric|digits:10',
+
+            // ✅ logo optional
+            'company_logo' => 'nullable|image|mimes:png,jpg,jpeg,webp,gif|max:3072',
+        ]);
+
+        DB::beginTransaction();
+
+        // ✅ Update employee basic fields
+        $employee->update($validated);
+
+        // ✅ Prepare company update
+        $updateCompany = [
+            'contact_person_name'=> $request->emp_name,
+            'payment_terms'   => $request->payment_terms,
+            'delivery_terms'  => $request->delivery_terms,
+            'terms_condition' => $request->terms_condition,
+        ];
+
+        // ✅ Get current company info (for old logo delete)
+        $company = CompanyClient::where('company_id', $company_id)->first();
+
+        // ✅ Handle company logo upload
+        if ($request->hasFile('company_logo')) {
+            $file = $request->file('company_logo');
+
+            // folder: public_html/uploads/company
+            $destAbs = public_path('../uploads/company');
+            if (!File::isDirectory($destAbs)) {
+                File::makeDirectory($destAbs, 0775, true);
+            }
+
+            $ext   = strtolower($file->getClientOriginalExtension());
+            $fname = 'company_' . (int)$company_id . '_' . date('Ymd_His') . '.' . $ext;
+
+            $file->move($destAbs, $fname);
+            $newRelPath = 'uploads/company/' . $fname;  // saved path
+
+            // ✅ Delete old logo if exists
+            if (!empty($company->company_logo)) {
+                $oldAbs = public_path('../' . ltrim($company->company_logo, '/\\'));
+                if (File::exists($oldAbs)) {
+                    @File::delete($oldAbs);
+                }
+            }
+
+            // ✅ Update new logo in DB
+            $updateCompany['company_logo'] = $newRelPath;
+        }
+
+        // ✅ Commit company update
+        CompanyClient::where('company_id', $company_id)->update($updateCompany);
+
+        DB::commit();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Profile updated successfully',
+            'employee' => $employee,
+            'company'  => CompanyClient::find($company_id),
+        ], 200);
+
+    } catch (ValidationException $e) {
+        return response()->json(['errors' => $e->errors()], 422);
+    } catch (\Throwable $th) {
+        DB::rollBack();
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to update profile',
+            'error'   => $th->getMessage(),
+        ], 500);
     }
+}
+
 
     public function employee_list(Request $request)
     {

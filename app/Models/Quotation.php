@@ -24,7 +24,7 @@ class Quotation extends Model
     ];
 
     protected $casts = [
-        'entryDate' => 'date',   // now $quotation->entryDate is a Carbon instance
+        'entryDate' => 'datetime:d-m-Y',
     ];
     public static function getNextQuotationNo($companyId)
     {
