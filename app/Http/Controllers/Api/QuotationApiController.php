@@ -23,49 +23,56 @@ use Illuminate\Validation\Rule;
 
 class QuotationApiController extends Controller
 {
-    /**
-     * GET /api/quotations
-     * List quotations (with filters + pagination)
-     */
-    public function index(Request $request)
-    {
-        $PartyName = $request->partyName;
-        $fromDate  = $request->fromDate;     // dd-mm-YYYY or yyyy-mm-dd (we will convert)
-        $toDate    = $request->toDate;  
+    use Carbon\Carbon;
 
-        $query = Quotation::query()
-            ->where(['quotation.iStatus' => 1, 'quotation.isDelete' => 0])
-            ->when($PartyName, function($q) use($PartyName) {
-                return $q->where('quotation.iPartyId', $PartyName);
-            })
-            ->when($fromDate, function($q) use($fromDate) {
-                $from = date('Y-m-d', strtotime($fromDate));
-                return $q->whereDate('quotation.entryDate', '>=', $from);
-            })
-            ->when($toDate, function($q) use($toDate) {
-                $to = date('Y-m-d', strtotime($toDate));
-                return $q->whereDate('quotation.entryDate', '<=', $to);
-            })
-            ->join('company_client_master', 'quotation.iCompanyId', '=', 'company_client_master.company_id')
-            ->join('party', 'quotation.iPartyId', '=', 'party.partyId')
-            ->join('year', 'quotation.iYearId', '=', 'year.year_id')
-            ->orderByDesc('quotation.quotationId')
-            ->select([
-                'quotation.*',
-                'company_client_master.company_name',
-                'party.strPartyName',
-                'year.year_id'
-            ]);
+public function index(Request $request)
+{
+    $PartyName = $request->partyName;
+    $fromDate  = $request->fromDate;
+    $toDate    = $request->toDate;
 
-        $paginated = $query->get();
-
-        return response()->json([
-            'success'=>true,
-            'message'=>'Quotation List',
-            'data' => $paginated,
-            
+    $query = Quotation::query()
+        ->where(['quotation.iStatus' => 1, 'quotation.isDelete' => 0])
+        ->when($PartyName, fn($q) => $q->where('quotation.iPartyId', $PartyName))
+        ->when($fromDate, function($q) use ($fromDate) {
+            $from = date('Y-m-d', strtotime($fromDate));
+            return $q->whereDate('quotation.entryDate', '>=', $from);
+        })
+        ->when($toDate, function($q) use ($toDate) {
+            $to = date('Y-m-d', strtotime($toDate));
+            return $q->whereDate('quotation.entryDate', '<=', $to);
+        })
+        ->join('company_client_master', 'quotation.iCompanyId', '=', 'company_client_master.company_id')
+        ->join('party', 'quotation.iPartyId', '=', 'party.partyId')
+        ->join('year', 'quotation.iYearId', '=', 'year.year_id')
+        ->orderByDesc('quotation.quotationId')
+        ->select([
+            'quotation.*',
+            'company_client_master.company_name',
+            'party.strPartyName',
+            'year.year_id'
         ]);
-    }
+
+    $rows = $query->get();
+
+    // format entryDate
+    $rows = $rows->map(function ($r) {
+        try {
+            $r->entryDate = $r->entryDate
+                ? Carbon::parse($r->entryDate)->format('d-m-Y')
+                : null;
+        } catch (\Throwable $e) {
+            // keep original if parse fails
+        }
+        return $r;
+    })->values();
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Quotation List',
+        'data'    => $rows,
+    ]);
+}
 
     public function getNextQuotationNo()
     {
@@ -302,43 +309,71 @@ class QuotationApiController extends Controller
             ->join('party', 'quotation.iPartyId', '=', 'party.partyId')
             ->join('year', 'quotation.iYearId', '=', 'year.year_id')
             ->first();
-
+    
         if (!$header) {
             return response()->json(['success'=>false,'message' => 'Not found'], 404);
         }
-
-        // Prefer a static logo URL; avoid embedding base64 in API
+    
         $logoUrl = "https://salexo.in/assets/images/logo.png";
-
+    
         $items = QuotationDetail::where([
             'quotationdetails.iStatus'  => 1,
             'quotationdetails.isDelete' => 0,
             'quotationdetails.quotationID' => $id
-        ])->orderBy('quotationdetailsId')->get();
+        ])->join('service_master', 'service_master.service_id', '=', 'quotationdetails.productID')
 
+        ->orderBy('quotationdetailsId')->get();
+    
+        // --------- totals ----------
+        $subTotal = 0.0;
+        $gstTotal = 0.0;
+    
+        foreach ($items as $row) {
+            $qty = (float)($row->quantity ?? $row->qty ?? 0);
+            $rate = (float)($row->rate ?? 0);
+            $line = $qty * $rate;
+    
+            $gstPct = (float)($row->iGstPercentage ?? 0);
+            $lineGst = $line * ($gstPct / 100);
+    
+            $subTotal += $line;
+            $gstTotal += $lineGst;
+        }
+    
+        // If you need to respect intra/inter-state split (CGST/SGST vs IGST),
+        // keep gstTotal as the total tax; client can split based on iGstType.
+        $totalAmount = $subTotal + $gstTotal;
+    
+        // Put totals into the quotation_details block
+        $quotationDetails = $header->toArray();
+        $quotationDetails['sub_total']    = round($subTotal, 2);
+        $quotationDetails['gst_total']    = round($gstTotal, 2);
+        $quotationDetails['total_amount'] = round($totalAmount, 2);
+    
+        // Terms
         $terms = TermCondition::where([
             'termcondition.iStatus'  => 1,
             'termcondition.isDelete' => 0,
             'termcondition.companyID'=> $header->iCompanyId
         ])->orderBy('termconditionId')->get();
-
-        // helpful links
+    
         $pdfUrl = route('api.quotations.pdf', $id);
-        $downloadName = $header->strPartyName . $header->iQuotationNo . '.pdf';
-
+        $downloadName = trim(($header->strPartyName ?? '').' '.($header->iQuotationNo ?? '')).'.pdf';
+    
         return response()->json([
-            'status' => 'success',
+            'success' => true,
             'message' => 'Quotation details',
-            'quotation_details' => $header,
+            'quotation_details' => $quotationDetails,   // ← now includes sub_total, gst_total, total_amount
             'products'  => $items,
-            'terms'  => $terms,
-            'logo_url' => $logoUrl,
+            'terms'     => $terms,
+            'logo_url'  => $logoUrl,
             'pdf' => [
                 'url' => $pdfUrl,
                 'filename' => $downloadName
             ]
         ]);
     }
+
 
     /**
      * GET /api/quotations/{id}/pdf

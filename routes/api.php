@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\PartyApiController;
 use App\Http\Controllers\Api\QuotationApiController;
 use App\Http\Controllers\Api\ListingController;
 use App\Http\Controllers\Api\QuotationDetailApiController;
+use App\Http\Controllers\Api\QuotationTemplateApiController;
 
 /*
 |--------------------------------------------------------------------------
@@ -137,7 +138,7 @@ Route::prefix('employee')->group(function () {
             Route::post('/{id}/delete',       [QuotationApiController::class, 'destroy']);
 
             Route::post('/{id}/details',  [QuotationApiController::class, 'details']);
-            Route::post('/{id}/pdf',      [QuotationApiController::class, 'pdf']);
+            Route::post('/{id}/pdf',      [QuotationApiController::class, 'pdf'])->name('api.quotations.pdf');
             Route::post('/{id}/copy',    [QuotationApiController::class, 'copy']);
             Route::post('/{id}/send-whatsapp', [QuotationApiController::class, 'sendWhatsApp']);
         });
@@ -153,6 +154,14 @@ Route::prefix('employee')->group(function () {
         Route::post('/quotation-detail/update',  [QuotationDetailApiController::class, 'update']);
         Route::post('/quotation-detail/delete',  [QuotationDetailApiController::class, 'destroy']);
 
+        Route::post   ('/quotation-templates',                    [QuotationTemplateApiController::class, 'index']);
+        Route::patch ('/quotation-templates/{template}/toggle',  [QuotationTemplateApiController::class, 'toggle']);
+        Route::post  ('/quotation-templates/{template}/set-default', [QuotationTemplateApiController::class, 'setDefault']);
+        Route::delete('/quotation-templates/{template}',         [QuotationTemplateApiController::class, 'destroy']);
+        // Previews
+        Route::get('/quotation-templates/{template}/preview',     [QuotationTemplateApiController::class, 'preview']);
+        Route::get('/quotation-templates/preview-default',        [QuotationTemplateApiController::class, 'previewDefault']);
+
 
         // 14-10-2025
         Route::post('udf/list', [UDFMasterApiController::class, 'udf_list']);
@@ -161,8 +170,8 @@ Route::prefix('employee')->group(function () {
         Route::post('udf/delete', [UDFMasterApiController::class, 'udf_delete']);
 
 
-    Route::post('/party-mapping',     [QuotationApiController::class, 'mapping'])->name('api.party.mapping');
-    Route::post('/term-conditions',   [QuotationApiController::class, 'termConditions'])->name('api.termconditions.index');
+        Route::post('/party-mapping',     [QuotationApiController::class, 'mapping'])->name('api.party.mapping');
+        Route::post('/term-conditions',   [QuotationApiController::class, 'termConditions'])->name('api.termconditions.index');
 
    
     });

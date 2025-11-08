@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Str;
 
-    use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Blade;
 
 class QuotationTemplateController extends Controller
 {
