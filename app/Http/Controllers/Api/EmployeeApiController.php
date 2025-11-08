@@ -953,9 +953,6 @@ class EmployeeApiController extends Controller
             $employee->update($validated);
 
             CompanyClient::where(['company_id' => $company_id])->update([
-
-/*                    'company_name' => $request->emp_name,
-                    'email' => $request->emp_email,*/
                     'payment_terms'=>$request->payment_terms,
                     'delivery_terms'=>$request->delivery_terms,
                     'terms_condition'=>$request->terms_condition,
