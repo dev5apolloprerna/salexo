@@ -21,19 +21,22 @@ use App\Models\Service; // products table in your original code looked like Serv
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 
+use Illuminate\Support\Str;
+
+
 class QuotationApiController extends Controller
 {
-    use Carbon\Carbon;
-
 public function index(Request $request)
 {
     $PartyName = $request->partyName;
     $fromDate  = $request->fromDate;
     $toDate    = $request->toDate;
+    $mobile    = $request->mobile;
 
     $query = Quotation::query()
         ->where(['quotation.iStatus' => 1, 'quotation.isDelete' => 0])
         ->when($PartyName, fn($q) => $q->where('quotation.iPartyId', $PartyName))
+        ->when($mobile, fn($q) => $q->where('party.iMobile', $mobile))
         ->when($fromDate, function($q) use ($fromDate) {
             $from = date('Y-m-d', strtotime($fromDate));
             return $q->whereDate('quotation.entryDate', '>=', $from);
@@ -50,7 +53,8 @@ public function index(Request $request)
             'quotation.*',
             'company_client_master.company_name',
             'party.strPartyName',
-            'year.year_id'
+            'year.year_id',
+            'party.iMobile'
         ]);
 
     $rows = $query->get();
@@ -375,12 +379,10 @@ public function index(Request $request)
     }
 
 
-    /**
-     * GET /api/quotations/{id}/pdf
-     * Stream the PDF (browser will download)
-     */
     public function pdf($id)
-    {
+{
+    // If the client wants a link, generate PDF and save under /public/...
+    if (request()->wantsJson()) {
         $q = Quotation::select(
                 'party.address1',
                 'company_client_master.company_name',
@@ -411,7 +413,7 @@ public function index(Request $request)
             ->first();
 
         if (!$q) {
-            return response()->json(['message' => 'Not found'], 404);
+            return response()->json(['success' => false, 'message' => 'Not found'], 404);
         }
 
         $logoUrl = "https://salexo.in/assets/images/logo.png";
@@ -428,23 +430,97 @@ public function index(Request $request)
             'termcondition.companyID'=> $q->iCompanyId
         ])->orderBy('termconditionId')->get();
 
-        $pdf = PDF::setOptions(['isHtml5ParserEnabled' => true, 'isRemoteEnabled' => true])
+        $pdf = \PDF::setOptions(['isHtml5ParserEnabled' => true, 'isRemoteEnabled' => true])
             ->loadview('company_client.quotation.detailPDF', [
                 'Quotation'       => $q,
                 'QuotationDetail' => $items,
                 'TermCondition'   => $terms,
-                // if your blade expects $pic, keep a data-uri
-                'pic'             => $this->toDataUri($logoUrl)
+                'pic'             => $this->toDataUri($logoUrl),
             ]);
 
-        $downloadName = $q->strPartyName . $q->iQuotationNo . '.pdf';
-        return $pdf->download($downloadName);
+        // ---- Save under /public/quotations/{id}/... ----
+        $safeParty  = Str::slug($q->strPartyName ?? 'party');
+        $safeNo     = Str::slug($q->iQuotationNo ?? 'QTN');
+        $fileName   = "{$safeParty}-{$safeNo}.pdf";
+        $dir        = public_path("quotations/{$id}");
+        if (!File::isDirectory($dir)) {
+            File::makeDirectory($dir, 0775, true);
+        }
+        $absPath    = $dir . DIRECTORY_SEPARATOR . $fileName;
+        file_put_contents($absPath, $pdf->output());
+
+        // Build public URL (no storage disk; directly from /public)
+        $publicUrl  = asset("quotations/{$id}/{$fileName}");
+
+        return response()->json([
+            'success' => true,
+            'pdf' => [
+                'url'      => $publicUrl, // e.g., http://127.0.0.1:8000/quotations/9/party-qtn.pdf
+                'filename' => $fileName,
+            ],
+        ]);
     }
 
-    /**
-     * GET /api/party-mapping?company_ids[]=1&company_ids[]=2
-     * Return party options (mapping)
-     */
+    // ---- Original download flow for non-JSON requests ----
+    $q = Quotation::select(
+            'party.address1',
+            'company_client_master.company_name',
+            'company_client_master.Address',
+            'company_client_master.email',
+            'company_client_master.mobile',
+            'company_client_master.plan_id',
+            'company_client_master.GST',
+            'party.strPartyName',
+            'party.address2',
+            'party.address3',
+            'party.iMobile',
+            'party.strEmail',
+            'quotation.iQuotationNo',
+            'quotation.entryDate',
+            'quotation.iCompanyId',
+            'quotation.quotationValidity',
+            'quotation.modeOfDespatch',
+            'quotation.deliveryTerm',
+            'quotation.paymentTerms',
+            'quotation.iGstType',
+            'quotation.strTermsCondition'
+        )
+        ->where(['quotation.iStatus' => 1, 'quotation.isDelete' => 0, 'quotation.quotationId' => $id])
+        ->join('company_client_master', 'quotation.iCompanyId', '=', 'company_client_master.company_id')
+        ->join('party', 'quotation.iPartyId', '=', 'party.partyId')
+        ->join('year', 'quotation.iYearId', '=', 'year.year_id')
+        ->first();
+
+    if (!$q) {
+        return response()->json(['message' => 'Not found'], 404);
+    }
+
+    $logoUrl = "https://salexo.in/assets/images/logo.png";
+
+    $items = QuotationDetail::where([
+        'quotationdetails.iStatus'  => 1,
+        'quotationdetails.isDelete' => 0,
+        'quotationdetails.quotationID' => $id
+    ])->orderBy('quotationdetailsId')->get();
+
+    $terms = TermCondition::where([
+        'termcondition.iStatus'  => 1,
+        'termcondition.isDelete' => 0,
+        'termcondition.companyID'=> $q->iCompanyId
+    ])->orderBy('termconditionId')->get();
+
+    $pdf = \PDF::setOptions(['isHtml5ParserEnabled' => true, 'isRemoteEnabled' => true])
+        ->loadview('company_client.quotation.detailPDF', [
+            'Quotation'       => $q,
+            'QuotationDetail' => $items,
+            'TermCondition'   => $terms,
+            'pic'             => $this->toDataUri($logoUrl),
+        ]);
+
+    $downloadName = ($q->strPartyName ?? 'Party') . ($q->iQuotationNo ?? 'QTN') . '.pdf';
+    return $pdf->download($downloadName);
+}
+
     public function mapping(Request $request)
     {
         $companyIds = (array) $request->input('company_ids', []);
@@ -487,6 +563,8 @@ public function index(Request $request)
      */
     public function copy($id)
     {
+        $user = Auth::user();
+
         $q = Quotation::where(['iStatus' => 1, 'isDelete' => 0, 'quotationId' => $id])->first();
         if (!$q) {
             return response()->json(['message' => 'Not found'], 404);
@@ -504,6 +582,7 @@ public function index(Request $request)
             'entryDate'         => Carbon::parse($q->entryDate)->format('Y-m-d'),
             'iGstType'          => $q->iGstType,
             'strTermsCondition' => $q->strTermsCondition,
+            'created_by'        => $user->emp_id,
             'iStatus'           => 1,
             'isDelete'          => 0,
         ]);
@@ -526,6 +605,7 @@ public function index(Request $request)
                 'discount'         => $d->discount,
                 'netAmount'        => $d->netAmount,
                 'iGstPercentage'   => $d->iGstPercentage,
+                'created_by'        => $user->emp_id,
                 'iStatus'          => 1,
                 'isDelete'         => 0,
             ]);
