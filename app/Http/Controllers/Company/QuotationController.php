@@ -260,7 +260,7 @@ class QuotationController extends Controller
                 'isRemoteEnabled'      => true,
             ])->loadHTML($html);
 
-$pdf->setPaper('a4');
+        $pdf->setPaper('a4');
 
         /*return $pdf->download($fileName);*/
         return $pdf->stream($fileName);
@@ -282,7 +282,7 @@ $pdf->setPaper('a4');
 
         // Fallback: first active template marked default, else any active template
         $tpl = QuotationTemplate::where('is_active', 1)
-            ->where('is_default', 1 ?? 0)
+            // ->where('is_default', 1 ?? 0)
             ->first();
 
 

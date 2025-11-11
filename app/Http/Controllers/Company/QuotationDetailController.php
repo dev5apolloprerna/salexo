@@ -48,6 +48,7 @@ class QuotationDetailController extends Controller
     }
 
 
+
     public function index(Request $request, $id)
     {
         // Services for dropdown
@@ -55,7 +56,7 @@ class QuotationDetailController extends Controller
             ->orderBy('service_id', 'DESC')
             ->get();
 
-        // Quotation detail rows
+        // Paginated rows for the table
         $QuotationDetail = QuotationDetail::query()
             ->from('quotationdetails')
             ->join('service_master', 'quotationdetails.productID', '=', 'service_master.service_id')
@@ -72,13 +73,16 @@ class QuotationDetailController extends Controller
                 'quotationdetails.quantity',
                 'quotationdetails.rate',
                 'quotationdetails.iGstPercentage',
+                'quotationdetails.discount',
+                'quotationdetails.amount',
                 'quotationdetails.netAmount',
+                'quotationdetails.totalAmount',
                 DB::raw('service_master.service_name as productName'),
             ])
             ->orderBy('quotationdetails.quotationdetailsId', 'ASC')
             ->paginate(10);
 
-        // Header row (LEFT JOIN so missing related rows don’t null the whole thing)
+        // Header row
         $CompanyName = DB::table('quotation')
             ->leftJoin('company_client_master', 'quotation.iCompanyId', '=', 'company_client_master.company_id')
             ->leftJoin('party', 'quotation.iPartyId', '=', 'party.partyId')
@@ -93,17 +97,62 @@ class QuotationDetailController extends Controller
                 'quotation.entryDate',
                 'quotation.iQuotationNo',
                 'company_client_master.company_name',
+                'company_client_master.GST',
                 'party.strPartyName',
                 'year.strYear',
             ])
-            ->first(); // may be null
+            ->first();
+
+        /* ===== Totals over ALL items (not just current page) ===== */
+        $allRows = DB::table('quotationdetails')
+            ->where([
+                'quotationID' => $id,
+                'iStatus'     => 1,
+                'isDelete'    => 0,
+            ])
+            ->orderBy('quotationdetailsId')
+            ->get(['quantity', 'rate', 'discount', 'iGstPercentage']);
+
+        $subTotal = 0.0;         // sum of qty*rate (before discount)
+        $totalDiscount = 0.0;    // sum of per-line discount
+        $gstTotal = 0.0;         // sum of GST on (base - discount)
+        $pcts = [];
+
+        foreach ($allRows as $r) {
+            $qty   = (float)($r->quantity ?? 0);
+            $rate  = (float)($r->rate ?? 0);
+            $base  = $qty * $rate;
+
+            $disc  = (float)($r->discount ?? 0);
+            if ($disc > $base) { $disc = $base; }           // guard
+            $net   = max($base - $disc, 0.0);
+
+            $gstp  = (float)($r->iGstPercentage ?? 0);
+            $gst   = round($net * ($gstp / 100.0), 2);
+
+            $subTotal      += $base;
+            $totalDiscount += $disc;
+            $gstTotal      += $gst;
+            $pcts[]         = round($gstp, 2);
+        }
+
+        $taxableAfterDiscount = max($subTotal - $totalDiscount, 0.0);
+        $grandTotal           = $taxableAfterDiscount + $gstTotal;
+
+        $summary = [
+            'sub_total'              => round($subTotal, 2),
+            'total_discount'         => round($totalDiscount, 2),
+            'taxable_after_discount' => round($taxableAfterDiscount, 2),
+            'gst_total'              => round($gstTotal, 2),
+            'grand_total'            => round($grandTotal, 2),
+            'gst_uniform'            => count(array_unique($pcts)) <= 1,
+        ];
+        /* ========================================================= */
 
         return view('company_client.quotationdetail.index', compact(
-            'QuotationDetail', 'id', 'CompanyName', 'Product'
+            'QuotationDetail', 'id', 'CompanyName', 'Product', 'summary'
         ));
     }
-
-
 
     public function createview()
     {
@@ -114,55 +163,93 @@ class QuotationDetailController extends Controller
     {
         $user = Auth::user();
 
-         $data = $request->validate([
-        'quotationID'      => ['required', 'integer'],
-        'productID'        => ['required'], // can be numeric id OR '__new__:name' OR 'other'
-        'service_name'     => ['nullable', 'string', 'max:255'], // used when new
-        'description'      => ['nullable', 'string'],
-        'uom'              => ['required', 'string', 'max:50'],  // you’re using this as HSN too
-        'quantity'         => ['required', 'numeric'],
-        'rate'             => ['required', 'numeric'],
-        'amount'           => ['nullable', 'numeric'],
-        'discount'         => ['nullable', 'numeric'],
-        'netAmount'        => ['required', 'numeric'],
-        'iGstPercentage'   => ['required', 'numeric'],
-    ]);
+        $data = $request->validate([
+            'quotationID'     => ['required', 'integer'],
+            'productID'       => ['required'],                    // numeric id OR '__new__:name' OR 'other'
+            'service_name'    => ['nullable', 'string', 'max:255'],
+            'description'     => ['nullable', 'string'],
+            'uom'             => ['nullable', 'string', 'max:50'],// keep as string
+            'quantity'        => ['required', 'numeric'],
+            'rate'            => ['required', 'numeric'],
+            // client-side amount/discount/net are ignored (server recalculates)
+            'iGstPercentage'  => ['nullable', 'numeric'],
+        ]);
+
         $serviceId = $this->resolveServiceIdForRequest($request);
 
-    // ---- Compute amounts safely (server truth) ----
-    $qty       = (float)$data['quantity'];
-    $rate      = (float)$data['rate'];
-    $amountSrv = $qty * $rate; // server truth
-    $discount  = isset($data['discount']) ? (float)$data['discount'] : 0.0;
+        // --- Server-truth for THIS new row ---
+        $qty   = (float) $data['quantity'];
+        $rate  = (float) $data['rate'];
+        $base  = $qty * $rate;                                    // qty * rate (before discount)
+        $gstp  = (float) ($data['iGstPercentage'] ?? 0);
 
-    // If you want to trust UI netAmount, keep it; else recompute your own here.
-    $netAmount = (float)$data['netAmount'];
+        // --- Read header discount settings ---
+        $header = DB::table('quotation')
+            ->where('quotationId', (int) $data['quotationID'])
+            ->select('discount_type', 'discount')
+            ->first();
 
-    DB::table('quotationdetails')->insert([
-        'productID'       => $serviceId,
-        'quotationID'     => (int)$data['quotationID'],
-        'description'     => $data['description'],
-        'uom'             => $data['uom'],
-        'quantity'        => $qty,
-        'rate'            => $rate,
-        'amount'          => $amountSrv,           // prefer server calc to request
-        'discount'        => $discount,
-        'netAmount'       => $netAmount,
-        'iGstPercentage'  => (float)$data['iGstPercentage'],
-        'created_by' => $user->emp_id,
-        'iStatus'         => 1,                    // set defaults if your table uses them
-        'isDelete'        => 0,
-        'created_at'      => now(),
-        'updated_at'      => now(),
-    ]);
+        // Compute a single effective % to apply to THIS line
+        $effectivePercent = 0.0;
+        if ($header && (float)$header->discount > 0) {
+            if (($header->discount_type ?? '') === 'percent') {
+                $effectivePercent = (float) $header->discount;
+            } elseif (($header->discount_type ?? '') === 'amount') {
+                // Use current total base INCLUDING this new line
+                $existingBase = (float) DB::table('quotationdetails')
+                    ->where([
+                        'quotationID' => (int) $data['quotationID'],
+                        'iStatus'     => 1,
+                        'isDelete'    => 0,
+                    ])
+                    ->sum(DB::raw('quantity * rate'));
 
-    return redirect()
-        ->route('quotationdetails.index', [$data['quotationID']])
-        ->with('success', 'Quotation Details Created Successfully.');
+                $totalBaseWithNew = $existingBase + $base;
 
+                if ($totalBaseWithNew > 0) {
+                    $effectivePercent = ((float) $header->discount / $totalBaseWithNew) * 100.0;
+                    //echo $header->discount . '/' .$totalBaseWithNew .'*'. 100;
+                }
+            }
+        }
 
-/*        return redirect()->route('quotationdetails.index', [$request->quotationID])->with('success', 'Quotation Details Created Successfully.');
-*/    }
+        // --- Apply discount % to THIS line only ---
+        $lineDiscount = round($base * ($effectivePercent / 100.0), 2);
+            //echo $base .'*'.$effectivePercent .'/'. 100;
+    //dd($lineDiscount);
+        if ($lineDiscount > $base) $lineDiscount = $base;
+
+        $net   = max($base - $lineDiscount, 0.0);                 // after discount, before GST
+        $gst   = round($net * ($gstp / 100.0), 2);                // GST on NET
+        $total = round($net + $gst, 2);
+
+        DB::table('quotationdetails')->insert([
+            'productID'      => $serviceId,
+            'quotationID'    => (int) $data['quotationID'],
+            'description'    => $data['description'] ?? null,
+            'uom'            => $data['uom'] ?? null,             // keep string
+            'quantity'       => $qty,
+            'rate'           => $rate,
+            'amount'         => round($base, 2),                  // base
+            'discount'       => $lineDiscount,                    // computed here
+            'netAmount'      => round($net, 2),                   // base - discount
+            'totalAmount'    => $total,                           // net + GST
+            'iGstPercentage' => $gstp,
+            'created_by'     => $user->emp_id ?? null,
+            'iStatus'        => 1,
+            'isDelete'       => 0,
+            'created_at'     => now(),
+            'updated_at'     => now(),
+        ]);
+
+        if (($header->discount_type ?? '') === 'amount' && (float)$header->discount > 0) {
+            $this->reallocateAmountDiscount((int)$data['quotationID'], (float)$header->discount);
+        }
+
+        return redirect()
+            ->route('quotationdetails.index', [$data['quotationID']])
+            ->with('success', 'Quotation Details Created Successfully.');
+    }
 
     // QuotationDetailController.php
         public function editview($id)
@@ -189,66 +276,208 @@ class QuotationDetailController extends Controller
             ]);
         }
 
-    public function update(Request $request, $Id)
+   public function update(Request $request, $Id)
     {
         $user = Auth::user();
 
-         $data = $request->validate([
-        'quotationdetailsId'=> ['required', 'integer'],
-        'quotationID'       => ['required', 'integer'],
-        'productID'         => ['required'],                   // numeric or '__new__:' or 'other'
-        'service_name'      => ['nullable', 'string', 'max:255'],
-        'description'       => ['nullable', 'string'],
-        'uom'               => ['required', 'string', 'max:50'],
-        'quantity'          => ['required', 'numeric'],
-        'rate'              => ['required', 'numeric'],
-        'amount'            => ['nullable', 'numeric'],
-        'discount'          => ['nullable', 'numeric'],
-        'netAmount'         => ['required', 'numeric'],
-        'iGstPercentage'    => ['required', 'numeric'],
-    ]);
-
-        $serviceId = $this->resolveServiceIdForRequest($request);
-
-    // ---- Compute amounts safely (server truth) ----
-    $qty       = (float)$data['quantity'];
-    $rate      = (float)$data['rate'];
-    $amountSrv = $qty * $rate;
-    $discount  = isset($data['discount']) ? (float)$data['discount'] : 0.0;
-    $netAmount = (float)$data['netAmount'];
-
-    DB::table('quotationdetails')
-        ->where([
-            'quotationdetailsId' => (int)$data['quotationdetailsId'],
-            'iStatus'            => 1,
-            'isDelete'           => 0,
-        ])
-        ->update([
-            'productID'       => $serviceId,
-            'quotationID'     => (int)$data['quotationID'],
-            'description'     => $data['description'],
-            'uom'             => $data['uom'],
-            'quantity'        => $qty,
-            'rate'            => $rate,
-            'amount'          => $amountSrv,
-            'discount'        => $discount,
-            'netAmount'       => $netAmount,
-            'iGstPercentage'  => (float)$data['iGstPercentage'],
-            'updated_by'      => $user->emp_id,
-            'updated_at'      => now(),
+        $data = $request->validate([
+            'quotationdetailsId'=> ['required', 'integer'],
+            'quotationID'       => ['required', 'integer'],
+            'productID'         => ['required'],                   // numeric or '__new__:' or 'other'
+            'service_name'      => ['nullable', 'string', 'max:255'],
+            'description'       => ['nullable', 'string'],
+            'uom'               => ['required', 'string', 'max:50'],
+            'quantity'          => ['required', 'numeric'],
+            'rate'              => ['required', 'numeric'],
+            'iGstPercentage'    => ['required', 'numeric'],
+            // amount/discount/netAmount from client are ignored (server recalculates)
         ]);
 
-    return redirect()
-        ->route('quotationdetails.index', [$data['quotationID']])
-        ->with('success', 'Quotation Details Updated Successfully.');
+        // Ensure row exists
+        $row = DB::table('quotationdetails')->where([
+            'quotationdetailsId' => (int)$data['quotationdetailsId'],
+            'isDelete'           => 0,
+        ])->first();
+
+        if (!$row) {
+            return back()->with('error', 'Not found');
+        }
+
+        // Resolve product id (handles '__new__:' / 'other')
+        $serviceId = $this->resolveServiceIdForRequest($request);
+
+        // --- Base for THIS row ---
+        $qty   = (float) $data['quantity'];
+        $rate  = (float) $data['rate'];
+        $base  = $qty * $rate;                            // qty * rate (before discount)
+        $gstp  = (float) $data['iGstPercentage'];
+
+        // --- Read header discount settings ---
+        $header = DB::table('quotation')
+            ->where('quotationId', (int) $data['quotationID'])
+            ->select('discount_type', 'discount')
+            ->first();
+
+        // Compute a single effective % to apply to THIS row
+        $effectivePercent = 0.0;
+        if ($header && (float)$header->discount > 0) {
+            if (($header->discount_type ?? '') === 'percent') {
+                $effectivePercent = (float) $header->discount;
+            } elseif (($header->discount_type ?? '') === 'amount') {
+                // Uniform % derived from current total base (simple approach)
+                $totalBase = (float) DB::table('quotationdetails')
+                    ->where([
+                        'quotationID' => (int) $data['quotationID'],
+                        'iStatus'     => 1,
+                        'isDelete'    => 0,
+                    ])
+                    ->sum(DB::raw('quantity * rate'));
+                if ($totalBase > 0) {
+                    $effectivePercent = ((float) $header->discount / $totalBase) * 100.0;
+                }
+            }
+        }
+
+        // --- Apply discount % to THIS row only ---
+        $lineDiscount = round($base * ($effectivePercent / 100.0), 2);
+        if ($lineDiscount > $base) $lineDiscount = $base;
+
+        $net   = max($base - $lineDiscount, 0.0);         // after discount, before GST
+        $gst   = round($net * ($gstp / 100.0), 2);        // GST on NET
+        $total = round($net + $gst, 2);
+
+        // --- Save ---
+        DB::table('quotationdetails')
+            ->where([
+                'quotationdetailsId' => (int)$data['quotationdetailsId'],
+                'isDelete'           => 0,
+            ])
+            ->update([
+                'productID'      => $serviceId,
+                'quotationID'    => (int)$data['quotationID'],
+                'description'    => $data['description'] ?? null,
+                'uom'            => $data['uom'],
+                'quantity'       => $qty,
+                'rate'           => $rate,
+                'amount'         => round($base, 2),       // base
+                'discount'       => $lineDiscount,         // computed here
+                'netAmount'      => round($net, 2),        // base - discount
+                'totalAmount'    => $total,                // net + GST
+                'iGstPercentage' => $gstp,
+                'updated_by'     => $user->emp_id ?? null,
+                'updated_at'     => now(),
+            ]);
+        if (($header->discount_type ?? '') === 'amount' && (float)$header->discount > 0) {
+            $this->reallocateAmountDiscount((int)$data['quotationID'], (float)$header->discount);
+        }
+
+
+        return redirect()
+            ->route('quotationdetails.index', [$data['quotationID']])
+            ->with('success', 'Quotation Details Updated Successfully.');
     }
+
+
+
+    private function reallocateAmountDiscount(int $quotationId, float $headerAmount): void
+    {
+        DB::transaction(function () use ($quotationId, $headerAmount) {
+            // 1) Load lines
+            $lines = DB::table('quotationdetails')
+                ->where(['quotationID'=>$quotationId,'iStatus'=>1,'isDelete'=>0])
+                ->orderBy('quotationdetailsId')
+                ->get(['quotationdetailsId','quantity','rate','iGstPercentage']);
+
+            if ($lines->isEmpty()) return;
+
+            // 2) Bases
+            $work = [];
+            $totalBase = 0.0;
+            foreach ($lines as $r) {
+                $b = (float)$r->quantity * (float)$r->rate;
+                $work[] = ['id'=>$r->quotationdetailsId,'base'=>$b,'gstp'=>(float)$r->iGstPercentage];
+                $totalBase += $b;
+            }
+            if ($totalBase <= 0) return;
+
+            // 3) Proportional raw + truncate to paise
+            $raws = []; $sumRounded = 0.0;
+            foreach ($work as $w) {
+                $raw = $headerAmount * ($w['base'] / $totalBase);
+                $tr  = floor($raw * 100) / 100;
+                $raws[] = ['id'=>$w['id'],'raw'=>$raw,'round'=>$tr,'frac'=>$raw-$tr,'base'=>$w['base'],'gstp'=>$w['gstp']];
+                $sumRounded += $tr;
+            }
+
+            // 4) Distribute leftover paise to largest fractional parts
+            $left = round($headerAmount - $sumRounded, 2);
+            usort($raws, fn($a,$b) => $b['frac'] <=> $a['frac']);
+
+            foreach ($raws as &$row) {
+                $disc = $row['round'];
+                if ($left > 0) {
+                    $bump = min($left, 0.01);
+                    $disc = round($disc + $bump, 2);
+                    $left = round($left - $bump, 2);
+                }
+                // clamp to base
+                if ($disc > $row['base']) $disc = $row['base'];
+
+                $net = max($row['base'] - $disc, 0.0);
+                $gst = round($net * ($row['gstp'] / 100.0), 2);
+                $tot = round($net + $gst, 2);
+
+                DB::table('quotationdetails')
+                  ->where('quotationdetailsId', $row['id'])
+                  ->update([
+                      'amount'      => round($row['base'], 2),
+                      'discount'    => round($disc, 2),
+                      'netAmount'   => round($net, 2),
+                      'totalAmount' => round($tot, 2),
+                      'updated_at'  => now(),
+                  ]);
+            }
+            unset($row);
+        });
+    }
+
 
     public function delete(Request $request, $Id)
     {
-        DB::table('quotationdetails')->where(['iStatus' => 1, 'isDelete' => 0, 'quotationdetailsId' => $Id])->delete();
+        // 1) Find the row (need quotationID)
+        $row = DB::table('quotationdetails')
+            ->where(['quotationdetailsId' => (int)$Id, 'isDelete' => 0])
+            ->select('quotationID')
+            ->first();
 
-        return back()->with('success', 'Quotation Details Deleted Successfully!.');
+        if (!$row) {
+            return back()->with('error', 'Record not found or already deleted.');
+        }
+
+        // 2) Hard delete (keep as-is if you really want hard delete)
+        $deleted = DB::table('quotationdetails')
+            ->where(['quotationdetailsId' => (int)$Id, 'isDelete' => 0])
+            ->delete();
+
+        if (!$deleted) {
+            return back()->with('error', 'Delete failed.');
+        }
+
+        // 3) If header has flat amount discount, reallocate across remaining lines
+        $header = DB::table('quotation')
+            ->where('quotationId', (int)$row->quotationID)
+            ->select('discount_type', 'discount')
+            ->first();
+
+        if (($header->discount_type ?? '') === 'amount' && (float)($header->discount ?? 0) > 0) {
+            $this->reallocateAmountDiscount((int)$row->quotationID, (float)$header->discount);
+        }
+
+        // 4) Done
+        return back()->with('success', 'Quotation detail deleted successfully.');
     }
+
+
     // JSON product fetch (used by AJAX)
         public function productfetch(Request $request)
         {
@@ -338,5 +567,135 @@ class QuotationDetailController extends Controller
     abort(422, 'Invalid product/service selection.');
 }
 
+
+    public function applyDiscount(Request $request, $quotationId)
+    {
+        $data = $request->validate([
+            'mode'  => ['required', 'in:percent,amount'],
+            'value' => ['required', 'numeric', 'min:0'],
+        ]);
+
+        $mode  = $data['mode'];
+        $value = (float) $data['value'];
+
+        $items = DB::table('quotationdetails')
+            ->where(['quotationID' => $quotationId, 'iStatus' => 1, 'isDelete' => 0])
+            ->orderBy('quotationdetailsId')
+            ->get(['quotationdetailsId','quantity','rate','iGstPercentage']);
+
+        if ($items->isEmpty()) {
+            return back()->with('error', 'No items found for this quotation.');
+        }
+
+        // Build lines
+        $lines = $items->map(function ($r) {
+            $qty  = (float)($r->quantity ?? 0);
+            $rate = (float)($r->rate ?? 0);
+            return [
+                'id'   => $r->quotationdetailsId,
+                'base' => $qty * $rate,                 // before discount
+                'gstp' => (float)($r->iGstPercentage ?? 0),
+            ];
+        });
+
+        $totalBase = $lines->sum('base');
+        if ($totalBase <= 0) {
+            return back()->with('error', 'Total base amount is zero; cannot apply discount.');
+        }
+
+        // Decide effective percent + per-line discount (amount -> convert to percent)
+        $effectivePercent = $mode === 'percent'
+            ? $value
+            : (($value / $totalBase) * 100.0);
+
+        // First pass — truncate to 2 decimals and track fractional parts for paise-fix
+        $raws = [];
+        $sumRounded = 0.0;
+        foreach ($lines as $ln) {
+            $raw = $ln['base'] * ($effectivePercent / 100.0);
+            $trunc = floor($raw * 100) / 100;
+            $raws[] = [
+                'id'   => $ln['id'],
+                'raw'  => $raw,
+                'round'=> $trunc,
+                'frac' => $raw - $trunc,
+            ];
+            $sumRounded += $trunc;
+        }
+
+        // Target total discount
+        $targetTotal = ($mode === 'percent')
+            ? round($totalBase * ($effectivePercent / 100.0), 2)
+            : round($value, 2);
+
+        // Distribute leftover paise to largest fractional parts
+        $left = round($targetTotal - $sumRounded, 2);
+        usort($raws, fn($a,$b) => $b['frac'] <=> $a['frac']);
+
+        $discounts = [];
+        foreach ($raws as &$row) {
+            $alloc = $row['round'];
+            if ($left > 0) {
+                $bump = min($left, 0.01);
+                $alloc = round($alloc + $bump, 2);
+                $left  = round($left - $bump, 2);
+            }
+            $discounts[$row['id']] = $alloc;
+        }
+        unset($row);
+
+        // Write back: amount (base), discount, netAmount, totalAmount
+        $subTotal      = 0.0;
+        $totalDiscount = 0.0;
+        $gstTotal      = 0.0;
+        $grandTotal    = 0.0;
+
+        DB::beginTransaction();
+        try {
+            foreach ($lines as $ln) {
+                $disc = min((float)($discounts[$ln['id']] ?? 0), $ln['base']);
+                $net  = max($ln['base'] - $disc, 0.0);
+                $gst  = round($net * ($ln['gstp'] / 100.0), 2);
+                $tot  = round($net + $gst, 2);
+
+                DB::table('quotationdetails')
+                    ->where('quotationdetailsId', $ln['id'])
+                    ->update([
+                        'amount'      => round($ln['base'], 2),
+                        'discount'    => round($disc, 2),
+                        'netAmount'   => round($net, 2),
+                        'totalAmount' => round($tot, 2),
+                        'updated_at'  => now(),
+                    ]);
+
+                $subTotal      += $ln['base'];
+                $totalDiscount += $disc;
+                $gstTotal      += $gst;
+                $grandTotal    += $tot;
+            }
+            DB::table('quotation')
+            ->where('quotationId', $quotationId)
+            ->update([
+                'discount_type' => $mode,         // "percent" or "amount"
+                'discount'      => round($value, 2),  // the raw value user entered
+                'updated_at'    => now(),
+            ]);
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return back()->with('error', 'Failed to apply discount: '.$e->getMessage());
+        }
+
+        return back()->with([
+            'success'            => 'Discount applied successfully.',
+            'effective_percent'  => round($effectivePercent, 6),
+            'sub_total'          => round($subTotal, 2),
+            'total_discount'     => round($totalDiscount, 2),
+            'taxable_after_disc' => round($subTotal - $totalDiscount, 2),
+            'gst_total'          => round($gstTotal, 2),
+            'grand_total'        => round($grandTotal, 2),
+        ]);
+    }
 
 }

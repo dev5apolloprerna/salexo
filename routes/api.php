@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\ListingController;
 use App\Http\Controllers\Api\QuotationDetailApiController;
 use App\Http\Controllers\Api\QuotationTemplateApiController;
 use App\Http\Controllers\Api\QuotationPdfController;
+use App\Http\Controllers\Api\QuotationDiscountApiController;
 
 /*
 |--------------------------------------------------------------------------
@@ -144,10 +145,11 @@ Route::prefix('employee')->group(function () {
             Route::post('/{id}/send-whatsapp', [QuotationApiController::class, 'sendWhatsApp']);
         });
 
-    Route::post('/quotations/{id}/pdf', [QuotationPdfController::class, 'quotationPdfLink'])
+        Route::post('/quotations/{id}/pdf', [QuotationPdfController::class, 'quotationPdfLink'])
         ->name('api.employee.quotations.pdf.link');
 
 
+        Route::post('/quotations/{quotationId}/apply-discount', [QuotationDiscountApiController::class, 'apply']);
 
 /*    Route::post('/pdf-by-default', [QuotationPdfController::class, 'generateByDefaultTemplate'])
         ->name('api.employee.quotations.pdf.default');*/
