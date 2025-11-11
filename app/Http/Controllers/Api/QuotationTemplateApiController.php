@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\View;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Validation\ValidationException;
-
+ 
 class QuotationTemplateApiController extends Controller
 {
     /**
@@ -109,124 +109,183 @@ class QuotationTemplateApiController extends Controller
      * GET /api/quotation-templates/{id}/preview?quotation_id=123&as=json|html
      * Returns rendered HTML (default) or JSON { html: "<...>" }
      */
-    public function preview(Request $request, QuotationTemplate $template)
-    {
-        $user = Auth::guard('employee_api')->user();
-        if (!$user) return response()->json(['message'=>'Unauthorized'], 401);
+    public function preview(QuotationTemplate $template, Request $request)
+{
+    try {
+       
+        $quotation = Quotation::with(['company','party'])
+            ->where(['iStatus'=>1,'isDelete'=>0])->orderByDesc('quotationId')
+            ->first();
 
-        $quotationId = $request->query('quotation_id');
-        if (!$quotationId) {
+            $quotationId=$quotation->quotationId;
+        if (!file_exists(public_path($template->file_path))) {
             return response()->json([
-                'success' => false,
-                'message' => 'quotation_id is required'
-            ], 422);
+                'success'=>false,
+                'message'=>'Template file not found'
+            ],404);
         }
 
-        $quotation = Quotation::with('party','company')->findOrFail($quotationId);
+        // ✅ Build data → HTML
         $data = $this->previewData($quotation);
+        $html = $this->renderTemplateToHtml($template, $data);
 
-        [$html, $isHtml] = $this->renderTemplate($template, $data, true);
+        // ✅ Generate PDF
+        $pdf = \PDF::setOptions([
+                'isHtml5ParserEnabled'=>true,
+                'isRemoteEnabled'=>true
+            ])
+            ->loadHTML($html)
+            ->setPaper('a4');
 
-        $as = strtolower((string) $request->query('as', 'html'));
-        if ($as === 'json') {
-            return response()->json(['success'=>true, 'html'=>$html]);
+        // ✅ Save under public_html/uploads/quotation_pdf/
+        $root = base_path('../public_html/uploads/quotation_pdf/');
+        if (!File::isDirectory($root)) {
+            File::makeDirectory($root, 0775, true);
         }
-        // default: raw HTML (for direct preview in browser/iframe)
-        return response($html, 200)->header('Content-Type', 'text/html; charset=UTF-8');
+
+        $fileName = 'preview_'.$quotationId.'_'.time().'.pdf';
+        $absPath  = $root.$fileName;
+
+        file_put_contents($absPath, $pdf->output());
+
+        // ✅ Public URL
+        $url = url('uploads/quotation_pdf/'.$fileName);
+
+        return response()->json([
+            'success'=>true,
+            'message'=>'Preview PDF generated.',
+            'pdf_url'=>$url,
+            'template_guid'=>$template->guid
+        ],200);
+
+    } catch (\Throwable $th) {
+        return response()->json([
+            'success'=>false,
+            'message'=>$th->getMessage()
+        ],500);
     }
+}
+
 
     /**
      * GET /api/quotation-templates/preview-default?quotation_id=123&as=json|html
      */
-    public function previewDefault(Request $request)
-    {
-        $user = Auth::guard('employee_api')->user();
-        if (!$user) return response()->json(['message'=>'Unauthorized'], 401);
-
-        $companyId    = $user->company_id;
-        $quotationId  = $request->query('quotation_id');
-
+   public function previewDefault(Request $request)
+{
+    try {
+        $quotationId = $request->quotation_id;
         if (!$quotationId) {
             return response()->json([
-                'success' => false,
-                'message' => 'quotation_id is required'
-            ], 422);
+                'success'=>false,
+                'message'=>'quotation_id is required'
+            ],422);
         }
 
+        $quotation = Quotation::where(['iStatus'=>1,'isDelete'=>0,'quotationId'=>$quotationId])
+            ->firstOrFail();
+
         $guid = DB::table('company_client_master')
-            ->where('company_id', $companyId)
+            ->where('company_id',$quotation->iCompanyId)
             ->value('companyTemplate');
 
         if (!$guid) {
             return response()->json([
-                'success' => false,
-                'message' => 'No default template set for your company.',
-            ], 404);
+                'success'=>false,
+                'message'=>'Default template not set for your company.'
+            ],404);
         }
 
-        $template = QuotationTemplate::where('guid', $guid)->firstOrFail();
+        $template = QuotationTemplate::where('guid',$guid)->first();
+        if (!$template || !file_exists(public_path($template->file_path))) {
+            return response()->json([
+                'success'=>false,
+                'message'=>'Default template file missing.'
+            ],404);
+        }
 
-        $quotation = Quotation::with('party','company')->findOrFail($quotationId);
         $data = $this->previewData($quotation);
+        $html = $this->renderTemplateToHtml($template, $data);
 
-        [$html, $isHtml] = $this->renderTemplate($template, $data, true);
+        $pdf = \PDF::setOptions([
+                'isHtml5ParserEnabled'=>true,
+                'isRemoteEnabled'=>true
+            ])
+            ->loadHTML($html)
+            ->setPaper('a4');
 
-        $as = strtolower((string) $request->query('as', 'html'));
-        if ($as === 'json') {
-            return response()->json(['success'=>true, 'html'=>$html]);
+        $root = base_path('../public_html/uploads/quotation_pdf/');
+        if (!File::isDirectory($root)) {
+            File::makeDirectory($root, 0775, true);
         }
-        return response($html, 200)->header('Content-Type', 'text/html; charset=UTF-8');
+
+        $fileName = 'default_preview_'.$quotationId.'_'.time().'.pdf';
+        $absPath  = $root.$fileName;
+
+        file_put_contents($absPath, $pdf->output());
+        $url = url('uploads/quotation_pdf/'.$fileName);
+
+        return response()->json([
+            'success'=>true,
+            'message'=>'Default template preview generated.',
+            'pdf_url'=>$url,
+            'template_guid'=>$guid
+        ],200);
+
+    } catch (\Throwable $th) {
+        return response()->json([
+            'success'=>false,
+            'message'=>$th->getMessage()
+        ],500);
     }
+}
 
     /**
      * Internal: render template file to HTML string.
      * If $returnString = true, always returns [$html, true].
      */
-    protected function renderTemplate(QuotationTemplate $tpl, array $data, bool $returnString = false): array
-    {
-        $full = public_path($tpl->file_path);
-        if (!file_exists($full)) {
-            abort(422, 'Template file not found.');
+
+protected function renderTemplateToHtml($template, array $data): string
+{
+    $full = public_path($template->file_path);
+    if (!is_file($full)) {
+        throw new \RuntimeException("Template file not found: {$template->file_path}");
+    }
+
+    $ext  = strtolower(pathinfo($full, PATHINFO_EXTENSION));
+    $html = file_get_contents($full);
+
+    // .html /.htm files
+    if (in_array($ext, ['html', 'htm'])) {
+        // If the HTML contains Blade syntax, compile & render it
+        if (preg_match('/@php|@foreach|@if|@switch|@for|@while|{!!|{{/', $html)) {
+            return Blade::render($html, $data);
         }
+        // Otherwise do a light {{ key }} replacement
+        return $this->simpleReplace($html, $data);
+    }
 
-        $ext  = strtolower(pathinfo($full, PATHINFO_EXTENSION));
-        $html = file_get_contents($full);
+    // .php or .blade.php on disk → render via View::file
+    return View::file($full, $data)->render();
+}
 
-        // HTML/HTM files → either Blade or simple replace
-        if ($ext === 'html' || $ext === 'htm') {
-            if (preg_match('/@php|@foreach|@if|{{/', $html)) {
-                $out = Blade::render($html, $data);
+/**
+ * Lightweight {{ key }} replacement for plain HTML templates (no Blade logic).
+ * Supports dot paths like {{ items.0.name }}.
+ */
+protected function simpleReplace(string $html, array $data): string
+{
+    return preg_replace_callback('/\{\{\s*([a-zA-Z0-9_\.]+)\s*\}\}/', function ($m) use ($data) {
+        $val = $data;
+        foreach (explode('.', $m[1]) as $p) {
+            if (is_array($val) && array_key_exists($p, $val)) {
+                $val = $val[$p];
             } else {
-                $out = $this->simpleReplace($html, $data);
+                return '';
             }
-            return [$out, true];
         }
-
-        // Fallback: php/blade file on disk
-        // View::file returns a Response normally; we need the string:
-        $rendered = View::file($full, $data)->render();
-        return [$rendered, true];
-    }
-
-    /**
-     * Simple {{ key }} replacement for plain HTML templates.
-     */
-    protected function simpleReplace(string $html, array $data): string
-    {
-        return preg_replace_callback('/\{\{\s*([a-zA-Z0-9_\.]+)\s*\}\}/', function ($m) use ($data) {
-            $path = $m[1];
-            $parts = explode('.', $path);
-            $val = $data;
-            foreach ($parts as $p) {
-                if (is_array($val) && array_key_exists($p, $val)) {
-                    $val = $val[$p];
-                } else {
-                    return ''; // missing → blank
-                }
-            }
-            return e(is_scalar($val) ? (string)$val : json_encode($val));
-        }, $html);
-    }
+        return e(is_scalar($val) ? (string)$val : json_encode($val));
+    }, $html);
+}
 
     /**
      * Build the preview data array (same logic you had, trimmed a bit).

@@ -44,13 +44,45 @@ class PartyApiController extends Controller
                 });
             })
             ->orderBy('strPartyName')
-            ->paginate($perPage);
+             ->get();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Party List fetched successfully',
-                'party_list' => $list->items(),
-            ]);
+        if(sizeof($list) != 0)
+            {
+                foreach($list as $val)
+                {
+                    $PartyList[] = array(
+                        "partyId" => $val->partyId,
+                        "strPartyName" => $val->strPartyName,
+                        "strContactPersonName" => $val->strContactPersonName,
+                        "iCompanyId" => $val->iCompanyId,
+                        "company_name" => $val->company->company_name,
+                        "address1" => $val->address1,
+                        "address2" => $val->address2,
+                        "strGST" => $val->strGST,
+                        "iMobile" => $val->iMobile,
+                        "strEmail" => $val->strEmail,
+                        "city" => $val->city,
+                        "state_id" => $val->state_id,
+                        "state_name" => $val->state->stateName ?? null,
+                        "pincode"=>$val->pincode ?? null,
+                        "strEntryDate"=> date('d-m-Y',strtotime($val->strEntryDate)) ?? null,
+                    );
+                }
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Party List fetched successfully',
+                        'party_list' => $PartyList
+                    ]);
+
+            } else 
+            {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'No Data Found!',
+                    'party_list' => []
+                ]);
+            }
+
         } catch (\Throwable $th) {
             return response()->json([
                 'success' => false,
@@ -86,7 +118,7 @@ class PartyApiController extends Controller
             $q = trim((string) $request->input('name', $request->input('q', '')));
             if (mb_strlen($q) < 3) {
                 return response()->json([
-                    'ok' => false,
+                    'success'=>false,
                     'message' => 'Please type at least 3 characters.',
                 ], 422);
             }
@@ -129,7 +161,7 @@ class PartyApiController extends Controller
 
         if ($hits->isEmpty()) {
             return response()->json([
-                'ok' => false,
+                'success'=>false,
                 'message' => 'No lead found for this name.',
             ], 404);
         }
@@ -147,7 +179,7 @@ class PartyApiController extends Controller
         ];
 
         return response()->json([
-            'status'    => 'success',
+            'success' => true,
             'message'    => 'Get Data From Lead Master',
             // 'count' => $hits->count(),
             // 'lead'  => $lead,
@@ -162,7 +194,7 @@ class PartyApiController extends Controller
 
         if (strlen($mobile) < 6) {
             return response()->json([
-                'ok' => false,
+                'success'=>false,
                 'message' => 'Please provide a valid mobile number.',
             ], 422);
         }
@@ -181,7 +213,7 @@ class PartyApiController extends Controller
 
         if (!$lead) {
             return response()->json([
-                'ok' => false,
+                'success'=>false,
                 'message' => 'No lead found for this mobile.',
             ], 404);
         }
@@ -197,7 +229,7 @@ class PartyApiController extends Controller
         ];
 
         return response()->json([
-            'ok'   => true,
+            'success' => true,
             'lead' => $lead,
             'data' => $prefill,
         ]);
@@ -239,12 +271,11 @@ class PartyApiController extends Controller
         try {
             $row = Party::create($data);
             // return response()->json(['message' => 'Party created successfully', 'party' => $row], 201);
-            return response()->json(['status'=>'success','message' => 'Party created successfully'], 201);
-        } catch (QueryException $e) {
-            if ((int) $e->getCode() === 23000) {
-                return response()->json(['status'=>'error','message' => 'This GST is already registered for your company.'], 422);
-            }
-            throw $e;
+            return response()->json(['success' => true,'message' => 'Party created successfully'], 201);
+        } catch (ValidationException $e) {
+            return response()->json(['errors' => $e->errors()], 422);
+        } catch (\Throwable $th) {
+            return response()->json(['error' => $th->getMessage()], 500);
         }
     }
 
@@ -271,7 +302,7 @@ class PartyApiController extends Controller
         try {
             $row->update($data);
             // return response()->json(['message' => 'Party updated successfully', 'party' => $row->fresh()]);
-            return response()->json(['status'=>'success','message' => 'Party updated successfully']);
+            return response()->json(['success' => true,'message' => 'Party updated successfully']);
         } catch (QueryException $e) {
             if ((int) $e->getCode() === 23000) {
                 return response()->json(['status'=>'error','message' => 'This GST is already registered for your company.'], 422);
@@ -288,14 +319,14 @@ class PartyApiController extends Controller
     {
         $partyId = (int) $request->input('party_id');
         if (!$partyId) {
-            return response()->json(['message' => 'party_id is required'], 422);
+            return response()->json(['success'=>false,'message' => 'party_id is required'], 422);
         }
 
         $row = Party::find($partyId);
-        if (!$row) return response()->json(['message' => 'Party not found'], 404);
+        if (!$row) return response()->json(['success'=>false,'message' => 'Party not found'], 404);
 
         $row->delete();
-        return response()->json(['message' => 'Party deleted']);
+        return response()->json(['success'=>true,'message' => 'Party deleted']);
     }
 
     /**

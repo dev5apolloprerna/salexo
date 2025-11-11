@@ -31,8 +31,7 @@
                     
                     <img style="width: 200px;" src="<?php echo $pic; ?>" alt="">
                 </th>
-                <!--<th style="width:35%;">{{ $Quotation->strCompanyName }}</th>-->
-                <!--<th style="width:35%;"></th>-->
+               
             </tr>
             <?php
             $fullAddress = trim($Quotation->strAddressOne . ' ' . $Quotation->strAddressTwo . ' ' . $Quotation->strAddressThree);

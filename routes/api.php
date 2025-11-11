@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\QuotationApiController;
 use App\Http\Controllers\Api\ListingController;
 use App\Http\Controllers\Api\QuotationDetailApiController;
 use App\Http\Controllers\Api\QuotationTemplateApiController;
+use App\Http\Controllers\Api\QuotationPdfController;
 
 /*
 |--------------------------------------------------------------------------
@@ -138,10 +139,19 @@ Route::prefix('employee')->group(function () {
             Route::post('/{id}/delete',       [QuotationApiController::class, 'destroy']);
 
             Route::post('/{id}/details',  [QuotationApiController::class, 'details']);
-            Route::post('/{id}/pdf',      [QuotationApiController::class, 'pdf'])->name('api.quotations.pdf');
+            // Route::post('/{id}/pdf',      [QuotationApiController::class, 'quotation_pdf'])->name('api.quotations.pdf');
             Route::post('/{id}/copy',    [QuotationApiController::class, 'copy']);
             Route::post('/{id}/send-whatsapp', [QuotationApiController::class, 'sendWhatsApp']);
         });
+
+    Route::post('/quotations/{id}/pdf', [QuotationPdfController::class, 'quotationPdfLink'])
+        ->name('api.employee.quotations.pdf.link');
+
+
+
+/*    Route::post('/pdf-by-default', [QuotationPdfController::class, 'generateByDefaultTemplate'])
+        ->name('api.employee.quotations.pdf.default');*/
+
 
          // 07-11
 
@@ -154,13 +164,13 @@ Route::prefix('employee')->group(function () {
         Route::post('/quotation-detail/update',  [QuotationDetailApiController::class, 'update']);
         Route::post('/quotation-detail/delete',  [QuotationDetailApiController::class, 'destroy']);
 
-        Route::post   ('/quotation-templates',                    [QuotationTemplateApiController::class, 'index']);
-        Route::patch ('/quotation-templates/{template}/toggle',  [QuotationTemplateApiController::class, 'toggle']);
-        Route::post  ('/quotation-templates/{template}/set-default', [QuotationTemplateApiController::class, 'setDefault']);
-        Route::delete('/quotation-templates/{template}',         [QuotationTemplateApiController::class, 'destroy']);
-        // Previews
-        Route::get('/quotation-templates/{template}/preview',     [QuotationTemplateApiController::class, 'preview']);
-        Route::get('/quotation-templates/preview-default',        [QuotationTemplateApiController::class, 'previewDefault']);
+        Route::post('/quotation-templates', [QuotationTemplateApiController::class, 'index']);
+        Route::patch('/quotation-templates/{template}/toggle', [QuotationTemplateApiController::class, 'toggle']);
+        Route::post('/quotation-templates/{template}/set-default', [QuotationTemplateApiController::class, 'setDefault']);
+        Route::post('/quotation-templates/{template}/delete', [QuotationTemplateApiController::class, 'destroy']);
+
+        Route::post('/quotation-templates/{template}/preview', [QuotationTemplateApiController::class, 'preview']);
+        Route::post('/quotation-templates/preview-default', [QuotationTemplateApiController::class, 'previewDefault']);
 
 
         // 14-10-2025
