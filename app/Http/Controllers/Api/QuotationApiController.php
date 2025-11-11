@@ -21,62 +21,58 @@ use App\Models\Service; // products table in your original code looked like Serv
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 
-use Illuminate\Support\Str;
-
-
 class QuotationApiController extends Controller
 {
-public function index(Request $request)
-{
-    $PartyName = $request->partyName;
-    $fromDate  = $request->fromDate;
-    $toDate    = $request->toDate;
-    $mobile    = $request->mobile;
+    /**
+     * GET /api/quotations
+     * List quotations (with filters + pagination)
+     */
+    public function index(Request $request)
+    {
+        $PartyName = $request->partyName;
+        $fromDate  = $request->fromDate;     // dd-mm-YYYY or yyyy-mm-dd (we will convert)
+        $toDate    = $request->toDate;  
+        $mobile    = $request->mobile; 
 
-    $query = Quotation::query()
-        ->where(['quotation.iStatus' => 1, 'quotation.isDelete' => 0])
-        ->when($PartyName, fn($q) => $q->where('quotation.iPartyId', $PartyName))
-        ->when($mobile, fn($q) => $q->where('party.iMobile', $mobile))
-        ->when($fromDate, function($q) use ($fromDate) {
-            $from = date('Y-m-d', strtotime($fromDate));
-            return $q->whereDate('quotation.entryDate', '>=', $from);
-        })
-        ->when($toDate, function($q) use ($toDate) {
-            $to = date('Y-m-d', strtotime($toDate));
-            return $q->whereDate('quotation.entryDate', '<=', $to);
-        })
-        ->join('company_client_master', 'quotation.iCompanyId', '=', 'company_client_master.company_id')
-        ->join('party', 'quotation.iPartyId', '=', 'party.partyId')
-        ->join('year', 'quotation.iYearId', '=', 'year.year_id')
-        ->orderByDesc('quotation.quotationId')
-        ->select([
-            'quotation.*',
-            'company_client_master.company_name',
-            'party.strPartyName',
-            'year.year_id',
-            'party.iMobile'
+        $query = Quotation::query()
+            ->where(['quotation.iStatus' => 1, 'quotation.isDelete' => 0])
+            ->when($PartyName, function($q) use($PartyName) {   
+                return $q->where('quotation.iPartyId', $PartyName);
+            })
+            ->when($mobile, function($q) use($mobile) {   
+                return $q->where('party.iMobile', $mobile);
+            })
+            
+            ->when($fromDate, function($q) use($fromDate) {
+                $from = date('Y-m-d', strtotime($fromDate));
+                return $q->whereDate('quotation.entryDate', '>=', $from);
+            })
+            ->when($toDate, function($q) use($toDate) {
+                $to = date('Y-m-d', strtotime($toDate));
+                return $q->whereDate('quotation.entryDate', '<=', $to);
+            })
+            ->join('company_client_master', 'quotation.iCompanyId', '=', 'company_client_master.company_id')
+            ->join('party', 'quotation.iPartyId', '=', 'party.partyId')
+            ->join('year', 'quotation.iYearId', '=', 'year.year_id')
+            ->orderByDesc('quotation.quotationId')
+            ->select([
+                'quotation.*',
+                'company_client_master.company_name',
+                'party.strPartyName',
+                'year.year_id',
+                'party.iMobile'
+
+            ]);
+
+        $paginated = $query->get();
+
+        return response()->json([
+            'success'=>true,
+            'message'=>'Quotation List',
+            'data' => $paginated,
+            
         ]);
-
-    $rows = $query->get();
-
-    // format entryDate
-    $rows = $rows->map(function ($r) {
-        try {
-            $r->entryDate = $r->entryDate
-                ? Carbon::parse($r->entryDate)->format('d-m-Y')
-                : null;
-        } catch (\Throwable $e) {
-            // keep original if parse fails
-        }
-        return $r;
-    })->values();
-
-    return response()->json([
-        'success' => true,
-        'message' => 'Quotation List',
-        'data'    => $rows,
-    ]);
-}
+    }
 
     public function getNextQuotationNo()
     {
@@ -324,9 +320,7 @@ public function index(Request $request)
             'quotationdetails.iStatus'  => 1,
             'quotationdetails.isDelete' => 0,
             'quotationdetails.quotationID' => $id
-        ])->join('service_master', 'service_master.service_id', '=', 'quotationdetails.productID')
-
-        ->orderBy('quotationdetailsId')->get();
+        ])->join('service_master', 'service_master.service_id', '=', 'quotationdetails.productID')->orderBy('quotationdetailsId')->get();
     
         // --------- totals ----------
         $subTotal = 0.0;
@@ -361,7 +355,7 @@ public function index(Request $request)
             'termcondition.companyID'=> $header->iCompanyId
         ])->orderBy('termconditionId')->get();
     
-        $pdfUrl = route('api.quotations.pdf', $id);
+        $pdfUrl = route('api.employee.quotations.pdf.link', $id);
         $downloadName = trim(($header->strPartyName ?? '').' '.($header->iQuotationNo ?? '')).'.pdf';
     
         return response()->json([
@@ -369,20 +363,17 @@ public function index(Request $request)
             'message' => 'Quotation details',
             'quotation_details' => $quotationDetails,   // ← now includes sub_total, gst_total, total_amount
             'products'  => $items,
-            'terms'     => $terms,
-            'logo_url'  => $logoUrl,
-            'pdf' => [
-                'url' => $pdfUrl,
-                'filename' => $downloadName
-            ]
+            
         ]);
     }
 
 
+    /**
+     * GET /api/quotations/{id}/pdf
+     * Stream the PDF (browser will download)
+     */
     public function pdf($id)
-{
-    // If the client wants a link, generate PDF and save under /public/...
-    if (request()->wantsJson()) {
+    {
         $q = Quotation::select(
                 'party.address1',
                 'company_client_master.company_name',
@@ -413,7 +404,7 @@ public function index(Request $request)
             ->first();
 
         if (!$q) {
-            return response()->json(['success' => false, 'message' => 'Not found'], 404);
+            return response()->json(['message' => 'Not found'], 404);
         }
 
         $logoUrl = "https://salexo.in/assets/images/logo.png";
@@ -430,97 +421,23 @@ public function index(Request $request)
             'termcondition.companyID'=> $q->iCompanyId
         ])->orderBy('termconditionId')->get();
 
-        $pdf = \PDF::setOptions(['isHtml5ParserEnabled' => true, 'isRemoteEnabled' => true])
+        $pdf = PDF::setOptions(['isHtml5ParserEnabled' => true, 'isRemoteEnabled' => true])
             ->loadview('company_client.quotation.detailPDF', [
                 'Quotation'       => $q,
                 'QuotationDetail' => $items,
                 'TermCondition'   => $terms,
-                'pic'             => $this->toDataUri($logoUrl),
+                // if your blade expects $pic, keep a data-uri
+                'pic'             => $this->toDataUri($logoUrl)
             ]);
 
-        // ---- Save under /public/quotations/{id}/... ----
-        $safeParty  = Str::slug($q->strPartyName ?? 'party');
-        $safeNo     = Str::slug($q->iQuotationNo ?? 'QTN');
-        $fileName   = "{$safeParty}-{$safeNo}.pdf";
-        $dir        = public_path("quotations/{$id}");
-        if (!File::isDirectory($dir)) {
-            File::makeDirectory($dir, 0775, true);
-        }
-        $absPath    = $dir . DIRECTORY_SEPARATOR . $fileName;
-        file_put_contents($absPath, $pdf->output());
-
-        // Build public URL (no storage disk; directly from /public)
-        $publicUrl  = asset("quotations/{$id}/{$fileName}");
-
-        return response()->json([
-            'success' => true,
-            'pdf' => [
-                'url'      => $publicUrl, // e.g., http://127.0.0.1:8000/quotations/9/party-qtn.pdf
-                'filename' => $fileName,
-            ],
-        ]);
+        $downloadName = $q->strPartyName . $q->iQuotationNo . '.pdf';
+        return $pdf->download($downloadName);
     }
 
-    // ---- Original download flow for non-JSON requests ----
-    $q = Quotation::select(
-            'party.address1',
-            'company_client_master.company_name',
-            'company_client_master.Address',
-            'company_client_master.email',
-            'company_client_master.mobile',
-            'company_client_master.plan_id',
-            'company_client_master.GST',
-            'party.strPartyName',
-            'party.address2',
-            'party.address3',
-            'party.iMobile',
-            'party.strEmail',
-            'quotation.iQuotationNo',
-            'quotation.entryDate',
-            'quotation.iCompanyId',
-            'quotation.quotationValidity',
-            'quotation.modeOfDespatch',
-            'quotation.deliveryTerm',
-            'quotation.paymentTerms',
-            'quotation.iGstType',
-            'quotation.strTermsCondition'
-        )
-        ->where(['quotation.iStatus' => 1, 'quotation.isDelete' => 0, 'quotation.quotationId' => $id])
-        ->join('company_client_master', 'quotation.iCompanyId', '=', 'company_client_master.company_id')
-        ->join('party', 'quotation.iPartyId', '=', 'party.partyId')
-        ->join('year', 'quotation.iYearId', '=', 'year.year_id')
-        ->first();
-
-    if (!$q) {
-        return response()->json(['message' => 'Not found'], 404);
-    }
-
-    $logoUrl = "https://salexo.in/assets/images/logo.png";
-
-    $items = QuotationDetail::where([
-        'quotationdetails.iStatus'  => 1,
-        'quotationdetails.isDelete' => 0,
-        'quotationdetails.quotationID' => $id
-    ])->orderBy('quotationdetailsId')->get();
-
-    $terms = TermCondition::where([
-        'termcondition.iStatus'  => 1,
-        'termcondition.isDelete' => 0,
-        'termcondition.companyID'=> $q->iCompanyId
-    ])->orderBy('termconditionId')->get();
-
-    $pdf = \PDF::setOptions(['isHtml5ParserEnabled' => true, 'isRemoteEnabled' => true])
-        ->loadview('company_client.quotation.detailPDF', [
-            'Quotation'       => $q,
-            'QuotationDetail' => $items,
-            'TermCondition'   => $terms,
-            'pic'             => $this->toDataUri($logoUrl),
-        ]);
-
-    $downloadName = ($q->strPartyName ?? 'Party') . ($q->iQuotationNo ?? 'QTN') . '.pdf';
-    return $pdf->download($downloadName);
-}
-
+    /**
+     * GET /api/party-mapping?company_ids[]=1&company_ids[]=2
+     * Return party options (mapping)
+     */
     public function mapping(Request $request)
     {
         $companyIds = (array) $request->input('company_ids', []);
@@ -564,39 +481,72 @@ public function index(Request $request)
     public function copy($id)
     {
         $user = Auth::user();
-
-        $q = Quotation::where(['iStatus' => 1, 'isDelete' => 0, 'quotationId' => $id])->first();
-        if (!$q) {
-            return response()->json(['message' => 'Not found'], 404);
+    
+        $old = Quotation::where([
+            'iStatus' => 1,
+            'isDelete' => 0,
+            'quotationId' => $id
+        ])->first();
+    
+        if (!$old) {
+            return response()->json(['success'=>false,'message' => 'Not found'], 404);
         }
-
+    
+        // ✅ FETCH LAST QUOTATION NO like: 0012/24-25
+        $last = Quotation::where('iCompanyId', $old->iCompanyId)
+            ->orderByDesc('quotationId')
+            ->value('iQuotationNo');
+    
+        // ✅ Extract number & create next running no
+        $n = 0;
+        if (!empty($last)) {
+            $left = explode('/', trim($last))[0];  // 0012
+            $n = (int) preg_replace('/\D/', '', $left); // 12
+        }
+    
+        $nextLeft = str_pad((string)($n + 1), 4, '0', STR_PAD_LEFT);
+    
+        // ✅ Get current financial year
+        $year = Year::where(['iStatus'=>1,'isDelete'=>0])
+            ->orderByDesc('year_id')
+            ->value('strYear');
+    
+        if (!$year) {
+            $year = now()->format('y') . '-' . now()->addYear()->format('y');
+        }
+    
+        // ✅ Final quotation no e.g. "0013/24-25"
+        $nextQuotationNo = $nextLeft . '/' . $year;
+    
+        // ✅ INSERT NEW QUOTATION
         $copyId = DB::table('quotation')->insertGetId([
-            'iYearId'           => $q->iYearId,
-            'iQuotationNo'      => $q->iQuotationNo,
-            'iPartyId'          => $q->iPartyId,
-            'iCompanyId'        => $q->iCompanyId,
-            'quotationValidity' => $q->quotationValidity,
-            'modeOfDespatch'    => $q->modeOfDespatch,
-            'deliveryTerm'      => $q->deliveryTerm,
-            'paymentTerms'      => $q->paymentTerms,
-            'entryDate'         => Carbon::parse($q->entryDate)->format('Y-m-d'),
-            'iGstType'          => $q->iGstType,
-            'strTermsCondition' => $q->strTermsCondition,
+            'iYearId'           => $old->iYearId,
+            'iQuotationNo'      => $nextQuotationNo,
+            'iPartyId'          => $old->iPartyId,
+            'iCompanyId'        => $old->iCompanyId,
+            'quotationValidity' => $old->quotationValidity,
+            'modeOfDespatch'    => $old->modeOfDespatch,
+            'deliveryTerm'      => $old->deliveryTerm,
+            'paymentTerms'      => $old->paymentTerms,
+            'entryDate'         => now()->format('Y-m-d'),
+            'iGstType'          => $old->iGstType,
+            'strTermsCondition' => $old->strTermsCondition,
             'created_by'        => $user->emp_id,
             'iStatus'           => 1,
             'isDelete'          => 0,
         ]);
-
+    
+        // ✅ COPY ALL ITEMS
         $details = QuotationDetail::where([
-            'quotationdetails.iStatus'  => 1,
-            'quotationdetails.isDelete' => 0,
-            'quotationdetails.quotationID' => $id
-        ])->orderBy('quotationdetailsId')->get();
-
+            'quotationID' => $id,
+            'iStatus'     => 1,
+            'isDelete'    => 0
+        ])->get();
+    
         foreach ($details as $d) {
             DB::table('quotationdetails')->insert([
-                'productID'        => $d->productID,
                 'quotationID'      => $copyId,
+                'productID'        => $d->productID,
                 'description'      => $d->description,
                 'uom'              => $d->uom,
                 'quantity'         => $d->quantity,
@@ -605,18 +555,20 @@ public function index(Request $request)
                 'discount'         => $d->discount,
                 'netAmount'        => $d->netAmount,
                 'iGstPercentage'   => $d->iGstPercentage,
-                'created_by'        => $user->emp_id,
+                'created_by'       => $user->emp_id,
                 'iStatus'          => 1,
                 'isDelete'         => 0,
             ]);
         }
-
+    
         return response()->json([
-            'success'=>true,
+            'success' => true,
             'message' => 'Quotation copied successfully',
-            'new_quotation_id' => $copyId
+            'new_quotation_id' => $copyId,
+            'new_quotation_no' => $nextQuotationNo
         ], 201);
     }
+
 
     /**
      * POST /api/quotations/{id}/send-whatsapp
@@ -630,7 +582,7 @@ public function index(Request $request)
         }
 
         // Direct link to PDF endpoint in this API
-        $pdfUrl = route('api.quotations.pdf', $id);
+        $pdfUrl = route('api.employee.quotations.pdf.link', $id);
 
         $token         = config('services.whatsapp.token');
         $phoneNumberId = config('services.whatsapp.phone_number_id');

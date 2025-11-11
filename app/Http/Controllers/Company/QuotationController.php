@@ -388,11 +388,39 @@ $pdf->setPaper('a4');
 
         $Quotation = Quotation::where(['iStatus' => 1, 'isDelete' => 0, 'quotationId' => $Id])->first();
 
+
+         // ✅ FETCH LAST QUOTATION NO like: 0012/24-25
+        $last = Quotation::where('iCompanyId', $Quotation->iCompanyId)
+            ->orderByDesc('quotationId')
+            ->value('iQuotationNo');
+    
+        // ✅ Extract number & create next running no
+        $n = 0;
+        if (!empty($last)) {
+            $left = explode('/', trim($last))[0];  // 0012
+            $n = (int) preg_replace('/\D/', '', $left); // 12
+        }
+    
+        $nextLeft = str_pad((string)($n + 1), 4, '0', STR_PAD_LEFT);
+    
+        // ✅ Get current financial year
+        $year = Year::where(['iStatus'=>1,'isDelete'=>0])
+            ->orderByDesc('year_id')
+            ->value('strYear');
+    
+        if (!$year) {
+            $year = now()->format('y') . '-' . now()->addYear()->format('y');
+        }
+    
+        // ✅ Final quotation no e.g. "0013/24-25"
+        $nextQuotationNo = $nextLeft . '/' . $year;
+        
+
         //dd($Quotation);
 
         $Data = array(
             'iYearId' => $Quotation->iYearId,
-            'iQuotationNo' => $Quotation->iQuotationNo,
+            'iQuotationNo' => $nextQuotationNo,
             'iPartyId' => $Quotation->iPartyId,
             'iCompanyId' => $Quotation->iCompanyId,
             'quotationValidity' => $Quotation->quotationValidity,
