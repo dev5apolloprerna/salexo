@@ -32,48 +32,90 @@ class EmployeeApiController extends Controller
     public function login(Request $request)
     {
         try {
-
             $request->validate([
                 'mobileNumber' => 'required',
-                'password' => 'required'
+                'password'     => 'required',
             ]);
 
             $credentials = [
                 'emp_mobile' => $request->mobileNumber,
-                'password' => $request->password,
+                'password'   => $request->password,
             ];
 
-            if (Auth::guard('employee_api')->attempt($credentials)) {
-                $authEmployee = Auth::guard('employee_api')->user();
-                $token = JWTAuth::fromUser($authEmployee);
-
-                $authEmployee->update([
-                    'last_login' => now(),
-                    'firebaseDeviceToken' => $request->firebaseDeviceToken,
-                ]);
-
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Login successful',
-                    'employee' => $authEmployee,
-                    'authorisation' => [
-                        'token' => $token,
-                        'type' => 'bearer',
-                    ]
-                ], 200);
-            } else {
+            if (!Auth::guard('employee_api')->attempt($credentials)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Invalid credentials'
+                    'message' => 'Invalid credentials',
                 ], 401);
             }
+
+            $authEmployee = Auth::guard('employee_api')->user();
+            $token        = JWTAuth::fromUser($authEmployee);
+
+            // optional fields to update
+            $authEmployee->update([
+                'last_login'          => now(),
+                'firebaseDeviceToken' => $request->firebaseDeviceToken,
+            ]);
+
+            // --- Company payload (payment detail + logo) ---
+            $companyId = $authEmployee->company_id ?? $authEmployee->iCompanyId ?? null;
+
+            $company = null;
+            $companyPayload = null;
+            $paymentDetail  = null;
+
+            if ($companyId) {
+                $company = DB::table('company_client_master')
+                    ->where('company_id', $companyId)
+                    ->select([
+                        'company_id',
+                        'company_name',
+                        'delivery_terms',
+                        'payment_terms',
+                        'terms_condition',
+                        'company_logo',
+                        'Address',
+                        'email',
+                        'mobile',
+                        'GST',
+                        'plan_id',
+                    ])
+                    ->first();
+
+                if ($company) {
+                    $companyLogoUrl = $this->makeAbsoluteLogoUrl($company->company_logo);
+
+
+                    // a concise block if you want it separately
+                    $paymentDetail = [
+                        'GST'  => $company->GST,
+                        'delivery_terms'  => $company->delivery_terms,
+                        'payment_terms'   => $company->payment_terms,
+                        'terms_condition' => $company->terms_condition,
+                        'company_logo_url'=> $companyLogoUrl,
+                    ];
+                }
+            }
+
+            return response()->json([
+                'success'        => true,
+                'message'        => 'Login successful',
+                'employee'       => $authEmployee,     // your Employee model data
+                'payment_detail' => $paymentDetail,    // null if not found
+                'authorisation'  => [
+                    'token' => $token,
+                    'type'  => 'bearer',
+                ],
+            ], 200);
+
         } catch (ValidationException $e) {
             return response()->json(['errors' => $e->errors()], 422);
         } catch (\Throwable $th) {
             return response()->json([
                 'success' => false,
                 'message' => 'Login failed',
-                'error' => $th->getMessage(),
+                'error'   => $th->getMessage(),
             ], 500);
         }
     }
@@ -908,32 +950,124 @@ class EmployeeApiController extends Controller
             ], 500);
         }
     }
+   public function profile_detail(Request $request)
+{
+    try {
+        $employee = Auth::guard('employee_api')->user();
+        if (!$employee) {
+            return response()->json(['success'=>false,'message'=>'Unauthorized access'], 401);
+        }
 
-    public function profile_detail(Request $request)
-    {
-        try {
-            $employee = Auth::guard('employee_api')->user();
+        $user = Employee::from('employee_master as e')
+            ->leftJoin('company_client_master as c', 'c.company_id', '=', 'e.company_id')
+            ->where('e.emp_id', $employee->emp_id)
+            ->select([
+                'e.*',
+                'c.payment_terms',
+                'c.delivery_terms',
+                'c.terms_condition',
+                'c.company_logo',
+                'c.company_name',
+                'c.Address',
+                'c.email as company_email',
+                'c.mobile as company_mobile',
+                'c.GST as company_gst',
+                'c.plan_id as company_plan_id',
+            ])
+            ->first();
 
-            if (!$employee) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Unauthorized access',
-                ], 401);
+        if (!$user) {
+            return response()->json(['success'=>false,'message'=>'Employee not found'], 404);
+        }
+
+        // === SIMPLE logo handling (same as web) ===
+        $root = rtrim(base_path('../public_html/'), '/').'/';
+        $val  = trim((string) $user->company_logo);
+
+        $companyLogoUrl  = null; // asset/http url
+        $companyLogoData = null; // data:image/...;base64,...
+
+        if ($val !== '' && preg_match('~^https?://~i', $val)) {
+            // Already absolute URL -> use it; data-URI from fallback
+            $companyLogoUrl = $val;
+            $path = $root . 'assets/images/favicon.png';
+        } else {
+            // Relative path: prefix if needed and fallback
+            $rel = $val === '' ? 'assets/images/favicon.png'
+                 : (str_contains($val, '/') ? $val : 'uploads/company/'.$val);
+
+            $abs = $root . ltrim($rel, '/');
+            if (!is_file($abs)) {
+                $rel = 'assets/images/favicon.png';
+                $abs = $root . $rel;
             }
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Employee profile fetched successfully',
-                'data' => $employee,
-            ]);
-        } catch (\Throwable $th) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch profile detail',
-                'error' => $th->getMessage(),
-            ], 500);
+            $companyLogoUrl = asset($rel);
+            $path = $abs;
         }
+
+        // Make data-URI (best-effort)
+        if (is_file($path)) {
+            $ext  = strtolower(pathinfo($path, PATHINFO_EXTENSION) ?: 'png');
+            $mime = match ($ext) {
+                'jpg', 'jpeg' => 'image/jpeg',
+                'png'         => 'image/png',
+                'gif'         => 'image/gif',
+                'webp'        => 'image/webp',
+                'svg'         => 'image/svg+xml',
+                default       => 'image/png',
+            };
+            $bin = @file_get_contents($path);
+            if ($bin !== false) {
+                $companyLogoData = 'data:'.$mime.';base64,'.base64_encode($bin);
+            }
+        }
+
+        // attach to payload
+        $user->company_logo_url      = $companyLogoUrl;
+        $user->company_logo_data_uri = $companyLogoData;
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Employee profile fetched successfully',
+            'data'    => $user,
+        ]);
+    } catch (\Throwable $th) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to fetch profile detail',
+            'error'   => $th->getMessage(),
+        ], 500);
     }
+}
+
+    /**
+     * Make an absolute logo URL from stored value.
+     * - Returns null if empty
+     * - Keeps http/https as-is
+     * - For relative paths, prefixes your public base (adjust base path as needed)
+     */
+    private function makeAbsoluteLogoUrl($path)
+    {
+        $path = trim((string) $path);
+        if ($path === '') {
+            return null;
+        }
+
+        // Already absolute?
+        if (preg_match('~^https?://~i', $path)) {
+            return $path;
+        }
+
+        // Common storage under /uploads/company/
+        // If $path already starts with 'uploads/', don't double-prefix
+        if (stripos($path, 'uploads/') === 0) {
+            return asset($path);
+        }
+
+        return asset('uploads/company/' . ltrim($path, '/'));
+    }
+
 
    public function profile_update(Request $request)
 {

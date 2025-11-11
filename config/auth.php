@@ -105,20 +105,20 @@ return [
         'users' => [
             'provider' => 'users',
             'table' => 'password_resets',
-            'expire' => 60,
-            'throttle' => 60,
+            'expire' => 1440,
+            'throttle' => 1440,
         ],
         'employees' => [
             'provider' => 'employees',
             'table' => 'password_resets',
-            'expire' => 60,
-            'throttle' => 60,
+            'expire' => 1440,
+            'throttle' => 1440,
         ],
         'employee_api' => [
             'provider' => 'employee_api',
             'table' => 'password_resets',
-            'expire' => 60,
-            'throttle' => 60,
+            'expire' => 1440,
+            'throttle' => 1440,
         ],
     ],
 

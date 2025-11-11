@@ -416,6 +416,7 @@ Route::get('/services/{id}', [QuotationDetailController::class, 'serviceById'])
     ->whereNumber('id')
     ->name('services.byId');
 
+Route::post('/{quotationId}/discount', [QuotationDetailController::class, 'applyDiscount'])->name('applyDiscount');
 
 
 });

@@ -7,12 +7,8 @@
 <div class="main-content">
         <div class="page-content">
             <div class="container-fluid">
-
                 {{-- Alert Messages --}}
                 @include('common.alert')
-
-               
-
                 <div class="row">
                     <div class="col-lg-12">
                         <div class="card">
@@ -96,12 +92,13 @@
                                 <textarea style="width: 100%;" class="form-control" name="description" rows="7" id="fetchdescription"></textarea>
                             </div>
 
+                            @if($CompanyName->GST != null)
                             <div class="col-sm-4 mb-3 mt-3 mb-sm-0">
                                 <span style="color:red;">*</span>UOM / HSN</label>
                                 <input class="form-control" id="HSN" name="uom" type="text"
                                     placeholder="Enter UOM" value="{{ old('uom') }}" required>
                             </div>
-
+                            @endif
                             <div class="col-sm-4 mb-3 mt-3 mb-sm-0">
                                 <span style="color:red;">*</span>Quantity</label>
                                 <input class="form-control" id="quantity" name="quantity" type="text"
@@ -115,19 +112,8 @@
                                     placeholder="Enter Unit Rate" value="{{ old('rate') }}" onchange="AmountTotal();"
                                     required>
                             </div>
+                            @if($CompanyName->GST != null)
 
-
-                            <!--<div class="col-sm-4 mb-3 mt-3 mb-sm-0">-->
-                            <!--    <span style="color:red;">*</span>Amount</label>-->
-                            <!--    <input class="form-control" id="Amount" name="amount" type="text"-->
-                            <!--        placeholder="Enter Amount" value="" required readonly>-->
-                            <!--</div>-->
-
-                            <!--<div class="col-sm-4 mb-3 mt-3 mb-sm-0">-->
-                            <!--    <span style="color:red;"></span>Discount</label>-->
-                            <!--    <input class="form-control" id="Discount" name="discount" type="text"-->
-                            <!--        onchange="AmountTotal();" placeholder="Enter discount" value="{{ old('discount') }}">-->
-                            <!--</div>-->
                             <div class="col-sm-4 mb-3 mt-3 mb-sm-0">
                                 <div class="form-group">
                                     <span style="color:red;">*</span>GST %</label>
@@ -135,6 +121,7 @@
                                         required>
                                 </div>
                             </div>
+                            @endif
                             <div class="col-sm-4 mb-3 mt-3 mb-sm-0">
                                 <span style="color:red;">*</span>Net Amount</label>
                                 <input class="form-control" id="NetAmount" name="netAmount" type="text"
@@ -162,10 +149,47 @@
                                 <hr>
                             </div>
                             <div class="card-body">
+                             <h6 >Apply Discount to This Quotation</h6>
+
+                                <form action="{{ route('quotationdetails.applyDiscount', $id) }}" method="POST" class="row  mb-3 g-3" id="discountForm">
+                                  @csrf
+                                  <div class="col-sm-3">
+                                    <label class="form-label"><span class="text-danger">*</span> Mode</label>
+                                    <select name="mode" id="discountMode" class="form-control" required>
+                                      <option value="percent">Percentage (%)</option>
+                                      <option value="amount">Flat Amount (₹)</option>
+                                    </select>
+                                  </div>
+                                  <div class="col-sm-3">
+                                    <label class="form-label"><span class="text-danger">*</span> Value</label>
+                                    <div class="input-group">
+                                      <span class="input-group-text d-none" id="rupeePrefix"><span class="rupee"></span></span>
+                                      <input type="number" step="0.01" min="0" name="value" id="discountValue" class="form-control" placeholder="Enter %" required>
+                                    </div>
+                                  </div>
+                                  <div class="col-sm-6 d-flex align-items-end">
+                                    <button type="submit" class="btn btn-success">Apply Discount</button>
+                                    @isset($summary)
+                                      <span class="ms-3 small {{ ($summary['gst_uniform'] ?? false) ? 'text-success' : 'text-warning' }}">
+                                        GST {{ ($summary['gst_uniform'] ?? false) ? 'uniform across items' : 'varies across items' }}
+                                      </span>
+                                    @endisset
+                                  </div>
+                                </form>
 
                 <div class="table-responsive">
                     <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                         <thead>
+                             {{-- Current totals (optional, from $summary) --}}
+                                @isset($summary)
+                                  <div class="row mb-3 small text-muted">
+                                    <div class="col-3 col-md-3">Sub Total: <strong><span class="rupee"></span>{{ number_format($summary['sub_total'] ?? 0, 2) }}</strong></div>
+                                    <div class="col-3 col-md-3">Total Discount: <strong><span class="rupee"></span>{{ number_format($summary['total_discount'] ?? 0, 2) }}</strong></div>
+                                    <div class="col-3 col-md-3">Taxable After Discount: <strong><span class="rupee"></span>{{ number_format($summary['taxable_after_discount'] ?? 0, 2) }}</strong></div>
+                                    <div class="col-3 col-md-3">GST Total: <strong><span class="rupee"></span>{{ number_format($summary['gst_total'] ?? 0, 2) }}</strong></div>
+                                    <div class="col-3 col-md-3">Grand Total: <strong><span class="rupee"></span>{{ number_format($summary['grand_total'] ?? 0, 2) }}</strong></div>
+                                  </div>
+                                @endisset
                             <tr>
                                 <th >Sr No.</th>
                                 <th >Product</th>
@@ -173,8 +197,8 @@
                                 <th >UOM</th>
                                 <th >Quantity</th>
                                 <th >Unit Rate</th>
-                                <!--<th >Amount</th>-->
-                                <!--<th >Discount</th>-->
+                                <th >Amount</th>
+                                <th >Discount</th>
                                 <th >GST %</th>
                                 <th >Net Amount</th>
                                 <th >Action</th>
@@ -190,10 +214,10 @@
                                     <td>{{ $detail->uom }}</td>
                                     <td>{{ $detail->quantity }}</td>
                                     <td>{{ $detail->rate }}</td>
-                                    <!--<td>{{ $detail->amount }}</td>-->
-                                    <!--<td>{{ $detail->discount }}</td>-->
+                                    <td>{{ $detail->amount }}</td>
+                                    <td>{{ $detail->discount }}</td>
                                     <td>{{ $detail->iGstPercentage }}</td>
-                                    <td>{{ $detail->netAmount }}</td>
+                                    <td>{{ $detail->totalAmount }}</td>
 
                                     <td style="align-items: center;">
                                         <a class="m-2"  
@@ -545,5 +569,34 @@
   };
 
 })();
+
 </script>
+<style>
+  .rupee:before { content: "₹"; } /* works in normal HTML; for PDF use DejaVu Sans and \20B9 if needed */
+</style>
+
+<script>
+  (function () {
+    const modeSel = document.getElementById('discountMode');
+    const valInp  = document.getElementById('discountValue');
+    const rupee   = document.getElementById('rupeePrefix');
+
+    function syncPlaceholder() {
+      if (!modeSel || !valInp || !rupee) return;
+      if (modeSel.value === 'amount') {
+        valInp.placeholder = 'Enter amount';
+        rupee.classList.remove('d-none');
+      } else {
+        valInp.placeholder = 'Enter %';
+        rupee.classList.add('d-none');
+      }
+    }
+
+    if (modeSel) {
+      modeSel.addEventListener('change', syncPlaceholder);
+      syncPlaceholder();
+    }
+  })();
+</script>
+
 @endsection

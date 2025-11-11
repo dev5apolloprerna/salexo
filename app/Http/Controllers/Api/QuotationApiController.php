@@ -314,56 +314,83 @@ class QuotationApiController extends Controller
             return response()->json(['success'=>false,'message' => 'Not found'], 404);
         }
     
-        $logoUrl = "https://salexo.in/assets/images/logo.png";
+        // Load items and keep needed columns (ensure iGstPercentage is present)
+        $items = QuotationDetail::from('quotationdetails')
+            ->where([
+                'quotationdetails.iStatus'    => 1,
+                'quotationdetails.isDelete'   => 0,
+                'quotationdetails.quotationID'=> $id,
+            ])
+            ->join('service_master', 'service_master.service_id', '=', 'quotationdetails.productID')
+            ->orderBy('quotationdetailsId')
+            ->get([
+                'quotationdetails.*',
+                'service_master.service_name', // include any descriptive field you need
+            ]);
     
-        $items = QuotationDetail::where([
-            'quotationdetails.iStatus'  => 1,
-            'quotationdetails.isDelete' => 0,
-            'quotationdetails.quotationID' => $id
-        ])->join('service_master', 'service_master.service_id', '=', 'quotationdetails.productID')->orderBy('quotationdetailsId')->get();
+        $subTotal   = 0.0; // sum of qty*rate (before discount)
+        $discountT  = 0.0; // sum of per-line discount
+        $gstTotal   = 0.0; // GST on NET (after discount)
+        $gstPercents = [];
     
-        // --------- totals ----------
-        $subTotal = 0.0;
-        $gstTotal = 0.0;
+        $enrichedItems = $items->map(function ($row) use (&$subTotal, &$discountT, &$gstTotal, &$gstPercents) {
+            $qty   = (float)($row->quantity ?? $row->qty ?? 0);
+            $rate  = (float)($row->rate ?? 0);
+            $base  = $qty * $rate;
     
-        foreach ($items as $row) {
-            $qty = (float)($row->quantity ?? $row->qty ?? 0);
-            $rate = (float)($row->rate ?? 0);
-            $line = $qty * $rate;
+            $disc  = (float)($row->discount ?? 0);
+            if ($disc > $base) { $disc = $base; }      // guard
+            $net   = max($base - $disc, 0.0);
     
-            $gstPct = (float)($row->iGstPercentage ?? 0);
-            $lineGst = $line * ($gstPct / 100);
+            $gstPct   = (float)($row->iGstPercentage ?? 0);
+            $lineGst  = round($net * ($gstPct / 100.0), 2);   // GST on NET
+            $lineTot  = round($net + $lineGst, 2);
     
-            $subTotal += $line;
-            $gstTotal += $lineGst;
-        }
+            $subTotal   += $base;
+            $discountT  += $disc;
+            $gstTotal   += $lineGst;
     
-        // If you need to respect intra/inter-state split (CGST/SGST vs IGST),
-        // keep gstTotal as the total tax; client can split based on iGstType.
-        $totalAmount = $subTotal + $gstTotal;
+            $gstPercents[] = round($gstPct, 2);
     
-        // Put totals into the quotation_details block
+            // expose handy computed fields
+            $row->line_subtotal = round($base, 2);   // before discount
+            $row->line_discount = round($disc, 2);
+            $row->line_net      = round($net, 2);    // after discount, before GST
+            $row->line_gst      = $lineGst;          // GST on net
+            $row->line_total    = $lineTot;          // net + GST
+            return $row;
+        });
+    
+        // Flags (unchanged)
+        $uniquePcts = array_values(array_unique($gstPercents, SORT_REGULAR));
+        $allSamePct = count($uniquePcts) <= 1;
+    
+        // Totals (API-consistent)
+        $taxableAfter = max($subTotal - $discountT, 0.0);
+        $grandTotal   = $taxableAfter + $gstTotal;
+    
         $quotationDetails = $header->toArray();
-        $quotationDetails['sub_total']    = round($subTotal, 2);
-        $quotationDetails['gst_total']    = round($gstTotal, 2);
-        $quotationDetails['total_amount'] = round($totalAmount, 2);
+        $quotationDetails['sub_total']              = round($subTotal, 2);
+        $quotationDetails['total_discount']         = round($discountT, 2);
+        $quotationDetails['gst_total']              = round($gstTotal, 2);     // ← correct GST (on net)
+        $quotationDetails['taxable_after_discount'] = round($taxableAfter, 2);
+        $quotationDetails['total_amount']           = round($grandTotal, 2);
+
     
-        // Terms
-        $terms = TermCondition::where([
-            'termcondition.iStatus'  => 1,
-            'termcondition.isDelete' => 0,
-            'termcondition.companyID'=> $header->iCompanyId
-        ])->orderBy('termconditionId')->get();
-    
-        $pdfUrl = route('api.employee.quotations.pdf.link', $id);
-        $downloadName = trim(($header->strPartyName ?? '').' '.($header->iQuotationNo ?? '')).'.pdf';
+        // Build GST flags payload
+        $gstFlags = [
+            'use_percentage'       => !$allSamePct,            // % option true when different %
+            'use_amount'           => $allSamePct,             // amount option true when same %
+            'gst_common_percentage'=> $allSamePct ? ($uniquePcts[0] ?? 0.0) : null,
+            // 'gst_flat_amount'      => $allSamePct ? round($gstTotal, 2) : null,
+        ];
     
         return response()->json([
-            'success' => true,
-            'message' => 'Quotation details',
-            'quotation_details' => $quotationDetails,   // ← now includes sub_total, gst_total, total_amount
-            'products'  => $items,
-            
+            'success'           => true,
+            'message'           => 'Quotation details',
+            'quotation_details' => $quotationDetails,          // includes sub_total, gst_total, total_amount
+            'gst_flags'         => $gstFlags,                  // ← flags you asked for
+            'products'          => $enrichedItems,             // with line_subtotal/line_gst/line_total
         ]);
     }
 

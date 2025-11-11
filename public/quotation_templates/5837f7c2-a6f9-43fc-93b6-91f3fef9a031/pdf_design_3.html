@@ -55,26 +55,42 @@
 
 <div class="container">
   <div class="header">
-    <div class="logo">
+      <table>
+          <tr>
+              <td width="10%">
+                  <div class="logo">
       @if(!empty($companyLogoUrl))
         <img src="{{ $companyLogoUrl }}" alt="Logo">
       @else
         <span>LOGO</span>
       @endif
     </div>
-    <div style="flex:1">
+              </td>
+              <td>
+                  <div style="flex:1">
       <h1>Quotation</h1>
       <div class="subtitle">{{ $companyName ?? '' }}</div>
     </div>
-    <div class="right" style="font-size:12px;line-height:1.6">
-      <div><span class="pill">No:</span> {{ $quotationNumber ?? '' }}</div>
+              </td>
+              <td>
+                   <div class="right" style="font-size:12px;line-height:1.6">
+      <div>No: {{ $quotationNumber ?? '' }}</div>
       <div>Date: {{ $quotationDate ?? '' }}</div>
       <div>Valid Till: {{ $validTill ?? '' }}</div>
     </div>
+              </td>
+          </tr>
+      </table>
+    
+    
+   
   </div>
 
   <div class="row" style="padding:14px 16px">
-    <div class="block">
+      <table>
+          <tr>
+              <td valign="top">
+                   <div class="block">
       <h3>Company</h3>
       <div class="kv"><span class="k">Name:</span> {{ $companyName ?? '' }}</div>
       <div class="kv"><span class="k">Address:</span> {{ $companyAddress ?? '' }}</div>
@@ -83,13 +99,22 @@
       <div class="kv"><span class="k">Phone:</span> {{ $companyPhone ?? '-' }}</div>
       <div class="kv"><span class="k">Email:</span> {{ $companyEmail ?? '-' }}</div>
     </div>
-    <div class="block">
+              </td>
+              <td valign="top">
+                  <div class="block">
       <h3>Quotation To</h3>
       <div class="kv"><span class="k">Name:</span> {{ $partyName ?? '' }}</div>
       <div class="kv"><span class="k">Address:</span> {{ $partyAddress ?? '' }}</div>
       <div class="kv"><span class="k">GSTIN:</span> {{ $partyGstin ?? '-' }}</div>
       <div class="kv"><span class="k">Phone:</span> {{ $partyPhone ?? '-' }}</div>
+      <div class="kv">&nbsp;</div>
+      <div class="kv">&nbsp;</div>
     </div>
+              </td>
+          </tr>
+      </table>
+   
+    
   </div>
 
   <div style="padding:0 16px 12px">
@@ -144,22 +169,75 @@
 
   <div class="row" style="gap:16px;padding:0 16px 14px">
     <div style="flex:1">
-      <div class="note">
+        <table>
+            <tr>
+                <td>
+                     <div class="note">
         <div><strong>Payment Terms:</strong> {{ $paymentTerms ?? '' }}</div>
         <div><strong>Delivery:</strong> {{ $delivery ?? '' }}</div>
         <div><strong>Warranty:</strong> {{ $warranty ?? '' }}</div>
       </div>
-    </div>
-    <div style="width:320px">
-      <div class="sum">
-        <div class="rowline"><span>Sub Total (Before Tax)</span><span class="rupee">{{ $fmt($subTotal) }}</span></div>
-        <div class="rowline"><span>GST Subtotal</span><span class="rupee">{{ $fmt($gstSub) }}</span></div>
-        @php $discountAmt=(float)($discount ?? 0); $grand=max(0,($subTotal+$gstSub)-$discountAmt); @endphp
-        <div class="rowline"><span>Discount</span><span class="rupee">-{{ $fmt($discountAmt) }}</span></div>
+                </td>
+                <td>
+                    <div class="sum">
+                        <table>
+                            <tr>
+                                <td>
+                                    <span>Sub Total (Before Tax)</span>
+                                </td>
+                                <td>
+                                    :
+                                </td>
+                                <td>
+                                    <span class="rupee">{{ $fmt($subTotal) }}</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <span>GST Subtotal</span>
+                                </td>
+                                <td>
+                                    :
+                                </td>
+                                <td>
+                                    <span class="rupee">{{ $fmt($gstSub) }}</span>
+                                </td>
+                            </tr>
+                            @php $discountAmt=(float)($discount ?? 0); $grand=max(0,($subTotal+$gstSub)-$discountAmt); @endphp
+                            <tr>
+                                <td>
+                                    <span>Discount</span>
+                                </td>
+                                <td>
+                                    :
+                                </td>
+                                <td>
+                                    <span class="rupee">-{{ $fmt($discountAmt) }}</span>
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td class=" grand">
+                                    <span>Grand Total</span>
+                                </td>
+                                <td  class=" grand">
+                                    :
+                                </td>
+                                <td class=" grand">
+                                    <span class="rupee">{{ $fmt($grand) }}</span>
+                                </td>
+                            </tr>
+                        </table>
+      
+       
         
-        <div class="rowline grand"><span>Grand Total</span><span class="rupee">{{ $fmt($grand) }}</span></div>
       </div>
+                </td>
+            </tr>
+        </table>
+     
     </div>
+   
   </div>
 
   <div style="padding:0 16px 14px">
@@ -180,8 +258,18 @@
   </div>
 
   <div class="footer">
-    <div class="muted" style="font-size:12px">Place of Supply / Jurisdiction: <strong>{{ $jurisdiction ?? '-' }}</strong></div>
-    <div class="stamp">Authorized Signatory</div>
+      <table>
+          <tr>
+              <td width="90%">
+                   <div class="muted" style="font-size:12px">Place of Supply / Jurisdiction: <strong>{{ $jurisdiction ?? '-' }}</strong></div>
+              </td>
+              <td align="right" width="10%">
+                  <div class="stamp" style="text-align:center; padding:20px 10px">Authorized Signatory</div>
+              </td>
+          </tr>
+      </table>
+   
+    
   </div>
 </div>
 
