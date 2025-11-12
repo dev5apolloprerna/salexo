@@ -133,38 +133,38 @@
       </thead>
       <tbody>
      @php
-  $i = 0;
-  $subTotal = 0.0;        // sum of qty*rate (before discount)
-  $totalDiscount = 0.0;   // sum of per-line discount (amount)
-  $gstSub = 0.0;          // sum of GST on (base - discount)
-  $lineSum = 0.0;         // sum of line totals (net + gst)
-  $pcts = [];
-@endphp
+      $i = 0;
+      $subTotal = 0.0;        // sum of qty*rate (before discount)
+      $totalDiscount = 0.0;   // sum of per-line discount (amount)
+      $gstSub = 0.0;          // sum of GST on (base - discount)
+      $lineSum = 0.0;         // sum of line totals (net + gst)
+      $pcts = [];
+    @endphp
 
-@foreach($items as $it)
-  @php
-    $i++;
+    @foreach($items as $it)
+      @php
+        $i++;
 
-    $qty   = (float)($it['qty'] ?? 0);
-    $rate  = (float)($it['rate'] ?? 0);
-    $gstP  = (float)($it['gst'] ?? 0);         // GST percentage
-    $disc  = (float)($it['discount'] ?? 0);    // Discount amount (NOT %)
+        $qty   = (float)($it['qty'] ?? 0);
+        $rate  = (float)($it['rate'] ?? 0);
+        $gstP  = (float)($it['gst'] ?? 0);         // GST percentage
+        $disc  = (float)($it['discount'] ?? 0);    // Discount amount (NOT %)
 
-    $base  = $qty * $rate;                     // before discount
-    if ($disc > $base) { $disc = $base; }      // guard
-    $net   = max($base - $disc, 0.0);          // after discount
+        $base  = $qty * $rate;                     // before discount
+        if ($disc > $base) { $disc = $base; }      // guard
+        $net   = max($base - $disc, 0.0);          // after discount
 
-    $gstA  = round($net * ($gstP / 100.0), 2); // GST on net
-    $line  = $net + $gstA;                     // line total
-    
-    // Totals
-    $subTotal      += $base;
-    $totalDiscount += $disc;
-    $gstSub        += $gstA;
-    $lineSum       += $line;
+        $gstA  = round($net * ($gstP / 100.0), 2); // GST on net
+        $line  = $net + $gstA;                     // line total
+        
+        // Totals
+        $subTotal      += $base;
+        $totalDiscount += $disc;
+        $gstSub        += $gstA;
+        $lineSum       += $line;
 
-    $pcts[] = round($gstP, 2);
-  @endphp
+        $pcts[] = round($gstP, 2);
+      @endphp
 
   {{-- your row HTML here; use number_format(...) when displaying --}}
 
