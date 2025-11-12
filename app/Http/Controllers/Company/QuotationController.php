@@ -130,7 +130,7 @@ class QuotationController extends Controller
             'deliveryTerm' => $request->deliveryTerm,
             'paymentTerms' => $request->paymentTerms,
             'entryDate' => date('Y-m-d', strtotime($request->entryDate)),
-            'iGstType' => $request->iGstType,
+            'iGstType' => $request->iGstType ?? 0,
             'strTermsCondition' => $request->strTermsCondition,
             'created_by' => $user->emp_id
         );
@@ -188,7 +188,7 @@ class QuotationController extends Controller
                 'deliveryTerm' => $request->deliveryTerm,
                 'paymentTerms' => $request->paymentTerms,
                 'entryDate' => date('Y-m-d', strtotime($request->entryDate)),
-                'iGstType' => $request->iGstType,
+                'iGstType' => $request->iGstType ?? 0,
                 'strTermsCondition' => $request->strTermsCondition,
                 'updated_by' => $user->emp_id
             ]);
@@ -428,7 +428,7 @@ class QuotationController extends Controller
             'deliveryTerm' => $Quotation->deliveryTerm,
             'paymentTerms' => $Quotation->paymentTerms,
             'entryDate' => date('Y-m-d', strtotime($Quotation->entryDate)),
-            'iGstType' => $Quotation->iGstType,
+            'iGstType' => $Quotation->iGstType ?? 0,
             'strTermsCondition' => $Quotation->strTermsCondition,
             'created_by' => $user->emp_id
         );
@@ -563,7 +563,7 @@ class QuotationController extends Controller
 
         // Company logo → base64 inline
         $companyLogoUrl = null;
-        $root = base_path('../public_html/');
+       /* $root = base_path('../public_html/');
 
         // 1) pick relative path (from DB or fallback)
         $rel = data_get($company, 'company_logo'); // e.g. 'uploads/company/logo.png' or 'logo.png'
@@ -580,7 +580,7 @@ class QuotationController extends Controller
         $ext  = strtolower(pathinfo($path, PATHINFO_EXTENSION) ?: 'png');
         $mime = $ext === 'jpg' ? 'image/jpeg' : "image/$ext";
         $companyLogoUrl = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($path));
-        
+        */
 
        /* if ($get($company, ['company_logo'])) {
             $path = public_path('CompanyLogo/'.$company->company_logo);
@@ -605,21 +605,29 @@ class QuotationController extends Controller
         $partyAddr  = implode(', ', array_filter([$partyAddr1, $partyCity, $partyStateName], fn($x)=>$x!==null && trim($x)!==''));
 
         /* -----------------  Line items  ----------------- */
-        $details = \DB::table('quotationdetails')
-            ->where(['quotationID'=>$qId,'isDelete'=>0])
+        $details = QuotationDetail::with('service')
+            ->where(['quotationID'=>$qId,'iStatus'=>1,'isDelete'=>0])
             ->get();
+
+
 
         $items = [];
         foreach ($details as $d) {
             $qty  = (float)($d->quantity ?? $d->qty ?? 0);
             $rate = (float)($d->rate ?? 0);
+            $netAmount = (float)($d->netAmount ?? 0);
+            $discount = (float)($d->discount ?? 0);
+            $amount = (float)($d->totalAmount ?? 0);
             $items[] = [
-                'name' => $clean($d->strProductName ?? $d->productName ?? $d->service_name ?? 'Item'),
+                'name' => $clean($d->service->service_name ?? $d->service->service_name ?? $d->service->service_name ?? ''),
                 'desc' => $clean($d->strDescription ?? $d->description ?? ''),
                 'hsn'  => $clean($d->uom ?? $d->uom ?? '-'),
                 'gst'  => $clean($d->iGstPercentage ?? $d->iGstPercentage ?? ''),
                 'qty'  => $qty,
                 'rate' => $rate,
+                'amount' => $amount,
+                'netAmount' => $netAmount,
+                'discount' => $discount,
             ];
         }
 

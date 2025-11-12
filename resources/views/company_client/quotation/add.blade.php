@@ -87,7 +87,7 @@
                             <span style="color:red;">*</span>Date</label>
                             <input type="date"
                                 class="form-control form-control-user @error('entryDate') is-invalid @enderror"
-                                id="datepicker" placeholder="Select Date" name="entryDate" value="{{ old('entryDate') }}"
+                                id="datepicker" placeholder="Select Date" name="entryDate" value="{{ old('entryDate', now()->format('Y-m-d')) }}"
                                 required>
                         </div>
 
@@ -123,7 +123,7 @@
                                 placeholder="Enter Payment Terms" value="{{ old('paymentTerms') ? old('paymentTerms') : $Company->payment_terms }}">
                         </div>
 
-                        <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
+                        <!-- <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
                             <span style="color:red;">*</span>GST Type</label>
                             <select class="form-control form-control-user" @error('iGstType') is-invalid @enderror
                                 name="iGstType" required>
@@ -131,7 +131,7 @@
                                 <option value="1">GST</option>
                                 <option value="2">IGST</option>
                             </select>
-                        </div>
+                        </div> -->
                         <div class="col-sm-12 mb-3 mt-3 mb-sm-0">
                             <span style="color:red;"></span>Terms & Condition</label>
                             <textarea class="form-control" id="fetchtermcondition" name="strTermsCondition"> {{ old('strTermsCondition') ? old('strTermsCondition') : $Company->terms_condition }} </textarea>

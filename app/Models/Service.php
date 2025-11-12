@@ -18,6 +18,7 @@ class Service extends Model
         'HSN',
         'service_description',
         'service_image',
+        'rate'
     ];
 
      public function Company()

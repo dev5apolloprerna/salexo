@@ -10,14 +10,11 @@ class QuotationDetail extends Model
     use HasFactory;
     public $table = 'quotationdetails';
     protected $fillable = [
-        'description',
-        'size',
-        'rate',
-        'quantity',
-        'amount',
-        'totalAmount',
-        'strIP',
-        'strEntryDate',
-        'iGstPercentage'
+        'quotationdetailsId', 'quotationID', 'productID', 'description', 'uom', 'quantity', 'rate', 'amount', 'discount', 'netAmount', 'totalAmount', 'size', 'iGstPercentage',
     ];
+
+     public function service()
+    {
+        return $this->belongsTo(service::class, 'productID', 'service_id');
+    }
 }

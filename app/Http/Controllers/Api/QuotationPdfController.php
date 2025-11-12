@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use App\Models\Quotation;
 use App\Models\QuotationTemplate;
+use App\Models\QuotationDetail;
 use App\Models\CompanyClient;
 use App\Models\Party;
 
@@ -252,7 +253,7 @@ protected function previewData($quotation): array
         $partyAddr  = implode(', ', array_filter([$partyAddr1, $partyCity, $partyStateName], fn($x)=>$x!==null && trim($x)!==''));
 
         /* -----------------  Line items  ----------------- */
-        $details = \DB::table('quotationdetails')
+         $details = QuotationDetail::with('service')
             ->where(['quotationID'=>$qId,'isDelete'=>0])
             ->get();
 
@@ -261,7 +262,7 @@ protected function previewData($quotation): array
             $qty  = (float)($d->quantity ?? $d->qty ?? 0);
             $rate = (float)($d->rate ?? 0);
             $items[] = [
-                'name' => $clean($d->strProductName ?? $d->productName ?? $d->service_name ?? 'Item'),
+                'name' => $clean($d->service->service_name ?? $d->service->service_name ?? $d->service->service_name ?? ''),
                 'desc' => $clean($d->strDescription ?? $d->description ?? ''),
                 'hsn'  => $clean($d->uom ?? $d->uom ?? '-'),
                 'gst'  => $clean($d->iGstPercentage ?? $d->iGstPercentage ?? ''),

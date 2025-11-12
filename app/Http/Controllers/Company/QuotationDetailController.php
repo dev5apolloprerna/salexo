@@ -26,6 +26,7 @@ class QuotationDetailController extends Controller
                 'service_id as id',
                 'service_name as text',
                 'HSN',
+                'rate',
                 'service_description',
             ]);
 
@@ -46,6 +47,35 @@ class QuotationDetailController extends Controller
         }
         return response()->json($row);
     }
+    public function checkDuplicate(Request $request)
+    {
+
+        $request->validate([
+            'quotationID' => 'required|integer',
+            'productID'   => 'required',
+        ]);
+
+        $detailId    = $request->quotationdetailsId;       // dd-mm-YYYY or yyyy-mm-dd
+
+        $exists = QuotationDetail::query()
+                    ->join('quotation as q', 'quotationdetails.quotationID', '=', 'q.quotationId')
+                    ->where('quotationdetails.quotationID', $request->quotationID)   // from details
+                    ->where('q.iCompanyId', $request->company_id)                    // from quotation
+                    ->where('quotationdetails.productID', $request->productID) 
+                    ->when($detailId, function($q) use($detailId) {
+                                return $q->where('quotationdetails.quotationdetailsId','!=', $detailId);
+                            })
+                                  // from details
+                    ->where([
+                        'quotationdetails.isDelete' => 0,
+                        'quotationdetails.iStatus'  => 1,
+                    ])
+                    ->exists();
+
+
+        return response()->json(['exists' => $exists]);
+    }
+
 
 
 

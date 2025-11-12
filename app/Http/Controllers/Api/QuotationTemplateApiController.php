@@ -362,13 +362,16 @@ protected function simpleReplace(string $html, array $data): string
         $partyAddr = implode(', ', array_filter([$partyAddr1, $partyCity, $partyStateName], fn($x)=>$x!==null && trim($x)!==''));
 
         // --- Line items
-        $details = DB::table('quotationdetails')->where(['quotationID'=>$qId,'isDelete'=>0])->get();
+         $details = QuotationDetail::with('service')
+            ->where(['quotationID'=>$qId,'isDelete'=>0])
+            ->get();
+
         $items = [];
         foreach ($details as $d) {
             $qty  = (float)($d->quantity ?? $d->qty ?? 0);
             $rate = (float)($d->rate ?? 0);
             $items[] = [
-                'name' => $clean($d->strProductName ?? $d->productName ?? $d->service_name ?? 'Item'),
+                'name' => $clean($d->service->service_name ?? $d->service->service_name ?? $d->service->service_name ?? ''),
                 'desc' => $clean($d->strDescription ?? $d->description ?? ''),
                 'hsn'  => $clean($d->uom ?? ''),
                 'gst'  => $clean($d->iGstPercentage ?? ''),

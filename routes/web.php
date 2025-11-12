@@ -418,6 +418,8 @@ Route::get('/services/{id}', [QuotationDetailController::class, 'serviceById'])
 
 Route::post('/{quotationId}/discount', [QuotationDetailController::class, 'applyDiscount'])->name('applyDiscount');
 
+Route::post('/check-duplicate', [QuotationDetailController::class, 'checkDuplicate'])
+    ->name('checkDuplicate');
 
 });
 

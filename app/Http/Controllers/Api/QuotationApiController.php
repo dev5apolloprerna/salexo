@@ -29,6 +29,8 @@ class QuotationApiController extends Controller
      */
     public function index(Request $request)
     {
+        $user = Auth::user();
+
         $PartyName = $request->partyName;
         $fromDate  = $request->fromDate;     // dd-mm-YYYY or yyyy-mm-dd (we will convert)
         $toDate    = $request->toDate;  
@@ -50,8 +52,13 @@ class QuotationApiController extends Controller
             ->when($toDate, function($q) use($toDate) {
                 $to = date('Y-m-d', strtotime($toDate));
                 return $q->whereDate('quotation.entryDate', '<=', $to);
-            })
-            ->join('company_client_master', 'quotation.iCompanyId', '=', 'company_client_master.company_id')
+            });
+            if($user->role_id == '3')
+            {
+                $query->where(['created_by'=>$user->emp_id]);
+            }
+
+            $query = $query->join('company_client_master', 'quotation.iCompanyId', '=', 'company_client_master.company_id')
             ->join('party', 'quotation.iPartyId', '=', 'party.partyId')
             ->join('year', 'quotation.iYearId', '=', 'year.year_id')
             ->orderByDesc('quotation.quotationId')
