@@ -135,7 +135,7 @@
                       </div>
 
                       {{-- GST Type --}}
-                      <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
+                     <!--  <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
                         <label for="iGstType"><span style="color:red;">*</span> GST Type</label>
                         <select class="form-control form-control-user @error('iGstType') is-invalid @enderror" id="iGstType" name="iGstType" required>
                           <option value="">Select GST Type</option>
@@ -143,7 +143,7 @@
                           <option value="2" @selected(old('iGstType', $Data->iGstType) == 2)>IGST</option>
                         </select>
                         @error('iGstType')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                      </div>
+                      </div> -->
 
                       {{-- Terms & Conditions (CKEditor) --}}
                       <div class="col-sm-12 mb-3 mt-3 mb-sm-0">

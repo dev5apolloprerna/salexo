@@ -65,6 +65,7 @@
                         <div class="form-group row">
 
                             <input type="hidden" name="quotationID" value={{ $id }}>
+                            <input type="hidden" name="company_id" value={{ Auth::guard('web_employees')->user()->company_id }}>
                             
                             <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
                                 <span style="color:red;"></span>Product Name / Service Name</label>
@@ -94,7 +95,7 @@
 
                             @if($CompanyName->GST != null)
                             <div class="col-sm-4 mb-3 mt-3 mb-sm-0">
-                                <span style="color:red;">*</span>UOM / HSN</label>
+                                <span style="color:red;">*</span>HSN</label>
                                 <input class="form-control" id="HSN" name="uom" type="text"
                                     placeholder="Enter UOM" value="{{ old('uom') }}" required>
                             </div>
@@ -184,9 +185,9 @@
                                 @isset($summary)
                                   <div class="row mb-3 small text-muted">
                                     <div class="col-3 col-md-3">Sub Total: <strong><span class="rupee"></span>{{ number_format($summary['sub_total'] ?? 0, 2) }}</strong></div>
-                                    <div class="col-3 col-md-3">Total Discount: <strong><span class="rupee"></span>{{ number_format($summary['total_discount'] ?? 0, 2) }}</strong></div>
-                                    <div class="col-3 col-md-3">Taxable After Discount: <strong><span class="rupee"></span>{{ number_format($summary['taxable_after_discount'] ?? 0, 2) }}</strong></div>
-                                    <div class="col-3 col-md-3">GST Total: <strong><span class="rupee"></span>{{ number_format($summary['gst_total'] ?? 0, 2) }}</strong></div>
+                                    <div class="col-3 col-md-3">Discount: <strong><span class="rupee"></span>{{ number_format($summary['total_discount'] ?? 0, 2) }}</strong></div>
+                                    <div class="col-3 col-md-3">Amount: <strong><span class="rupee"></span>{{ number_format($summary['taxable_after_discount'] ?? 0, 2) }}</strong></div>
+                                    <div class="col-3 col-md-3">GST: <strong><span class="rupee"></span>{{ number_format($summary['gst_total'] ?? 0, 2) }}</strong></div>
                                     <div class="col-3 col-md-3">Grand Total: <strong><span class="rupee"></span>{{ number_format($summary['grand_total'] ?? 0, 2) }}</strong></div>
                                   </div>
                                 @endisset
@@ -194,7 +195,7 @@
                                 <th >Sr No.</th>
                                 <th >Product</th>
                                 <th >Description</th>
-                                <th >UOM</th>
+                                <th >HSN</th>
                                 <th >Quantity</th>
                                 <th >Unit Rate</th>
                                 <th >Amount</th>
@@ -261,6 +262,7 @@
                                         @method('post')
                                         <input type="hidden" name="quotationID" value="{{ $id }}">
                                         <input type="hidden" name="quotationdetailsId" id="quotationdetailsId" value="">
+                            <input type="hidden" name="company_id" value={{ Auth::guard('web_employees')->user()->company_id }}>
 
                                         <div class="modal-body">
                                           <div class="row">
@@ -278,11 +280,11 @@
 
                                             <div class="col-md-12 mb-3">
                                               <label><span class="text-danger">*</span> Description</label>
-                                              <textarea class="form-control" id="Editdescription" name="description" rows="6" required></textarea>
+                                              <textarea class="form-control" id="Editdescription" name="description" rows="6" ></textarea>
                                             </div>
 
                                             <div class="col-md-6 mb-3">
-                                              <label><span class="text-danger">*</span> UOM</label>
+                                              <label><span class="text-danger">*</span> HSN</label>
                                               <input type="text" name="uom" class="form-control" id="Edituom" required>
                                             </div>
 
@@ -410,13 +412,16 @@
     // Your API returns service_description + HSN
     const desc = svc.service_description || svc.description || '';
     const hsn  = svc.HSN || '';
+    const rate  = svc.rate || '';
 
     if ($scope.attr('id') === 'getproductID') {
       if (desc) $('#fetchdescription').val(desc);
       if (hsn)  $('#HSN').val(hsn);
+      if (hsn)  $('#rate').val(rate);
     } else if ($scope.attr('id') === 'EditproductID') {
       if (desc) $('#Editdescription').val(desc);
       if (hsn)  $('#Edituom').val(hsn); // map HSN into your Edit UOM field (as per your UI)
+      if (hsn)  $('#Editrate').val(rate); // map HSN into your Edit UOM field (as per your UI)
     }
   }
 
@@ -470,9 +475,11 @@
         if ($el.attr('id') === 'getproductID') {
           $('#fetchdescription').val('');
           $('#HSN').val('');
+          $('#rate').val('');
         } else {
           $('#Editdescription').val('');
           $('#Edituom').val('');
+          $('#Editrate').val('');
         }
       }
     });
@@ -597,6 +604,40 @@
       syncPlaceholder();
     }
   })();
+</script>
+<script>
+$(document).ready(function() {
+$(document).on('change', '#getproductID, #EditproductID', function () {
+    const productID = $(this).val();
+    const quotationID = $('input[name="quotationID"]').val();
+    const company_id = $('input[name="company_id"]').val();
+    const quotationdetailsId = $('input[name="quotationdetailsId"]').val();
+
+    if (!productID || productID === 'other') return;
+
+    $.ajax({
+      url: "{{ route('quotationdetails.checkDuplicate') }}",
+      type: "POST",
+      data: {
+        _token: "{{ csrf_token() }}",
+        quotationID,
+        productID,
+        company_id,
+        quotationdetailsId,
+      },
+      success: function(res) {
+        if (res.exists) {
+          alert('This product/service is already added for this quotation!');
+          // reset select2
+          $('#getproductID').val('').trigger('change');
+        }
+      },
+      error: function(xhr) {
+        console.error('Error checking product duplication', xhr);
+      }
+    });
+  });
+});
 </script>
 
 @endsection

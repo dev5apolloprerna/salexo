@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use App\Models\{QuotationDetail, Quotation, Service};
+use Illuminate\Support\Facades\Validator;
 
 class QuotationDetailApiController extends Controller
 {
@@ -135,11 +136,12 @@ class QuotationDetailApiController extends Controller
      * Create detail row
      */
    public function store(Request $request)
-{
+{   
     $user = Auth::user();
+
     $quotation_id = (int) $request->quotation_id;
 
-    $data = $request->validate([
+    $validator = Validator::make($request->all(), [
         'productID'       => ['required'],                 // numeric id OR '__new__:name' OR 'other'
         'service_name'    => ['nullable', 'string', 'max:255'],
         'description'     => ['nullable', 'string'],
@@ -149,6 +151,41 @@ class QuotationDetailApiController extends Controller
         // client-side amount/discount/net are ignored; server recalculates
         'iGstPercentage'  => ['required', 'numeric'],
     ]);
+
+     $validator->after(function ($v) use ($request) {
+            $pid = (string)$request->productID;
+            $user = Auth::user();
+            // Skip if "Other" or newly added product
+            if ($pid === 'other' || str_starts_with($pid, '__new__:')) {
+                return;
+            }
+
+            $exists = QuotationDetail::query()
+                ->from('quotationdetails')
+                ->join('quotation as q', 'quotationdetails.quotationID', '=', 'q.quotationId')
+                ->where('quotationdetails.quotationID', $request->quotation_id)
+                ->where('quotationdetails.productID', $request->productID)
+                ->where('q.iCompanyId', $user->company_id)
+                ->where([
+                    'quotationdetails.isDelete' => 0,
+                    'quotationdetails.iStatus'  => 1,
+                ])
+                ->exists();
+
+            if ($exists) {
+                $v->errors()->add('productID', 'This product is already added for this quotation.');
+            }
+        });
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed.',
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        $data = $validator->validated();
 
     // ensure quotation exists & is active
     $exists = Quotation::where([
@@ -252,10 +289,11 @@ class QuotationDetailApiController extends Controller
     public function update(Request $request)
     {
         $user = Auth::user();
+            
         $id   = (int) $request->quotationdetailsId;
     
-        $data = $request->validate([
-            'quotationID'     => ['required', 'integer'],
+        $validator = Validator::make($request->all(), [
+            // 'quotationID'     => ['required', 'integer'],
             'productID'       => ['required'],         // numeric or '__new__:' or 'other'
             'service_name'    => ['nullable', 'string'],
             'description'     => ['nullable', 'string'],
@@ -265,12 +303,60 @@ class QuotationDetailApiController extends Controller
             'iGstPercentage'  => ['required', 'numeric'],
             // amount/discount/netAmount from client are ignored (server recalculates)
         ]);
+
+        $validator->after(function ($v) use ($request) {
+            $pid = (string)$request->productID;
+            $user = Auth::user();
+            $id   = (int) $request->quotationdetailsId;
+
+        $row = DB::table('quotationdetails')->where([
+            'quotationdetailsId' => $id,
+            'isDelete'           => 0,
+        ])->first();
+            // Skip if "Other" or newly added product
+            if ($pid === 'other' || str_starts_with($pid, '__new__:')) {
+                return;
+            }
+
+            $exists = QuotationDetail::query()
+                ->from('quotationdetails')
+                ->join('quotation as q', 'quotationdetails.quotationID', '=', 'q.quotationId')
+                    ->where('quotationdetails.quotationID', $row->quotationID)   // from details
+                ->where('quotationdetails.productID', $request->productID)
+                ->where('q.iCompanyId', $user->company_id)
+                ->when($id, function($q) use($id) {
+                        return $q->where('quotationdetails.quotationdetailsId','!=', $id);
+                    })
+                ->where([
+                    'quotationdetails.isDelete' => 0,
+                    'quotationdetails.iStatus'  => 1,
+                ])
+                ->exists();
+
+            if ($exists) {
+                $v->errors()->add('productID', 'This product is already added for this quotation.');
+            }
+        });
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed.',
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        $data = $validator->validated();
+
+
     
         // Ensure row exists
         $row = DB::table('quotationdetails')->where([
             'quotationdetailsId' => $id,
             'isDelete'           => 0,
         ])->first();
+
+
         if (!$row) {
             return response()->json(['success'=>false,'message'=>'Not found'], 404);
         }
@@ -286,7 +372,7 @@ class QuotationDetailApiController extends Controller
     
         // --- Read header discount settings ---
         $header = DB::table('quotation')
-            ->where('quotationId', (int) $data['quotationID'])
+            ->where('quotationId', (int) $row->quotationID)
             ->select('discount_type', 'discount')
             ->first();
     
@@ -298,7 +384,7 @@ class QuotationDetailApiController extends Controller
                 // convert header flat amount to a single uniform % of current total base
                 $totalBase = (float) DB::table('quotationdetails')
                     ->where([
-                        'quotationID' => (int) $data['quotationID'],
+                        'quotationID' => (int) $row->quotationID,
                         'iStatus'     => 1,
                         'isDelete'    => 0,
                     ])
@@ -336,7 +422,7 @@ class QuotationDetailApiController extends Controller
             ]);
     
     if (($header->discount_type ?? '') === 'amount' && (float)$header->discount > 0) {
-            $this->reallocateAmountDiscount((int)$data['quotationID'], (float)$header->discount);
+            $this->reallocateAmountDiscount((int)$row->quotationID, (float)$header->discount);
         }
         // Optional: return computed values so UI can refresh immediately
         return response()->json([

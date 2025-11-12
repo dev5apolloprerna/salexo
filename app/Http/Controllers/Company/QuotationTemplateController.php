@@ -265,6 +265,9 @@ class QuotationTemplateController extends Controller
     foreach ($details as $d) {
         $qty  = (float)($d->quantity ?? $d->qty ?? 0);
         $rate = (float)($d->rate ?? 0);
+        $netAmount = (float)($d->netAmount ?? 0);
+        $discount = (float)($d->discount ?? 0);
+        $amount = (float)($d->totalAmount ?? 0);
         $items[] = [
             'name' => $clean($d->strProductName ?? $d->productName ?? $d->service_name ?? 'Item'),
             'desc' => $clean($d->strDescription ?? $d->description ?? ''),
@@ -272,6 +275,9 @@ class QuotationTemplateController extends Controller
             'gst'  => $clean($d->iGstPercentage ?? $d->iGstPercentage ?? ''),
             'qty'  => $qty,
             'rate' => $rate,
+            'amount' => $amount,
+            'netAmount' => $netAmount,
+            'discount' => $discount,
         ];
     }
 
