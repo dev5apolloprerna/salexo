@@ -50,11 +50,13 @@ class LeadServiceApiController extends Controller
             $request->validate([
                 'service_name' => 'required|string|max:255',
                 'service_description' => 'required|string|max:255',
+                'service_amount' => 'required',
             ]);
 
             $service = Service::create([
                 'service_name' => $request->service_name,
                 'service_description' => $request->service_description,
+                'rate' => $request->service_amount,
                 'company_id' => $employee->company_id,
             ]);
 
@@ -88,20 +90,22 @@ class LeadServiceApiController extends Controller
             $request->validate([
                 'service_id' => 'required|integer|exists:service_master,service_id',
                 'service_name' => 'required|string|max:255',
+                'service_amount' => 'required',
                 'service_description' => 'required|string|max:255',
             ]);
 
-            $service = Service::find($request->service_id);
-            $service->update([
+            $serviceupdate = Service::find($request->service_id);
+            $serviceupdate->update([
                 'service_name' => $request->service_name,
                 'service_description' => $request->service_description,
+                'rate' => $request->service_amount,
                 'company_id' => $employee->company_id,
             ]);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Service updated successfully',
-                'data' => $service,
+                'data' => $serviceupdate,
             ]);
         } catch (\Throwable $th) {
             return response()->json([

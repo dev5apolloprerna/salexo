@@ -1140,6 +1140,34 @@ class EmployeeApiController extends Controller
         // ✅ Commit company update
         CompanyClient::where('company_id', $company_id)->update($updateCompany);
 
+        if (!empty($request->terms_condition)) 
+                 {
+                    $raw   = $request->terms_condition;
+
+                    // Replace <li> & <br> with line breaks, then strip remaining tags
+                    $normalized = str_ireplace(
+                        ['</li>', '<li>', '<br>', '<br/>', '<br />', '</p>', '<p>', '</ul>', '<ul>'],
+                        ["\n",   '',    "\n",   "\n",    "\n",     "\n",  '',    "\n",   ''],
+                        $raw
+                    );
+
+                $plainTerms = trim(strip_tags($normalized));
+
+                if ($plainTerms !== '') {
+                    // Update existing termcondition rows for this company
+                    DB::table('termcondition')
+                        ->where([
+                            'companyID' => $company_id,
+                            'isDelete'  => 0,
+                        ])
+                        ->update([
+                            'description' => $plainTerms,
+                            'updated_at'    => now(),
+                        ]);
+
+                    }
+                }
+
         DB::commit();
 
         return response()->json([

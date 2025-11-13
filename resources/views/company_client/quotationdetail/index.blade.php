@@ -583,27 +583,32 @@
 </style>
 
 <script>
-  (function () {
-    const modeSel = document.getElementById('discountMode');
-    const valInp  = document.getElementById('discountValue');
-    const rupee   = document.getElementById('rupeePrefix');
+(function () {
+  const form  = document.getElementById('discountForm');
+  const mode  = document.getElementById('discountMode');
+  const value = document.getElementById('discountValue');
 
-    function syncPlaceholder() {
-      if (!modeSel || !valInp || !rupee) return;
-      if (modeSel.value === 'amount') {
-        valInp.placeholder = 'Enter amount';
-        rupee.classList.remove('d-none');
-      } else {
-        valInp.placeholder = 'Enter %';
-        rupee.classList.add('d-none');
-      }
+  if (!form || !mode || !value) return;
+
+  form.addEventListener('submit', function (e) {
+    const modeVal  = mode.value;
+    const val      = parseFloat(value.value || '0');
+    const subTotal = {{ (float)($summary['sub_total'] ?? 0) }};
+
+    if (modeVal === 'percent' && val > 100) {
+      e.preventDefault();
+      alert('Discount percentage cannot be greater than 100%.');
+      return;
     }
 
-    if (modeSel) {
-      modeSel.addEventListener('change', syncPlaceholder);
-      syncPlaceholder();
+    if (modeVal === 'amount' && val > subTotal) {
+      e.preventDefault();
+      alert('Discount amount cannot be more than total amount (₹' + subTotal.toFixed(2) + ').');
+      return;
     }
-  })();
+  });
+})();
+
 </script>
 <script>
 $(document).ready(function() {

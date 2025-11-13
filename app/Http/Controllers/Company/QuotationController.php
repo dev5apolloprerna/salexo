@@ -559,7 +559,6 @@ class QuotationController extends Controller
         $companyAddr1 = $company->Address ?? null;
         $companyPin   = $company->pincode ?? null;
         $companyAddr  = $address($companyAddr1, $companyCity, $companyState, $companyPin);
-        $extraTerms  = $company->terms_condition ?? null;
 
         // Company logo → base64 inline
         $companyLogoUrl = null;
@@ -631,16 +630,6 @@ class QuotationController extends Controller
             ];
         }
 
-        /* -----------------  Terms  ----------------- */
-        
-
-        /*$extraTerms = \DB::table('termcondition')
-            ->where(['iStatus'=>1,'isDelete'=>0])
-            ->orderBy('termconditionId')
-            ->pluck('description')
-            ->filter()
-            ->values()
-            ->all();*/
 
         /* -----------------  Quotation meta  ----------------- */
         $discount     = (float)($quotation->discount ?? 0);
@@ -656,7 +645,7 @@ class QuotationController extends Controller
         $paymentTerms = $clean($quotation->paymentTerms) ?? '50% advance, balance on delivery';
         $delivery     = $clean($quotation->deliveryTerm) ?? 'Within 7–10 business days from PO';
         $modeOfDespatch = $clean($quotation->modeOfDespatch) ?? '';
-        $warranty     = $clean($quotation->warranty) ?? '12 months from invoice date';
+        $extraTerms     = $clean($quotation->strTermsCondition) ?? '';
 
         $bankName   = $get($company, ['bank_account_name','company_name']) ?? $companyName;
         $bankAcc    = $get($company, ['bank_account_no','account_no','acno']);
@@ -692,15 +681,16 @@ class QuotationController extends Controller
             'paymentTerms' => $paymentTerms,
             'delivery'     => $delivery,
             'modeOfDespatch' => $modeOfDespatch,
-            'warranty'     => $warranty,
+            'termCondition' => $extraTerms,
 
             'bankName'   => $bankName,
             'bankAccount'=> $bankAcc,
             'bankIfsc'   => $bankIfsc,
             'bankBranch' => $bankBranch,
 
-            'extraTerms' => $extraTerms,
+            
         ];
+
     }
 
 }

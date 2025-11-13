@@ -22,9 +22,20 @@
                             <hr>
                             </h5>
                       
+                      @if ($errors->any())
+    <div class="alert alert-danger">
+        <ul class="mb-0">
+            @foreach ($errors->all() as $error)
+                <li>{{ $error }}</li> {{-- will use your custom messages() where defined --}}
+            @endforeach
+        </ul>
+    </div>
+@endif
+
                           <div class="live-preview">
                             <form method="POST" action="{{ route('party.update', ['party' => ($party->partyId ?? $party->id)]) }}" autocomplete="off">
                               @csrf @method('PUT')
+                              <input type="hidden" name="party_id" value="{{$party->partyId}}">
                               <div class="row g-3 mb-2">
                                 <div class="col-md-4">
                                   <label class="form-label">Party Name</label>

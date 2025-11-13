@@ -443,41 +443,93 @@ class QuotationDetailApiController extends Controller
     /**
      * DELETE /api/quotation-details/{id}
      */
-    public function destroy(Request $request)
-    {
-        $id = (int) $request->quotationdetailsId;
+        public function destroy(Request $request)
+        {
+            // Validate incoming ID
+            $data = $request->validate([
+                'quotationdetailsId' => ['required', 'integer'],
+            ]);
 
-        // Get the row first (to know quotationID)
-        $row = DB::table('quotationdetails')
-            ->where(['quotationdetailsId' => $id, 'isDelete' => 0])
-            ->select('quotationID')
-            ->first();
+            $id = (int) $data['quotationdetailsId'];
 
-        if (!$row) {
-            return response()->json(['success' => false, 'message' => 'Not found'], 404);
+            // Get the row first (to know quotationID)
+            $row = DB::table('quotationdetails')
+                ->where(['quotationdetailsId' => $id, 'isDelete' => 0])
+                ->select('quotationID')
+                ->first();
+
+            if (!$row) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Not found or already deleted',
+                ], 404);
+            }
+
+            DB::beginTransaction();
+            try {
+                $deleted = DB::table('quotationdetails')
+                    ->where(['quotationdetailsId' => $id, 'isDelete' => 0])
+                    ->update([
+                        'isDelete'   => 1,
+                        'updated_at' => now(),
+                    ]);
+
+                if (!$deleted) {
+                    DB::rollBack();
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Delete failed',
+                    ], 500);
+                }
+
+                // ---- Handle header discount reallocation ----
+                $quotationId = (int) $row->quotationID;
+
+                $header = DB::table('quotation')
+                    ->where(['quotationId' => $quotationId, 'isDelete' => 0])
+                    ->select('discount_type', 'discount')
+                    ->first();
+
+                if ($header && ($header->discount_type === 'amount') && (float) $header->discount > 0) {
+                    // Reallocate flat discount across remaining lines
+                    $this->reallocateAmountDiscount($quotationId, (float) $header->discount);
+                }
+
+                // ---- If no remaining products, clear discount fields on header ----
+                $remaining = DB::table('quotationdetails')
+                    ->where([
+                        'quotationID' => $quotationId,
+                        'isDelete'    => 0,
+                    ])
+                    ->count();
+
+                if ($remaining === 0) {
+                    DB::table('quotation')
+                        ->where(['quotationId' => $quotationId, 'isDelete' => 0])
+                        ->update([
+                            'discount'      => 0,
+                            'discount_type' => null,
+                            'updated_at'    => now(),
+                        ]);
+                }
+
+                DB::commit();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Quotation detail deleted',
+                ], 200);
+            } catch (\Throwable $e) {
+                DB::rollBack();
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unexpected error',
+                    'error'   => $e->getMessage(), // remove in production if you don’t want to expose details
+                ], 500);
+            }
         }
 
-        // Hard delete (keep if you want hard delete)
-        $deleted = DB::table('quotationdetails')
-            ->where(['quotationdetailsId' => $id, 'isDelete' => 0])
-            ->delete();
-
-        if (!$deleted) {
-            return response()->json(['success' => false, 'message' => 'Delete failed'], 500);
-        }
-
-        // If header has flat amount discount, reallocate across remaining lines
-        $header = DB::table('quotation')
-            ->where('quotationId', (int) $row->quotationID)
-            ->select('discount_type', 'discount')
-            ->first();
-
-        if (($header->discount_type ?? '') === 'amount' && (float) ($header->discount ?? 0) > 0) {
-            $this->reallocateAmountDiscount((int) $row->quotationID, (float) $header->discount);
-        }
-
-        return response()->json(['success' => true, 'message' => 'Quotation detail deleted'], 200);
-    }
 
     private function reallocateAmountDiscount(int $quotationId, float $headerAmount): void
     {

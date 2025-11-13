@@ -20,79 +20,92 @@ use PDF; // Barryvdh\DomPDF
 class QuotationPdfController extends Controller
 {
 
-public function quotationPdfLink(Request $request, int $id)
-{
-    try {
-        // 1) Load Quotation + relations
-        $quotation = Quotation::with(['company','party'])
-            ->where(['iStatus' => 1, 'isDelete' => 0, 'quotationId' => $id])
-            ->firstOrFail();
+    public function quotationPdfLink(Request $request, int $id)
+    {
+        try {
+            // 1) Load Quotation + relations
+            $quotation = Quotation::with(['company', 'party'])
+                ->where([
+                    'iStatus'     => 1,
+                    'isDelete'    => 0,
+                    'quotationId' => $id,
+                ])
+                ->firstOrFail();
 
-        // 2) Resolve default template for this company
-        $template = $this->getDefaultTemplateForCompany($quotation->iCompanyId);
-        if (!$template || !$template->file_path) {
+            // 2) Resolve default template for this company
+            $template = $this->getDefaultTemplateForCompany($quotation->iCompanyId);
+            if (!$template || !$template->file_path) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Default template not configured or file missing.',
+                ], 404);
+            }
+
+            // 3) Build payload (reuse your existing previewData)
+            $data = $this->previewData($quotation);
+
+            // Optional: company-specific terms if your template shows them
+            $data['extraTerms'] = DB::table('termcondition')
+                ->where([
+                    'iStatus'   => 1,
+                    'isDelete'  => 0,
+                    'companyID' => $quotation->iCompanyId,
+                ])
+                ->orderBy('termconditionId')
+                ->pluck('description')
+                ->filter()
+                ->values()
+                ->all();
+
+            // 4) Render the template file to HTML (supports Blade-in-HTML)
+            $html = $this->renderTemplateToHtml($template, $data);
+
+            // 5) Generate the PDF
+            $pdf = PDF::setOptions([
+                    'isHtml5ParserEnabled' => true,
+                    'isRemoteEnabled'      => true,
+                ])
+                ->loadHTML($html)
+                ->setPaper('a4');
+
+            // 6) Save under /public/uploads/quotation_pdf/
+            $safeParty = Str::slug($data['partyName'] ?? 'party');
+            $safeNo    = Str::slug($data['quotationNumber'] ?? ('QTN-' . $id));
+            $fileName  = "{$safeParty}-{$safeNo}.pdf";
+
+            // use standard public_path so URL and path match
+            $dir = public_path('uploads/quotation_pdf');
+
+            if (!File::isDirectory($dir)) {
+                File::makeDirectory($dir, 0775, true);
+            }
+
+            $absPath = $dir . DIRECTORY_SEPARATOR . $fileName;
+            file_put_contents($absPath, $pdf->output());
+
+            // 7) Full public URL to the PDF
+            // e.g. https://your-domain.com/uploads/quotation_pdf/party-qtn-123.pdf
+            $url = url('uploads/quotation_pdf/' . $fileName);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Quotation PDF generated.',
+                'pdfurl'  => $url, // full PDF URL
+            ], 200);
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Default template not configured or file missing.',
+                'message' => 'Quotation not found.',
             ], 404);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'success' => false,
+                'message' => $th->getMessage(),
+            ], 500);
         }
-
-        // 3) Build payload (reuse your existing previewData)
-        $data = $this->previewData($quotation);
-
-        // Optional: company-specific terms if your template shows them
-        $data['extraTerms'] = DB::table('termcondition')
-            ->where(['iStatus' => 1, 'isDelete' => 0, 'companyID' => $quotation->iCompanyId])
-            ->orderBy('termconditionId')
-            ->pluck('description')
-            ->filter()
-            ->values()
-            ->all();
-
-        // 4) Render the template file to HTML (supports Blade-in-HTML)
-        $html = $this->renderTemplateToHtml($template, $data);
-
-        // 5) Generate the PDF
-        $pdf = PDF::setOptions([
-                'isHtml5ParserEnabled' => true,
-                'isRemoteEnabled'      => true,
-            ])
-            ->loadHTML($html)
-            ->setPaper('a4');
-
-        // 6) Save under /public/uploads/quotation_pdf/
-        $safeParty = Str::slug($data['partyName'] ?? 'party');
-        $safeNo    = Str::slug($data['quotationNumber'] ?? ('QTN-'.$id));
-        $fileName  = "{$safeParty}-{$safeNo}.pdf";
-
-        $dir = base_path('../public_html/uploads/quotation_pdf');
-        if (!File::isDirectory($dir)) {
-            File::makeDirectory($dir, 0775, true);
-        }
-
-        $absPath = $dir . DIRECTORY_SEPARATOR . $fileName;
-        file_put_contents($absPath, $pdf->output());
-
-        // 7) Public URL to the PDF (served directly from /public)
-        $url = asset('../uploads/quotation_pdf/'.$fileName);
-
-        return response()->json([
-            'success'   => true,
-            'message'   => 'Quotation PDF generated.',
-            'pdfurl'       =>  $url,
-            // ],
-            // 'template'  => [
-            //     'guid' => (string)$template->guid,
-            //     'name' => (string)$template->name,
-            // ],
-        ], 200);
-
-    } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-        return response()->json(['success' => false, 'message' => 'Quotation not found.'], 404);
-    } catch (\Throwable $th) {
-        return response()->json(['success' => false, 'message' => $th->getMessage()], 500);
     }
-}
+
 
 /**
  * Fetch default template for a company using company_client_master.companyTemplate (GUID).
@@ -207,7 +220,6 @@ protected function previewData($quotation): array
         $companyAddr1 = $company->Address ?? null;
         $companyPin   = $company->pincode ?? null;
         $companyAddr  = $address($companyAddr1, $companyCity, $companyState, $companyPin);
-        $extraTerms  = $company->terms_condition ?? null;
 
         // Company logo → base64 inline
         $companyLogoUrl = null;
@@ -297,6 +309,7 @@ protected function previewData($quotation): array
         $delivery     = $clean($quotation->deliveryTerm) ?? 'Within 7–10 business days from PO';
         $modeOfDespatch = $clean($quotation->modeOfDespatch) ?? '';
         $warranty     = $clean($quotation->warranty) ?? '12 months from invoice date';
+        $warranty     = $clean($quotation->strTermsCondition) ?? '';
 
         $bankName   = $get($company, ['bank_account_name','company_name']) ?? $companyName;
         $bankAcc    = $get($company, ['bank_account_no','account_no','acno']);
@@ -339,7 +352,7 @@ protected function previewData($quotation): array
             'bankIfsc'   => $bankIfsc,
             'bankBranch' => $bankBranch,
 
-            'extraTerms' => $extraTerms,
+            'termCondition' => $extraTerms,
         ];
     }
 

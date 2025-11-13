@@ -27,59 +27,73 @@ class QuotationApiController extends Controller
      * GET /api/quotations
      * List quotations (with filters + pagination)
      */
-    public function index(Request $request)
-    {
-        $user = Auth::user();
 
-        $PartyName = $request->partyName;
-        $fromDate  = $request->fromDate;     // dd-mm-YYYY or yyyy-mm-dd (we will convert)
-        $toDate    = $request->toDate;  
-        $mobile    = $request->mobile; 
+public function index(Request $request)
+{
+    $user = Auth::user();
 
-        $query = Quotation::query()
-            ->where(['quotation.iStatus' => 1, 'quotation.isDelete' => 0])
-            ->when($PartyName, function($q) use($PartyName) {   
-                return $q->where('quotation.iPartyId', $PartyName);
-            })
-            ->when($mobile, function($q) use($mobile) {   
-                return $q->where('party.iMobile', $mobile);
-            })
-            
-            ->when($fromDate, function($q) use($fromDate) {
-                $from = date('Y-m-d', strtotime($fromDate));
-                return $q->whereDate('quotation.entryDate', '>=', $from);
-            })
-            ->when($toDate, function($q) use($toDate) {
-                $to = date('Y-m-d', strtotime($toDate));
-                return $q->whereDate('quotation.entryDate', '<=', $to);
-            });
-            if($user->role_id == '3')
-            {
-                $query->where(['created_by'=>$user->emp_id]);
-            }
+    $PartyName = $request->party_id;
+    $fromDate  = $request->fromDate;     // dd-mm-YYYY or yyyy-mm-dd (we will convert)
+    $toDate    = $request->toDate;
+    $mobile    = $request->mobile;
 
-            $query = $query->join('company_client_master', 'quotation.iCompanyId', '=', 'company_client_master.company_id')
-            ->join('party', 'quotation.iPartyId', '=', 'party.partyId')
-            ->join('year', 'quotation.iYearId', '=', 'year.year_id')
-            ->orderByDesc('quotation.quotationId')
-            ->select([
-                'quotation.*',
-                'company_client_master.company_name',
-                'party.strPartyName',
-                'year.year_id',
-                'party.iMobile'
+    // Subquery to count products per quotation
+    $detailsSub = DB::table('quotationdetails')
+        ->select('quotationID', DB::raw('COUNT(*) as product_count'))
+        ->where([
+            'isDelete' => 0,
+            'iStatus'  => 1,
+        ])
+        ->groupBy('quotationID');
 
-            ]);
+    $query = Quotation::query()
+        ->where(['quotation.iStatus' => 1, 'quotation.isDelete' => 0])
+        ->when($PartyName, function ($q) use ($PartyName) {
+            return $q->where('quotation.iPartyId', $PartyName);
+        })
+        ->when($mobile, function ($q) use ($mobile) {
+            return $q->where('party.iMobile', $mobile);
+        })
+        ->when($fromDate, function ($q) use ($fromDate) {
+            $from = date('Y-m-d', strtotime($fromDate));
+            return $q->whereDate('quotation.entryDate', '>=', $from);
+        })
+        ->when($toDate, function ($q) use ($toDate) {
+            $to = date('Y-m-d', strtotime($toDate));
+            return $q->whereDate('quotation.entryDate', '<=', $to);
+        });
 
-        $paginated = $query->get();
-
-        return response()->json([
-            'success'=>true,
-            'message'=>'Quotation List',
-            'data' => $paginated,
-            
-        ]);
+    if ($user->role_id == '3') {
+        $query->where(['created_by' => $user->emp_id]);
     }
+
+    $query = $query
+        ->join('company_client_master', 'quotation.iCompanyId', '=', 'company_client_master.company_id')
+        ->join('party', 'quotation.iPartyId', '=', 'party.partyId')
+        ->join('year', 'quotation.iYearId', '=', 'year.year_id')
+        // LEFT JOIN subquery for product count
+        ->leftJoinSub($detailsSub, 'qd', function ($join) {
+            $join->on('qd.quotationID', '=', 'quotation.quotationId');
+        })
+        ->orderByDesc('quotation.quotationId')
+        ->select([
+            'quotation.*',
+            'company_client_master.company_name',
+            'party.strPartyName',
+            'party.iMobile',
+            'year.year_id',
+            DB::raw('COALESCE(qd.product_count, 0) as product_count'),
+        ]);
+
+    $rows = $query->get();
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Quotation List',
+        'data'    => $rows,
+    ]);
+}
+
 
     public function getNextQuotationNo()
     {
@@ -608,47 +622,32 @@ class QuotationApiController extends Controller
      * POST /api/quotations/{id}/send-whatsapp
      * Body: { "phone": "9198XXXXXXXX" }
      */
-    public function sendWhatsApp(Request $request, $id)
-    {
-        $phone = preg_replace('/\D/', '', (string) $request->input('phone'));
-        if (!$phone) {
-            return response()->json(['message' => 'Invalid phone number'], 422);
-        }
-
-        // Direct link to PDF endpoint in this API
-        $pdfUrl = route('api.employee.quotations.pdf.link', $id);
-
-        $token         = config('services.whatsapp.token');
-        $phoneNumberId = config('services.whatsapp.phone_number_id');
-
-        if (!$token || !$phoneNumberId) {
-            return response()->json(['message' => 'WhatsApp config missing'], 500);
-        }
-
-        $payload = [
-            'messaging_product' => 'whatsapp',
-            'to'   => $phone,
-            'type' => 'document',
-            'document' => [
-                'link'     => $pdfUrl,
-                'filename' => "Quotation-{$id}.pdf",
-            ],
-        ];
-
-        $resp = Http::withToken($token)
-            ->post("https://graph.facebook.com/v20.0/{$phoneNumberId}/messages", $payload);
-
-        if (!$resp->ok()) {
-            $err = $resp->json();
-            return response()->json([
-                'success'=>false,
-                'message' => 'Failed to send WhatsApp message',
-                'error'   => $err['error']['message'] ?? $resp->body()
-            ], 502);
-        }
-
-        return response()->json(['message' => 'Quotation sent on WhatsApp']);
+   public function sendWhatsApp(Request $request, $id)
+{
+    // 1) Clean phone
+    $phone = preg_replace('/\D/', '', (string) $request->input('phone'));
+    if (!$phone) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Invalid phone number',
+        ], 422);
     }
+
+    // 2) Direct link to PDF in your system
+    $pdfUrl = route('api.employee.quotations.pdf.link', $id);
+
+    // 3) Build WhatsApp deep-link (opens WhatsApp with message ready)
+    $text = "Dear customer,\nHere is your quotation PDF:\n{$pdfUrl}";
+    $waLink = "https://wa.me/{$phone}?text=" . urlencode($text);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'WhatsApp link generated successfully',
+        'whatsapp_url' => $waLink,
+        'pdf_url' => $pdfUrl,
+    ]);
+}
+
 
     /* -------------------- helpers -------------------- */
 
