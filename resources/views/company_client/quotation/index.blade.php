@@ -114,10 +114,18 @@
                                         <a href="{{ route('quotation.showDetails', $quotation->quotationId) }}" title="View" target="blank"
                                             class="m-2"> <i class="fa fa-eye"> </i></a>
 
-                                        <a href="{{ route('quotation.DetailPDF', $quotation->quotationId) }}" class="m-2" title="Download">
-                                            <i class="fa fa-file-pdf"></i>
-                                        </a>
-
+                                            <?php
+                                            $product=App\Models\QuotationDetail::where('quotationID', $quotation->quotationId)->count();
+                                            ?>
+                                            @if(($product) > 0)
+                                                <a href="{{ route('quotation.DetailPDF', $quotation->quotationId) }}" class="m-2" title="Download">
+                                                    <i class="fa fa-file-pdf"></i>
+                                                </a>
+                                            @else
+                                                <a href="#" class="m-2" title="Download">
+                                                    <i class="fa fa-file-pdf"></i>
+                                                </a>
+                                            @endif
                                                 
                                                 
                                            @php
@@ -127,12 +135,21 @@
                                               $text   = urlencode("Hello! Here is your quotation PDF:\n{$pdfUrl}");
                                             @endphp
 
+                                            @if(($product) > 0)
                                             <a href="https://wa.me/{{ $phone }}?text={{ $text }}"
                                                target="_blank"
                                                class="m-2"
                                                title="Share on WhatsApp">
                                               <i class="fab fa-whatsapp"></i>
                                             </a>
+                                            @else
+                                            <a href="#"
+                                               target="_blank"
+                                               class="m-2"
+                                               title="Share on WhatsApp">
+                                              <i class="fab fa-whatsapp"></i>
+                                            </a>
+                                            @endif
                                             <a href="{{ route('quotation.copy', $quotation->quotationId) }}" title="Copy"
                                             class="btn btn-primary btn-sm m-2"> <i class="fa-solid fa-copy"></i></a>
                                                 </td>

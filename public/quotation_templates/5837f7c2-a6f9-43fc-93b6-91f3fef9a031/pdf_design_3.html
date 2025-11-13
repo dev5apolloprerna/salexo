@@ -102,7 +102,7 @@
               </td>
               <td valign="top">
                   <div class="block">
-      <h3>Quotation To</h3>
+      <h3>Consignee</h3>
       <div class="kv"><span class="k">Name:</span> {{ $partyName ?? '' }}</div>
       <div class="kv"><span class="k">Address:</span> {{ $partyAddress ?? '' }}</div>
       <div class="kv"><span class="k">GSTIN:</span> {{ $partyGstin ?? '-' }}</div>
@@ -121,14 +121,14 @@
     <table>
       <thead>
         <tr>
-          <th style="width:40px" class="center">#</th>
+          <th style="width:40px" class="center">Sr No</th>
           <th>Description</th>
           <th style="width:70px">HSN</th>
           <th style="width:70px" class="right">Qty</th>
           <th style="width:90px" class="right">Rate</th>
           <th style="width:70px" class="right">GST %</th>
           <th style="width:90px" class="right">GST Amt</th>
-          <th style="width:100px" class="right">Net Amount</th>
+          <th style="width:100px" class="right">Total</th>
         </tr>
       </thead>
       <tbody>
@@ -166,9 +166,6 @@
         $pcts[] = round($gstP, 2);
       @endphp
 
-  {{-- your row HTML here; use number_format(...) when displaying --}}
-
-
         <tr>
           <td class="center">{{ $i }}</td>
           <td>
@@ -177,10 +174,10 @@
           </td>
           <td>{{ $it['hsn'] ?? '' }}</td>
           <td class="right">{{ $fmt($qty) }}</td>
-          <td class="right">{{ $fmt($rate) }}</td>
+          <td class="right ">{{ $fmt($rate) }}</td>
           <td class="right">{{ $fmt($gstP) }}</td>
-          <td class="right">{{ $fmt($gstA) }}</td>
-          <td class="right">{{ $it['amount'] }}</td>
+          <td class="right ">{{ $fmt($gstA) }}</td>
+          <td class="right ">{{ $it['amount'] }}</td>
         </tr>
       @endforeach
       @if(empty($items) || count($items)===0)
@@ -206,24 +203,13 @@
                         <table>
                             <tr>
                                 <td>
-                                    <span>Sub Total (Before Tax)</span>
+                                    <span>Sub Total</span>
                                 </td>
                                 <td>
                                     :
                                 </td>
                                 <td>
-                                    <span class="rupee">{{ $fmt($subTotal) }}</span>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <span>GST Subtotal</span>
-                                </td>
-                                <td>
-                                    :
-                                </td>
-                                <td>
-                                    <span class="rupee">{{ $fmt($gstSub) }}</span>
+                                    <span class="">{{ $fmt($subTotal) }}</span>
                                 </td>
                             </tr>
                             <tr>
@@ -234,10 +220,20 @@
                                     :
                                 </td>
                                 <td>
-                                    <span class="rupee">-{{ $fmt($totalDiscount) }}</span>
+                                    <span class="">-{{ $fmt($totalDiscount) }}</span>
                                 </td>
                             </tr>
-                            
+                            <tr>
+                                <td>
+                                    <span>GST</span>
+                                </td>
+                                <td>
+                                    :
+                                </td>
+                                <td>
+                                    <span class="">{{ $fmt($gstSub) }}</span>
+                                </td>
+                            </tr>
                             <tr>
                                 <td class=" grand">
                                     <span>Grand Total</span>
@@ -246,14 +242,11 @@
                                     :
                                 </td>
                                 <td class=" grand">
-                                    <span class="rupee">{{ $fmt($lineSum) }}</span>
+                                    <span class="">{{ $fmt($lineSum) }}</span>
                                 </td>
                             </tr>
                         </table>
-      
-       
-        
-      </div>
+                    </div>
                 </td>
             </tr>
         </table>

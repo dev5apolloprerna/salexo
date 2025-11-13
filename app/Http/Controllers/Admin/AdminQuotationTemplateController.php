@@ -5,6 +5,7 @@ use App\Http\Controllers\Controller;
 
 use App\Models\QuotationTemplate;
 use App\Models\Quotation;
+use App\Models\Party;
 use App\Models\QuotationDetail;
 use App\Models\CompanyClient;
 use Illuminate\Http\Request;
@@ -161,188 +162,200 @@ class AdminQuotationTemplateController extends Controller
     }
 
 
-    protected function previewData($quotation): array
-{
-   
-    // If only ID passed instead of full object
-    if (!is_object($quotation)) {
-        $quotation = Quotation::findOrFail($quotation);
-    }
+  protected function previewData($quotation): array
+    {
+       
+        // If only ID passed instead of full object
+        if (!is_object($quotation)) {
+            $quotation = Quotation::findOrFail($quotation);
+        }
 
-    $qId = $quotation->quotationId ?? $quotation->id;
+        $qId = $quotation->quotationId ?? $quotation->id;
 
-    // Safely load company & party (no login, no company filter)
-    $company =CompanyClient::where('company_id', $quotation->iCompanyId)->first();
+        // Safely load company & party (no login, no company filter)
+        $company =CompanyClient::with('state')->where('company_id', $quotation->iCompanyId)->first();
 
-    $party = $quotation->iPartyId
-        ?? \DB::table('party')->where('partyId', $quotation->iPartyId)->first();
+        $party = Party::with('state')->where('partyId', $quotation->iPartyId)->first();
 
 
-    /* -----------------  Helper closures  ----------------- */
-    $clean = function($v) {
-        if (is_null($v)) return null;
-        $v = trim((string)$v);
-        return $v === '' ? null : $v;
-    };
 
-    $get = function($obj, $keys) use ($clean) {
-        foreach ($keys as $k) {
-            if (is_object($obj) && isset($obj->{$k})) {
-                $val = $clean($obj->{$k});
-                if ($val !== null) return $val;
+        /* -----------------  Helper closures  ----------------- */
+        $clean = function($v) {
+            if (is_null($v)) return null;
+            $v = trim((string)$v);
+            return $v === '' ? null : $v;
+        };
+
+        $get = function($obj, $keys) use ($clean) {
+            foreach ($keys as $k) {
+                if (is_object($obj) && isset($obj->{$k})) {
+                    $val = $clean($obj->{$k});
+                    if ($val !== null) return $val;
+                }
             }
+            return null;
+        };
+
+        $fmtDate = function($val,$fallback=null) {
+            if (!$val) return $fallback ? \Carbon\Carbon::parse($fallback)->format('d-m-Y') : '';
+            try {
+                return \Carbon\Carbon::parse($val)->format('d-m-Y');
+            } catch (\Throwable $e) {
+                return $fallback ? \Carbon\Carbon::parse($fallback)->format('d-m-Y') : '';
+            }
+        };
+
+        $address = function(...$parts) {
+            $good = [];
+            foreach ($parts as $p) {
+                $p = trim((string)$p);
+                if ($p !== '') $good[] = $p;
+            }
+            return implode(', ', $good);
+        };
+
+        /* -----------------  Company fields  ----------------- */
+        $companyName  = $company->company_name ?? 'Your Company Pvt. Ltd.';
+        $companyPhone = $company->mobile ?? null;
+        $companyEmail = $company->email ?? null;
+        $companyGST   = $company->GST ?? '-';
+        $companyState = $company->state->stateName ?? null;
+        $companyCity  = $company->city ?? null;
+        $companyAddr1 = $company->Address ?? null;
+        $companyPin   = $company->pincode ?? null;
+        $companyAddr  = $address($companyAddr1, $companyCity, $companyState, $companyPin);
+
+        // Company logo → base64 inline
+        $companyLogoUrl = null;
+       /* $root = base_path('../public_html/');
+
+        // 1) pick relative path (from DB or fallback)
+        $rel = data_get($company, 'company_logo'); // e.g. 'uploads/company/logo.png' or 'logo.png'
+        $rel = $rel ? (str_contains($rel, '/') ? $rel : "uploads/company/$rel")
+                    : 'assets/images/favicon.png';
+        
+        // 2) build absolute path and fallback if missing
+        $path = $root . ltrim($rel, '/');
+        if (!file_exists($path)) {
+            $path = $root . 'assets/images/favicon.png';
         }
-        return null;
-    };
+        
+        // 3) make data URI
+        $ext  = strtolower(pathinfo($path, PATHINFO_EXTENSION) ?: 'png');
+        $mime = $ext === 'jpg' ? 'image/jpeg' : "image/$ext";
+        $companyLogoUrl = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($path));
+        */
 
-    $fmtDate = function($val,$fallback=null) {
-        if (!$val) return $fallback ? \Carbon\Carbon::parse($fallback)->format('d-m-Y') : '';
-        try {
-            return \Carbon\Carbon::parse($val)->format('d-m-Y');
-        } catch (\Throwable $e) {
-            return $fallback ? \Carbon\Carbon::parse($fallback)->format('d-m-Y') : '';
+       /* if ($get($company, ['company_logo'])) {
+            $path = public_path('CompanyLogo/'.$company->company_logo);
+            if (!file_exists($path)) $path = public_path('assets/images/favicon.png');
+        } else {
+            $path = public_path('assets/images/favicon.png');
         }
-    };
+        if (file_exists($path)) {
+            $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION)) ?: 'png';
+            $mime = $ext === 'jpg' ? 'jpeg' : $ext;
+            $companyLogoUrl = "data:image/{$mime};base64,".base64_encode(file_get_contents($path));
+        }*/
 
-    $address = function(...$parts) {
-        $good = [];
-        foreach ($parts as $p) {
-            $p = trim((string)$p);
-            if ($p !== '') $good[] = $p;
+        /* -----------------  Party fields  ----------------- */
+       $partyName  = $party->strPartyName ?? 'Party';
+        $partyPhone = $party->iMobile ?? null;
+        $partyGST   = $party->strGST ?? null;
+        $partyCity  = $party->city ?? null;
+        $partyAddr1 = $party->address1 ?? null;
+        $partyStateName = $party->state->stateName ?? $party->state->name ?? null;
+
+        $partyAddr  = implode(', ', array_filter([$partyAddr1, $partyCity, $partyStateName], fn($x)=>$x!==null && trim($x)!==''));
+
+        /* -----------------  Line items  ----------------- */
+        $details = QuotationDetail::with('service')
+            ->where(['quotationID'=>$qId,'iStatus'=>1,'isDelete'=>0])
+            ->get();
+
+
+
+        $items = [];
+        foreach ($details as $d) {
+            $qty  = (float)($d->quantity ?? $d->qty ?? 0);
+            $rate = (float)($d->rate ?? 0);
+            $netAmount = (float)($d->netAmount ?? 0);
+            $discount = (float)($d->discount ?? 0);
+            $amount = (float)($d->totalAmount ?? 0);
+            $items[] = [
+                'name' => $clean($d->service->service_name ?? $d->service->service_name ?? $d->service->service_name ?? ''),
+                'desc' => $clean($d->strDescription ?? $d->description ?? ''),
+                'hsn'  => $clean($d->uom ?? $d->uom ?? '-'),
+                'gst'  => $clean($d->iGstPercentage ?? $d->iGstPercentage ?? ''),
+                'qty'  => $qty,
+                'rate' => $rate,
+                'amount' => $amount,
+                'netAmount' => $netAmount,
+                'discount' => $discount,
+            ];
         }
-        return implode(', ', $good);
-    };
-
-    /* -----------------  Company fields  ----------------- */
-    $companyName  = $company->company_name ?? 'Your Company Pvt. Ltd.';
-    $companyPhone = $company->mobile ?? null;
-    $companyEmail = $company->email ?? null;
-    $companyGST   = $company->GST ?? '-';
-    $companyState = $company->state->stateName ?? null;
-    $companyCity  = $company->city ?? null;
-    $companyAddr1 = $company->Address ?? null;
-    $companyPin   = $company->pincode ?? null;
-    $companyAddr  = $address($companyAddr1, $companyCity, $companyState, $companyPin);
 
 
-    // Company logo → base64 inline
-    $companyLogoUrl = null;
-    $root = base_path('../public_html/');
+        /* -----------------  Quotation meta  ----------------- */
+        $discount     = (float)($quotation->discount ?? 0);
+        $gstRate      = (float)($quotation->gstRate ?? 18);
+        $isInterState = (bool)($quotation->isInterState ?? 0);
 
-    // 1) pick relative path (from DB or fallback)
-    $rel = data_get($company, 'company_logo'); // e.g. 'uploads/company/logo.png' or 'logo.png'
-    $rel = $rel ? (str_contains($rel, '/') ? $rel : "uploads/company/$rel")
-                : 'assets/images/favicon.png';
-    
-    // 2) build absolute path and fallback if missing
-    $path = $root . ltrim($rel, '/');
-    if (!file_exists($path)) {
-        $path = $root . 'assets/images/favicon.png';
-    }
-    
-    // 3) make data URI
-    $ext  = strtolower(pathinfo($path, PATHINFO_EXTENSION) ?: 'png');
-    $mime = $ext === 'jpg' ? 'image/jpeg' : "image/$ext";
-    $companyLogoUrl = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($path));
-    
+        $quotationNumber = $clean($quotation->iQuotationNo ?? $quotation->iQuotationNo) ?? ('QTN-'.$qId);
+      
+        $quotationDate   = $fmtDate($quotation->quotationDate ?? $quotation->entryDate, now());
+        $validTill       = $fmtDate($quotation->valid_till ?? $quotation->quotationValidity, now()->addDays(7));
 
-    /* -----------------  Party fields  ----------------- */
-   $partyName  = $party->strPartyName ?? 'Party';
-    $partyPhone = $party->iMobile ?? null;
-    $partyGST   = $party->strGST ?? null;
-    $partyCity  = $party->city ?? null;
-    $partyAddr1 = $party->address1 ?? null;
-    $partyStateName = $party->state->stateName ?? $party->state->name ?? null;
+        /* -----------------  Footer  ----------------- */
+        $paymentTerms = $clean($quotation->paymentTerms) ?? '50% advance, balance on delivery';
+        $delivery     = $clean($quotation->deliveryTerm) ?? 'Within 7–10 business days from PO';
+        $modeOfDespatch = $clean($quotation->modeOfDespatch) ?? '';
+        $extraTerms     = $clean($quotation->strTermsCondition) ?? '';
 
-    $partyAddr  = implode(', ', array_filter([$partyAddr1, $partyCity, $partyStateName], fn($x)=>$x!==null && trim($x)!==''));
+        $bankName   = $get($company, ['bank_account_name','company_name']) ?? $companyName;
+        $bankAcc    = $get($company, ['bank_account_no','account_no','acno']);
+        $bankIfsc   = $get($company, ['bank_ifsc','ifsc']);
+        $bankBranch = $get($company, ['bank_branch','branch']);
 
 
-    /* -----------------  Line items  ----------------- */
-    $details = \DB::table('quotationdetails')
-        ->where(['quotationID'=>$qId,'isDelete'=>0])
-        ->get();
 
-    $items = [];
-    foreach ($details as $d) {
-        $qty  = (float)($d->quantity ?? $d->qty ?? 0);
-        $rate = (float)($d->rate ?? 0);
-        $items[] = [
-            'name' => $clean($d->strProductName ?? $d->productName ?? $d->service_name ?? 'Item'),
-            'desc' => $clean($d->strDescription ?? $d->description ?? ''),
-            'hsn'  => $clean($d->uom ?? $d->uom ?? ''),
-            'qty'  => $qty,
-            'rate' => $rate,
+        /* -----------------  FINAL RETURN  ----------------- */
+        return [
+            'companyLogoUrl' => $companyLogoUrl,
+            'companyName'    => $companyName,
+            'companyAddress' => $companyAddr,
+            'companyGstin'   => $companyGST,
+            'companyPhone'   => $companyPhone,
+            'companyEmail'   => $companyEmail,
+            'companyState'   => $companyState,
+
+            'quotationNumber'=> $quotationNumber,
+            'quotationDate'  => $quotationDate,
+            'validTill'      => $validTill,
+
+            'partyName'    => $partyName,
+            'partyAddress' => $partyAddr,
+            'partyGstin'   => $partyGST,
+            'partyPhone'   => $partyPhone,
+
+            'items'        => $items,
+            'discount'     => $discount,
+            'gstRate'      => $gstRate,
+            'isInterState' => $isInterState,
+
+            'paymentTerms' => $paymentTerms,
+            'delivery'     => $delivery,
+            'modeOfDespatch' => $modeOfDespatch,
+            'termCondition' => $extraTerms,
+
+            'bankName'   => $bankName,
+            'bankAccount'=> $bankAcc,
+            'bankIfsc'   => $bankIfsc,
+            'bankBranch' => $bankBranch,
+
+            
         ];
+
     }
-
-    /* -----------------  Terms  ----------------- */
-    $extraTerms = \DB::table('termcondition')
-        ->where(['iStatus'=>1,'isDelete'=>0])
-        ->orderBy('termconditionId')
-        ->pluck('description')
-        ->filter()
-        ->values()
-        ->all();
-
-    /* -----------------  Quotation meta  ----------------- */
-    $discount     = (float)($quotation->discount ?? 0);
-    $gstRate      = (float)($quotation->gstRate ?? 18);
-    $isInterState = (bool)($quotation->isInterState ?? 0);
-
-    $quotationNumber = $clean($quotation->iQuotationNo ?? $quotation->iQuotationNo) ?? ('QTN-'.$qId);
-  
-    $quotationDate   = $fmtDate($quotation->quotationDate ?? $quotation->entryDate, now());
-    $validTill       = $fmtDate($quotation->valid_till ?? $quotation->quotationValidity, now()->addDays(7));
-
-    /* -----------------  Footer  ----------------- */
-    $paymentTerms = $clean($quotation->paymentTerms) ?? '50% advance, balance on delivery';
-    $delivery     = $clean($quotation->deliveryTerm) ?? 'Within 7–10 business days from PO';
-    $modeOfDespatch = $clean($quotation->modeOfDespatch) ?? '';
-    $warranty     = $clean($quotation->warranty) ?? '12 months from invoice date';
-
-    $bankName   = $get($company, ['bank_account_name','company_name']) ?? $companyName;
-    $bankAcc    = $get($company, ['bank_account_no','account_no','acno']);
-    $bankIfsc   = $get($company, ['bank_ifsc','ifsc']);
-    $bankBranch = $get($company, ['bank_branch','branch']);
-
-
-
-    /* -----------------  FINAL RETURN  ----------------- */
-    return [
-        'companyLogoUrl' => $companyLogoUrl,
-        'companyName'    => $companyName,
-        'companyAddress' => $companyAddr,
-        'companyGstin'   => $companyGST,
-        'companyPhone'   => $companyPhone,
-        'companyEmail'   => $companyEmail,
-        'companyState'   => $companyState,
-
-        'quotationNumber'=> $quotationNumber,
-        'quotationDate'  => $quotationDate,
-        'validTill'      => $validTill,
-
-        'partyName'    => $partyName,
-        'partyAddress' => $partyAddr,
-        'partyGstin'   => $partyGST,
-        'partyPhone'   => $partyPhone,
-
-        'items'        => $items,
-        'discount'     => $discount,
-        'gstRate'      => $gstRate,
-        'isInterState' => $isInterState,
-
-        'paymentTerms' => $paymentTerms,
-        'delivery'     => $delivery,
-        'modeOfDespatch' => $modeOfDespatch,
-        'warranty'     => $warranty,
-
-        'bankName'   => $bankName,
-        'bankAccount'=> $bankAcc,
-        'bankIfsc'   => $bankIfsc,
-        'bankBranch' => $bankBranch,
-
-        'extraTerms' => $extraTerms,
-    ];
-}
 
 }

@@ -282,13 +282,7 @@ class QuotationTemplateController extends Controller
     }
 
     /* -----------------  Terms  ----------------- */
-    $extraTerms = \DB::table('termcondition')
-        ->where(['iStatus'=>1,'isDelete'=>0])
-        ->orderBy('termconditionId')
-        ->pluck('description')
-        ->filter()
-        ->values()
-        ->all();
+   
 
     /* -----------------  Quotation meta  ----------------- */
     $discount     = (float)($quotation->discount ?? 0);
@@ -305,6 +299,7 @@ class QuotationTemplateController extends Controller
     $delivery     = $clean($quotation->deliveryTerm) ?? 'Within 7–10 business days from PO';
     $modeOfDespatch = $clean($quotation->modeOfDespatch) ?? '';
     $warranty     = $clean($quotation->warranty) ?? '12 months from invoice date';
+    $extraTerms     = $clean($quotation->strTermsCondition) ?? '12 months from invoice date';
 
     $bankName   = $get($company, ['bank_account_name','company_name']) ?? $companyName;
     $bankAcc    = $get($company, ['bank_account_no','account_no','acno']);
@@ -347,7 +342,7 @@ class QuotationTemplateController extends Controller
         'bankIfsc'   => $bankIfsc,
         'bankBranch' => $bankBranch,
 
-        'extraTerms' => $extraTerms,
+        'termCondition' => $extraTerms,
     ];
 }
 

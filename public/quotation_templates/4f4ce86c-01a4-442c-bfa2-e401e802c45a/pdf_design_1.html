@@ -99,7 +99,7 @@
               </td>
               <td valign="top">
                   <div class="block">
-      <h3>Quotation To</h3>
+      <h3>Consignee</h3>
       <div class="kv"><span class="k">Name:</span> {{ $partyName ?? '' }}</div>
       <div class="kv"><span class="k">Address:</span> {{ $partyAddress ?? '' }}</div>
       <div class="kv"><span class="k">GSTIN:</span> {{ $partyGstin ?? '-' }}</div>
@@ -116,31 +116,51 @@
     <table>
       <thead>
         <tr>
-          <th style="width:40px" class="center">#</th>
+          <th style="width:40px" class="center">Sr No</th>
           <th>Description</th>
           <th style="width:70px">HSN</th>
           <th style="width:70px" class="right">Qty</th>
           <th style="width:90px" class="right">Rate</th>
           <th style="width:70px" class="right">GST %</th>
-          <th style="width:90px" class="right">GST Amt</th>
-          <th style="width:100px" class="right">Line Total</th>
+          <!--<th style="width:90px" class="right">GST Amt</th>-->
+          <th style="width:100px" class="right">Total</th>
         </tr>
       </thead>
       <tbody>
+     @php
+      $i = 0;
+      $subTotal = 0.0;        // sum of qty*rate (before discount)
+      $totalDiscount = 0.0;   // sum of per-line discount (amount)
+      $gstSub = 0.0;          // sum of GST on (base - discount)
+      $lineSum = 0.0;         // sum of line totals (net + gst)
+      $pcts = [];
+    @endphp
+    
+    @foreach($items as $it)
       @php
-        $i=0;$subTotal=0;$gstSub=0;$lineSum=0;
+        $i++;
+    
+        $qty   = (float)($it['qty'] ?? 0);
+        $rate  = (float)($it['rate'] ?? 0);
+        $gstP  = (float)($it['gst'] ?? 0);         // GST percentage
+        $disc  = (float)($it['discount'] ?? 0);    // Discount amount (NOT %)
+    
+        $base  = $qty * $rate;                     // before discount
+        if ($disc > $base) { $disc = $base; }      // guard
+        $net   = max($base - $disc, 0.0);          // after discount
+    
+        $gstA  = round($net * ($gstP / 100.0), 2); // GST on net
+        $line  = $net + $gstA;                     // line total
+        
+        // Totals
+        $subTotal      += $base;
+        $totalDiscount += $disc;
+        $gstSub        += $gstA;
+        $lineSum       += $line;
+    
+        $pcts[] = round($gstP, 2);
       @endphp
-      @foreach($items as $it)
-        @php
-          $i++;
-          $qty=(float)($it['qty']??0);
-          $rate=(float)($it['rate']??0);
-          $gstP=(float)($it['gst']??0);
-          $base=$qty*$rate;
-          $gstA=$base*$gstP/100.0;
-          $line=$base+$gstA;
-          $subTotal+=$base; $gstSub+=$gstA; $lineSum+=$line;
-        @endphp
+
         <tr>
           <td class="center">{{ $i }}</td>
           <td>
@@ -151,7 +171,7 @@
           <td class="right">{{ $fmt($qty) }}</td>
           <td class="right rupee">{{ $fmt($rate) }}</td>
           <td class="right">{{ $fmt($gstP) }}</td>
-          <td class="right rupee">{{ $fmt($gstA) }}</td>
+          <!--<td class="right rupee">{{ $fmt($gstA) }}</td>-->
           <td class="right rupee">{{ $fmt($line) }}</td>
         </tr>
       @endforeach
@@ -178,7 +198,7 @@
                         <table>
                             <tr>
                                 <td>
-                                    <span>Sub Total (Before Tax)</span>
+                                    <span>Sub Total</span>
                                 </td>
                                 <td>
                                     :
@@ -187,18 +207,7 @@
                                     <span class="rupee">{{ $fmt($subTotal) }}</span>
                                 </td>
                             </tr>
-                            <tr>
-                                <td>
-                                    <span>GST Subtotal</span>
-                                </td>
-                                <td>
-                                    :
-                                </td>
-                                <td>
-                                    <span class="rupee">{{ $fmt($gstSub) }}</span>
-                                </td>
-                            </tr>
-                            @php $discountAmt=(float)($discount ?? 0); $grand=max(0,($subTotal+$gstSub)-$discountAmt); @endphp
+                           
                             <tr>
                                 <td>
                                     <span>Discount</span>
@@ -208,6 +217,17 @@
                                 </td>
                                 <td>
                                     <span class="rupee">-{{ $fmt($discountAmt) }}</span>
+                                </td>
+                            </tr>
+                             <tr>
+                                <td>
+                                    <span>GST</span>
+                                </td>
+                                <td>
+                                    :
+                                </td>
+                                <td>
+                                    <span class="rupee">{{ $fmt($gstSub) }}</span>
                                 </td>
                             </tr>
                             
