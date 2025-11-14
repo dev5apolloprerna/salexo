@@ -1,6 +1,6 @@
 @extends('layouts.client')
 
-@section('title', 'Edit Employee')
+@section('title', 'Edit User')
 
 @section('content')
 
@@ -12,21 +12,21 @@
                 {{-- Alert Messages --}}
                 @include('common.alert')
 
-                
 
-                 <div class="row">
+
+                <div class="row">
                     <div class="col-lg-12">
                         <div class="card">
                             <div class="card-body">
-                                <h5 class="card-title mb-0">Edit Employee
-                           
-                                <a href="{{ route('employee.index') }}" style="float: right;"
-                                    class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
-                                    Back
-                                </a>
-                            <hr>
-                            </h5>
-                      
+                                <h5 class="card-title mb-0">Edit User
+
+                                    <a href="{{ route('employee.index') }}" style="float: right;"
+                                        class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
+                                        Back
+                                    </a>
+                                    <hr>
+                                </h5>
+
                                 <div class="live-preview">
 
                                     <form action="{{ route('employee.update', $employee->emp_id) }}" method="POST">

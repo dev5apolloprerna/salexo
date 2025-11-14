@@ -260,7 +260,7 @@ class QuotationController extends Controller
                 'isRemoteEnabled'      => true,
             ])->loadHTML($html);
 
-        $pdf->setPaper('a4');
+$pdf->setPaper('a4');
 
         /*return $pdf->download($fileName);*/
         return $pdf->stream($fileName);
@@ -282,7 +282,7 @@ class QuotationController extends Controller
 
         // Fallback: first active template marked default, else any active template
         $tpl = QuotationTemplate::where('is_active', 1)
-            // ->where('is_default', 1 ?? 0)
+            ->where('is_default', 1 ?? 0)
             ->first();
 
 
@@ -559,10 +559,11 @@ class QuotationController extends Controller
         $companyAddr1 = $company->Address ?? null;
         $companyPin   = $company->pincode ?? null;
         $companyAddr  = $address($companyAddr1, $companyCity, $companyState, $companyPin);
+        //$extraTerms  = $company->terms_condition ?? null;
 
         // Company logo → base64 inline
         $companyLogoUrl = null;
-       /* $root = base_path('../public_html/');
+        $root = base_path('../public_html/');
 
         // 1) pick relative path (from DB or fallback)
         $rel = data_get($company, 'company_logo'); // e.g. 'uploads/company/logo.png' or 'logo.png'
@@ -579,7 +580,7 @@ class QuotationController extends Controller
         $ext  = strtolower(pathinfo($path, PATHINFO_EXTENSION) ?: 'png');
         $mime = $ext === 'jpg' ? 'image/jpeg' : "image/$ext";
         $companyLogoUrl = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($path));
-        */
+        
 
        /* if ($get($company, ['company_logo'])) {
             $path = public_path('CompanyLogo/'.$company->company_logo);
@@ -604,19 +605,19 @@ class QuotationController extends Controller
         $partyAddr  = implode(', ', array_filter([$partyAddr1, $partyCity, $partyStateName], fn($x)=>$x!==null && trim($x)!==''));
 
         /* -----------------  Line items  ----------------- */
-        $details = QuotationDetail::with('service')
+         $details = QuotationDetail::with('service')
             ->where(['quotationID'=>$qId,'iStatus'=>1,'isDelete'=>0])
             ->get();
 
-
-
         $items = [];
-        foreach ($details as $d) {
+        foreach ($details as $d) 
+        {
             $qty  = (float)($d->quantity ?? $d->qty ?? 0);
             $rate = (float)($d->rate ?? 0);
-            $netAmount = (float)($d->netAmount ?? 0);
+             $netAmount = (float)($d->netAmount ?? 0);
             $discount = (float)($d->discount ?? 0);
             $amount = (float)($d->totalAmount ?? 0);
+            
             $items[] = [
                 'name' => $clean($d->service->service_name ?? $d->service->service_name ?? $d->service->service_name ?? ''),
                 'desc' => $clean($d->strDescription ?? $d->description ?? ''),
@@ -627,9 +628,20 @@ class QuotationController extends Controller
                 'amount' => $amount,
                 'netAmount' => $netAmount,
                 'discount' => $discount,
+
             ];
         }
 
+        /* -----------------  Terms  ----------------- */
+        
+
+        /*$extraTerms = \DB::table('termcondition')
+            ->where(['iStatus'=>1,'isDelete'=>0])
+            ->orderBy('termconditionId')
+            ->pluck('description')
+            ->filter()
+            ->values()
+            ->all();*/
 
         /* -----------------  Quotation meta  ----------------- */
         $discount     = (float)($quotation->discount ?? 0);
@@ -642,10 +654,11 @@ class QuotationController extends Controller
         $validTill       = $fmtDate($quotation->valid_till ?? $quotation->quotationValidity, now()->addDays(7));
 
         /* -----------------  Footer  ----------------- */
-        $paymentTerms = $clean($quotation->paymentTerms) ?? '50% advance, balance on delivery';
-        $delivery     = $clean($quotation->deliveryTerm) ?? 'Within 7–10 business days from PO';
-        $modeOfDespatch = $clean($quotation->modeOfDespatch) ?? '';
-        $extraTerms     = $clean($quotation->strTermsCondition) ?? '';
+        $paymentTerms = $clean($quotation->paymentTerms) ?? '-';
+        $delivery     = $clean($quotation->deliveryTerm) ?? '-';
+        $modeOfDespatch = $clean($quotation->modeOfDespatch) ?? '-';
+        $warranty     = $clean($quotation->warranty) ?? '-';
+        $extraTerms     = $clean($quotation->strTermsCondition) ?? '-';
 
         $bankName   = $get($company, ['bank_account_name','company_name']) ?? $companyName;
         $bankAcc    = $get($company, ['bank_account_no','account_no','acno']);
@@ -681,16 +694,15 @@ class QuotationController extends Controller
             'paymentTerms' => $paymentTerms,
             'delivery'     => $delivery,
             'modeOfDespatch' => $modeOfDespatch,
-            'termCondition' => $extraTerms,
+            'warranty'     => $warranty,
 
             'bankName'   => $bankName,
             'bankAccount'=> $bankAcc,
             'bankIfsc'   => $bankIfsc,
             'bankBranch' => $bankBranch,
 
-            
+            'termCondition' => $extraTerms,
         ];
-
     }
 
 }

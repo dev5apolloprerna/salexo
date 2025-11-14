@@ -33,7 +33,8 @@
 
                   <div class="card-body">
                     <div class="form-group row">
-                     <input type="hidden" name="companyId" value="{{ $company_id }}" id="companyId">
+
+<input type="hidden" name="companyId" value="{{ $company_id }}" id="companyId">
 
                       {{-- Company (locked to logged-in user’s company) --}}
                      <!--  <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
@@ -135,7 +136,7 @@
                       </div>
 
                       {{-- GST Type --}}
-                     <!--  <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
+                     <!-- <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
                         <label for="iGstType"><span style="color:red;">*</span> GST Type</label>
                         <select class="form-control form-control-user @error('iGstType') is-invalid @enderror" id="iGstType" name="iGstType" required>
                           <option value="">Select GST Type</option>
@@ -143,7 +144,7 @@
                           <option value="2" @selected(old('iGstType', $Data->iGstType) == 2)>IGST</option>
                         </select>
                         @error('iGstType')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                      </div> -->
+                      </div>-->
 
                       {{-- Terms & Conditions (CKEditor) --}}
                       <div class="col-sm-12 mb-3 mt-3 mb-sm-0">
@@ -269,28 +270,32 @@
             });
         }
    
-$(function () 
-{
-    const COMPANY_ID = Number($('#companyId').val() || 0);
-    const QuotationNo = $('#iQuotationNo').val();
-
-    function setQuotationNo() 
-    {
-      if (!COMPANY_ID) {
-        $('input[name="iQuotationNo"]').val('');
-        return;
-      }
-      if(!QuotationNo)
-      {
-      $.ajax({
-        url: "{{ route('quotation.getNextNo', ':companyId') }}".replace(':companyId', COMPANY_ID),
-        type: 'GET',
-        success: function (data) {
-          $('input[name="iQuotationNo"]').val(data);
-        },
-        error: function (xhr) { console.error(xhr.responseText); }
-      });
+   
+        $(function () {
+        const COMPANY_ID = Number($('#companyId').val() || 0);
+        const QuotationNo = $('#iQuotationNo').val();
+    
+        function setQuotationNo() 
+        {
+          if (!COMPANY_ID) {
+            $('input[name="iQuotationNo"]').val('');
+            return;
+          }
+          if(!QuotationNo)
+          {
+          $.ajax({
+            url: "{{ route('quotation.getNextNo', ':companyId') }}".replace(':companyId', COMPANY_ID),
+            type: 'GET',
+            success: function (data) {
+              $('input[name="iQuotationNo"]').val(data);
+            },
+            error: function (xhr) { console.error(xhr.responseText); }
+          });
+            }
         }
-    }
+
+    // Hydrate on load
+    setQuotationNo();
+  });
   </script>
 @endsection

@@ -3,7 +3,6 @@
 @section('title', 'Profile')
 
 @section('content')
-
 @php
     $roleid = Auth::guard('web_employees')->user()->role_id;
 @endphp
@@ -35,7 +34,7 @@
 
                             <img  src="{{ auth()->user()?->company?->company_logo
                                       ? asset(ltrim(auth()->user()?->company?->company_logo, '/'))
-                                      : asset('assets/images/users/undraw_profile.webp') }}"
+                                      : asset('assets/images/profile.jpg') }}"
 
                               id="companyLogoPreview"
                               class="rounded-circle mt-5"
@@ -43,6 +42,7 @@
                               height="150"
                               style="object-fit:cover"
                               alt="Company Logo">
+
 @if($roleid == 2)
                             <label class="btn btn-outline-primary btn-sm mt-3">
                                 Change Logo
@@ -132,9 +132,8 @@
                                             <span class="text-danger">{{ $message }}</span>
                                         @enderror
                                     </div>
-
-                                    @if($roleid == 2)
                                     
+                                     @if($roleid == 2)
                                      <div class="col-md-6 mt-2">
                                             <label class="labels">Delivery Terms</label>
                                             <input class="form-control" id="basic-form-name" name="delivery_terms" type="text"
@@ -157,7 +156,8 @@
                                             <span style="color:red;"></span>Terms & Condition</label>
                                             <textarea class="form-control" id="fetchtermcondition" name="terms_condition">{{ old('terms_condition') ? old('terms_condition') : $users1->terms_condition }} </textarea>
                                         </div>
-                                        @endif
+                                    @endif
+
                                 </div>
                                 <div class="mt-5 text-center">
                                     <button class="btn btn-primary profile-button" type="submit">Update Profile</button>

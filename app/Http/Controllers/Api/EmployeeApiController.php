@@ -23,102 +23,123 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Tymon\JWTAuth\Facades\JWTAuth;
-
 use Illuminate\Support\Facades\File;
 
 
 class EmployeeApiController extends Controller
 {
-    public function login(Request $request)
-    {
-        try {
-            $request->validate([
-                'mobileNumber' => 'required',
-                'password'     => 'required',
-            ]);
+   public function login(Request $request)
+{
+    try {
+        $request->validate([
+            'mobileNumber' => 'required',
+            'password'     => 'required',
+        ]);
 
-            $credentials = [
-                'emp_mobile' => $request->mobileNumber,
-                'password'   => $request->password,
-            ];
+        $credentials = [
+            'emp_mobile' => $request->mobileNumber,
+            'password'   => $request->password,
+        ];
 
-            if (!Auth::guard('employee_api')->attempt($credentials)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Invalid credentials',
-                ], 401);
-            }
-
-            $authEmployee = Auth::guard('employee_api')->user();
-            $token        = JWTAuth::fromUser($authEmployee);
-
-            // optional fields to update
-            $authEmployee->update([
-                'last_login'          => now(),
-                'firebaseDeviceToken' => $request->firebaseDeviceToken,
-            ]);
-
-            // --- Company payload (payment detail + logo) ---
-            $companyId = $authEmployee->company_id ?? $authEmployee->iCompanyId ?? null;
-
-            $company = null;
-            $companyPayload = null;
-            $paymentDetail  = null;
-
-            if ($companyId) {
-                $company = DB::table('company_client_master')
-                    ->where('company_id', $companyId)
-                    ->select([
-                        'company_id',
-                        'company_name',
-                        'delivery_terms',
-                        'payment_terms',
-                        'terms_condition',
-                        'company_logo',
-                        'Address',
-                        'email',
-                        'mobile',
-                        'GST',
-                        'plan_id',
-                    ])
-                    ->first();
-
-                if ($company) {
-                    $companyLogoUrl = $this->makeAbsoluteLogoUrl($company->company_logo);
-
-
-                    // a concise block if you want it separately
-                    $paymentDetail = [
-                        'GST'  => $company->GST,
-                        'delivery_terms'  => $company->delivery_terms,
-                        'payment_terms'   => $company->payment_terms,
-                        'terms_condition' => $company->terms_condition,
-                        'company_logo_url'=> $companyLogoUrl,
-                    ];
-                }
-            }
-
-            return response()->json([
-                'success'        => true,
-                'message'        => 'Login successful',
-                'employee'       => $authEmployee,     // your Employee model data
-                'payment_detail' => $paymentDetail,    // null if not found
-                'authorisation'  => [
-                    'token' => $token,
-                    'type'  => 'bearer',
-                ],
-            ], 200);
-
-        } catch (ValidationException $e) {
-            return response()->json(['errors' => $e->errors()], 422);
-        } catch (\Throwable $th) {
+        if (!Auth::guard('employee_api')->attempt($credentials)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Login failed',
-                'error'   => $th->getMessage(),
-            ], 500);
+                'message' => 'Invalid credentials',
+            ], 401);
         }
+
+        $authEmployee = Auth::guard('employee_api')->user();
+        $token        = JWTAuth::fromUser($authEmployee);
+
+        // optional fields to update
+        $authEmployee->update([
+            'last_login'          => now(),
+            'firebaseDeviceToken' => $request->firebaseDeviceToken,
+        ]);
+
+        // --- Company payload (payment detail + logo) ---
+        $companyId = $authEmployee->company_id ?? $authEmployee->iCompanyId ?? null;
+
+        $company = null;
+        $companyPayload = null;
+        $paymentDetail  = null;
+
+        if ($companyId) {
+            $company = DB::table('company_client_master')
+                ->where('company_id', $companyId)
+                ->select([
+                    'company_id',
+                    'company_name',
+                    'delivery_terms',
+                    'payment_terms',
+                    'terms_condition',
+                    'company_logo',
+                    'Address',
+                    'email',
+                    'mobile',
+                    'GST',
+                    'plan_id',
+                ])
+                ->first();
+
+            if ($company) {
+                $companyLogoUrl = $this->makeAbsoluteLogoUrl($company->company_logo);
+
+
+                // a concise block if you want it separately
+                $paymentDetail = [
+                    'GST'  => $company->GST,
+                    'delivery_terms'  => $company->delivery_terms,
+                    'payment_terms'   => $company->payment_terms,
+                    'terms_condition' => $company->terms_condition,
+                    'company_logo_url'=> $companyLogoUrl,
+                ];
+            }
+        }
+
+        return response()->json([
+            'success'        => true,
+            'message'        => 'Login successful',
+            'employee'       => $authEmployee,     // your Employee model data
+            'payment_detail' => $paymentDetail,    // null if not found
+            'authorisation'  => [
+                'token' => $token,
+                'type'  => 'bearer',
+            ],
+        ], 200);
+
+    } catch (ValidationException $e) {
+        return response()->json(['errors' => $e->errors()], 422);
+    } catch (\Throwable $th) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Login failed',
+            'error'   => $th->getMessage(),
+        ], 500);
     }
+}
+
+    private function makeAbsoluteLogoUrl($path)
+    {
+        $path = trim((string) $path);
+        if ($path === '') {
+            return null;
+        }
+
+        // Already absolute?
+        if (preg_match('~^https?://~i', $path)) {
+            return $path;
+        }
+
+        // Common storage under /uploads/company/
+        // If $path already starts with 'uploads/', don't double-prefix
+        if (stripos($path, 'uploads/') === 0) {
+            return asset($path);
+        }
+
+        return asset('uploads/company/' . ltrim($path, '/'));
+    }
+
 
     public function firebase_device_update(Request $request)
     {
@@ -605,7 +626,7 @@ class EmployeeApiController extends Controller
             if (!$lead) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Lead not found for this employee',
+                    'message' => 'Lead not found for this user',
                 ], 404);
             }
 
@@ -783,7 +804,7 @@ class EmployeeApiController extends Controller
             if (!$employee) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Employee not found with this mobile number'
+                    'message' => 'User not found with this mobile number'
                 ], 404);
             }
 
@@ -875,7 +896,7 @@ class EmployeeApiController extends Controller
             if (!$employee) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Employee not found with this mobile number'
+                    'message' => 'User not found with this mobile number'
                 ], 404);
             }
 
@@ -924,7 +945,7 @@ class EmployeeApiController extends Controller
             if (!$employee) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Employee not found with this mobile number'
+                    'message' => 'User not found with this mobile number'
                 ], 404);
             }
 
@@ -950,6 +971,8 @@ class EmployeeApiController extends Controller
             ], 500);
         }
     }
+
+    
    public function profile_detail(Request $request)
 {
     try {
@@ -1041,35 +1064,52 @@ class EmployeeApiController extends Controller
     }
 }
 
-    /**
-     * Make an absolute logo URL from stored value.
-     * - Returns null if empty
-     * - Keeps http/https as-is
-     * - For relative paths, prefixes your public base (adjust base path as needed)
-     */
-    private function makeAbsoluteLogoUrl($path)
+
+
+     /*public function profile_update(Request $request)
     {
-        $path = trim((string) $path);
-        if ($path === '') {
-            return null;
+        try {
+            $employee = Auth::guard('employee_api')->user();
+            $company_id = Auth::guard('employee_api')->user()->company_id;
+
+            if (!$employee) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized access',
+                ], 401);
+            }
+
+            $validated = $request->validate([
+                'emp_name' => 'required|string|max:255',
+                'emp_email' => 'required|email'
+            ]);
+
+            $employee->update($validated);
+
+            CompanyClient::where(['company_id' => $company_id])->update([
+                    'payment_terms'=>$request->payment_terms,
+                    'delivery_terms'=>$request->delivery_terms,
+                    'terms_condition'=>$request->terms_condition,
+
+                ]);
+
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Profile updated successfully',
+                'data'    => $employee,
+            ], 200);
+        } catch (ValidationException $e) {
+            return response()->json(['errors' => $e->errors()], 422);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update profile',
+                'error'   => $th->getMessage(),
+            ], 500);
         }
-
-        // Already absolute?
-        if (preg_match('~^https?://~i', $path)) {
-            return $path;
-        }
-
-        // Common storage under /uploads/company/
-        // If $path already starts with 'uploads/', don't double-prefix
-        if (stripos($path, 'uploads/') === 0) {
-            return asset($path);
-        }
-
-        return asset('uploads/company/' . ltrim($path, '/'));
-    }
-
-
-   public function profile_update(Request $request)
+    }*/
+     public function profile_update(Request $request)
 {
     try {
         $employee = Auth::guard('employee_api')->user();
@@ -1167,7 +1207,7 @@ class EmployeeApiController extends Controller
 
                     }
                 }
-
+                
         DB::commit();
 
         return response()->json([
@@ -1189,7 +1229,6 @@ class EmployeeApiController extends Controller
     }
 }
 
-
     public function employee_list(Request $request)
     {
         try {
@@ -1207,13 +1246,13 @@ class EmployeeApiController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Employee list fetched successfully',
+                'message' => 'User list fetched successfully',
                 'data' => $employees,
             ]);
         } catch (\Throwable $th) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to fetch employee list',
+                'message' => 'Failed to fetch user list',
                 'error' => $th->getMessage(),
             ], 500);
         }

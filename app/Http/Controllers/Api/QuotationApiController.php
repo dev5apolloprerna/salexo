@@ -27,73 +27,71 @@ class QuotationApiController extends Controller
      * GET /api/quotations
      * List quotations (with filters + pagination)
      */
-
-public function index(Request $request)
-{
-    $user = Auth::user();
-
-    $PartyName = $request->party_id;
-    $fromDate  = $request->fromDate;     // dd-mm-YYYY or yyyy-mm-dd (we will convert)
-    $toDate    = $request->toDate;
-    $mobile    = $request->mobile;
-
-    // Subquery to count products per quotation
-    $detailsSub = DB::table('quotationdetails')
-        ->select('quotationID', DB::raw('COUNT(*) as product_count'))
-        ->where([
-            'isDelete' => 0,
-            'iStatus'  => 1,
-        ])
-        ->groupBy('quotationID');
-
-    $query = Quotation::query()
-        ->where(['quotation.iStatus' => 1, 'quotation.isDelete' => 0])
-        ->when($PartyName, function ($q) use ($PartyName) {
-            return $q->where('quotation.iPartyId', $PartyName);
-        })
-        ->when($mobile, function ($q) use ($mobile) {
-            return $q->where('party.iMobile', $mobile);
-        })
-        ->when($fromDate, function ($q) use ($fromDate) {
-            $from = date('Y-m-d', strtotime($fromDate));
-            return $q->whereDate('quotation.entryDate', '>=', $from);
-        })
-        ->when($toDate, function ($q) use ($toDate) {
-            $to = date('Y-m-d', strtotime($toDate));
-            return $q->whereDate('quotation.entryDate', '<=', $to);
-        });
-
-    if ($user->role_id == '3') {
-        $query->where(['created_by' => $user->emp_id]);
-    }
-
-    $query = $query
-        ->join('company_client_master', 'quotation.iCompanyId', '=', 'company_client_master.company_id')
-        ->join('party', 'quotation.iPartyId', '=', 'party.partyId')
-        ->join('year', 'quotation.iYearId', '=', 'year.year_id')
-        // LEFT JOIN subquery for product count
-        ->leftJoinSub($detailsSub, 'qd', function ($join) {
-            $join->on('qd.quotationID', '=', 'quotation.quotationId');
-        })
-        ->orderByDesc('quotation.quotationId')
-        ->select([
-            'quotation.*',
-            'company_client_master.company_name',
-            'party.strPartyName',
-            'party.iMobile',
-            'year.year_id',
-            DB::raw('COALESCE(qd.product_count, 0) as product_count'),
+   public function index(Request $request)
+    {
+        $user = Auth::user();
+    
+        $PartyName = $request->party_id;
+        $fromDate  = $request->fromDate;     // dd-mm-YYYY or yyyy-mm-dd (we will convert)
+        $toDate    = $request->toDate;
+        $mobile    = $request->mobile;
+    
+        // Subquery to count products per quotation
+        $detailsSub = DB::table('quotationdetails')
+            ->select('quotationID', DB::raw('COUNT(*) as product_count'))
+            ->where([
+                'isDelete' => 0,
+                'iStatus'  => 1,
+            ])
+            ->groupBy('quotationID');
+    
+        $query = Quotation::query()
+            ->where(['quotation.iStatus' => 1, 'quotation.isDelete' => 0])
+            ->when($PartyName, function ($q) use ($PartyName) {
+                return $q->where('quotation.iPartyId', $PartyName);
+            })
+            ->when($mobile, function ($q) use ($mobile) {
+                return $q->where('party.iMobile', $mobile);
+            })
+            ->when($fromDate, function ($q) use ($fromDate) {
+                $from = date('Y-m-d', strtotime($fromDate));
+                return $q->whereDate('quotation.entryDate', '>=', $from);
+            })
+            ->when($toDate, function ($q) use ($toDate) {
+                $to = date('Y-m-d', strtotime($toDate));
+                return $q->whereDate('quotation.entryDate', '<=', $to);
+            });
+    
+        if ($user->role_id == '3') {
+            $query->where(['created_by' => $user->emp_id]);
+        }
+    
+        $query = $query
+            ->join('company_client_master', 'quotation.iCompanyId', '=', 'company_client_master.company_id')
+            ->join('party', 'quotation.iPartyId', '=', 'party.partyId')
+            ->join('year', 'quotation.iYearId', '=', 'year.year_id')
+            // LEFT JOIN subquery for product count
+            ->leftJoinSub($detailsSub, 'qd', function ($join) {
+                $join->on('qd.quotationID', '=', 'quotation.quotationId');
+            })
+            ->orderByDesc('quotation.quotationId')
+            ->select([
+                'quotation.*',
+                'company_client_master.company_name',
+                'party.strPartyName',
+                'party.iMobile',
+                'year.year_id',
+                DB::raw('COALESCE(qd.product_count, 0) as product_count'),
+            ]);
+    
+        $rows = $query->get();
+    
+        return response()->json([
+            'success' => true,
+            'message' => 'Quotation List',
+            'data'    => $rows,
         ]);
-
-    $rows = $query->get();
-
-    return response()->json([
-        'success' => true,
-        'message' => 'Quotation List',
-        'data'    => $rows,
-    ]);
-}
-
+    }
 
     public function getNextQuotationNo()
     {
@@ -622,7 +620,7 @@ public function index(Request $request)
      * POST /api/quotations/{id}/send-whatsapp
      * Body: { "phone": "9198XXXXXXXX" }
      */
-   public function sendWhatsApp(Request $request, $id)
+    public function sendWhatsApp(Request $request, $id)
 {
     // 1) Clean phone
     $phone = preg_replace('/\D/', '', (string) $request->input('phone'));

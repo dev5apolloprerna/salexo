@@ -389,6 +389,7 @@ class EmployeeHomeController extends Controller
 
             $leadPipeline = LeadPipeline::all();
             $leadCancelList = LeadCancelReason::all();
+            $search = request('search');
 
             $leads = LeadMaster::where([
                 'lead_master.iStatus' => 1,
@@ -396,73 +397,51 @@ class EmployeeHomeController extends Controller
                 'lead_master.iCustomerId' => Auth::user()->company_id,
                 'lead_master.iEnterBy' => Auth::user()->emp_id
             ])
-
                 ->leftJoin('service_master', 'lead_master.product_service_id', '=', 'service_master.service_id')
-
                 ->leftJoin('lead_source_master', 'lead_master.LeadSourceId', '=', 'lead_source_master.lead_source_id')
-
                 ->select(
-
                     'lead_master.*',
-
                     'service_master.service_name',
-
                     'lead_source_master.lead_source_name'
-
-                )
-
+                )->when($search, function ($query, $search) {
+                        return $query->where(function ($q) use ($search) {
+                            $q->where('lead_master.company_name', 'like', '%' . $search . '%')
+                            ->orWhere('lead_master.customer_name', 'like', '%' . $search . '%');
+                        });
+                    })
                 ->get();
-
-
-
             $todaysFollowups = $leads->filter(function ($lead) {
-
                 try {
-
                     $date = Carbon::createFromFormat('d-m-Y h:i A', trim($lead->next_followup_date));
-
                     return $date->isToday();
                 } catch (\Exception $e) {
-
                     return false;
                 }
             });
 
-
-
             // Paginate manually (you can skip this if listing all is okay)
-
             $page = request('page', 1);
-
             $perPage = env('PER_PAGE_COUNT', 10);
-
             $paginated = new \Illuminate\Pagination\LengthAwarePaginator(
-
                 $todaysFollowups->forPage($page, $perPage),
-
                 $todaysFollowups->count(),
-
                 $perPage,
-
                 $page,
-
                 ['path' => request()->url(), 'query' => request()->query()]
-
             );
+            // return view('company_client.follow_up.todays_followup', compact(
+            //     'paginated',
+            //     'leadPipeline',
+            //     'leadCancelList'
 
-
-
-            return view('company_client.follow_up.todays_followup', compact(
-
+            // ));
+            return view('employee.follow_up.todays_followup', compact(
                 'paginated',
-
                 'leadPipeline',
-
                 'leadCancelList'
 
             ));
         } catch (\Exception $e) {
-
             return redirect()->back()->with('error', 'An error occurred: ' . $e->getMessage());
         }
     }
@@ -471,76 +450,49 @@ class EmployeeHomeController extends Controller
     {
 
         try {
-
+            $search = request('search');
             $leads = LeadMaster::where([
-
                 'lead_master.iStatus' => 1,
-
                 'lead_master.isDelete' => 0,
-
                 'lead_master.iCustomerId' => Auth::user()->company_id,
                 'lead_master.iEnterBy' => Auth::user()->emp_id
-
             ])
-
                 ->leftJoin('service_master', 'lead_master.product_service_id', '=', 'service_master.service_id')
-
                 ->leftJoin('lead_source_master', 'lead_master.LeadSourceId', '=', 'lead_source_master.lead_source_id')
-
                 ->select(
-
                     'lead_master.*',
-
                     'service_master.service_name',
-
                     'lead_source_master.lead_source_name'
-
-                )
-
+                )->when($search, function ($query, $search) {
+                        return $query->where(function ($q) use ($search) {
+                            $q->where('lead_master.company_name', 'like', '%' . $search . '%')
+                            ->orWhere('lead_master.customer_name', 'like', '%' . $search . '%');
+                        });
+                    })
                 ->get();
-
-
-
             $over_due_Followups = $leads->filter(function ($lead) {
-
                 try {
-
                     $date = Carbon::createFromFormat('d-m-Y h:i A', trim($lead->next_followup_date));
-
                     return $date->lt(today());
                 } catch (\Exception $e) {
-
                     return false;
                 }
             });
 
-
-
             // Paginate manually
-
             $page = request('page', 1);
-
             $perPage = env('PER_PAGE_COUNT', 10);
-
             $paginated = new \Illuminate\Pagination\LengthAwarePaginator(
-
                 $over_due_Followups->forPage($page, $perPage),
-
                 $over_due_Followups->count(),
-
                 $perPage,
-
                 $page,
-
                 ['path' => request()->url(), 'query' => request()->query()]
-
             );
-
-
-
-            return view('company_client.follow_up.over_due_followup', compact('paginated'));
+            //return view('company_client.follow_up.over_due_followup', compact('paginated'));
+            return view('employee.follow_up.over_due_followup', compact('paginated'));
+            
         } catch (\Exception $e) {
-
             return redirect()->back()->with('error', 'An error occurred: ' . $e->getMessage());
         }
     }
@@ -549,13 +501,10 @@ class EmployeeHomeController extends Controller
     {
         try {
             $emp = Auth::guard('web_employees')->user();
-
             $leadPipeline = LeadPipeline::where(['slugname' => $status])->first();
-
             if (!$leadPipeline) {
                 return redirect()->back()->with('error', 'Invalid pipeline status provided.');
             }
-
             $leadPipeline = $leadPipeline->pipeline_name;
 
             // $leads = LeadMaster::where([
@@ -578,7 +527,7 @@ class EmployeeHomeController extends Controller
             //         'lead_source_master.lead_source_name'
             //     )
             //     ->paginate(10);
-
+            $search = request('search');
             if ($status === 'deal-done') {
                 // Get leads from `deal_done` table
                 $leads = DB::table('deal_done')
@@ -600,7 +549,12 @@ class EmployeeHomeController extends Controller
                         'deal_done.*',
                         'service_master.service_name',
                         'lead_source_master.lead_source_name'
-                    )
+                    )->when($search, function ($query, $search) {
+                        return $query->where(function ($q) use ($search) {
+                            $q->where('deal_done.company_name', 'like', '%' . $search . '%')
+                            ->orWhere('deal_done.customer_name', 'like', '%' . $search . '%');
+                        });
+                    })
                     ->paginate(env('PER_PAGE_COUNT', 10));
             } elseif ($status === 'deal-cancel') {
                 // Get leads from `deal_cancel` table
@@ -623,7 +577,12 @@ class EmployeeHomeController extends Controller
                         'deal_cancel.*',
                         'service_master.service_name',
                         'lead_source_master.lead_source_name'
-                    )
+                    )->when($search, function ($query, $search) {
+                        return $query->where(function ($q) use ($search) {
+                            $q->where('deal_cancel.company_name', 'like', '%' . $search . '%')
+                            ->orWhere('deal_cancel.customer_name', 'like', '%' . $search . '%');
+                        });
+                    })
                     ->paginate(env('PER_PAGE_COUNT', 10));
             } else {
                 // Get leads from `lead_master` table
@@ -645,7 +604,12 @@ class EmployeeHomeController extends Controller
                         'lead_master.*',
                         'service_master.service_name',
                         'lead_source_master.lead_source_name'
-                    )
+                    )->when($search, function ($query, $search) {
+                        return $query->where(function ($q) use ($search) {
+                            $q->where('lead_master.company_name', 'like', '%' . $search . '%')
+                            ->orWhere('lead_master.customer_name', 'like', '%' . $search . '%');
+                        });
+                    })
                     ->paginate(env('PER_PAGE_COUNT', 10));
             }
 

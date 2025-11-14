@@ -2,6 +2,8 @@
 @section('title', 'Year Master')
 @section('content')
 
+    <?php $profileId = Request::segment(3); ?>
+
     <div class="main-content">
         <div class="page-content">
             <div class="container-fluid">
@@ -162,6 +164,7 @@
 
 @section('scripts')
 {{-- Bootstrap 5 bundle (if not already included in layout) --}}
+
 <script>
    function deleteData(id) {
             $("#deleteid").val(id);

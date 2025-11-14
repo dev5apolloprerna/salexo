@@ -7,11 +7,9 @@ use App\Http\Controllers\Admin\PlanController;
 use App\Http\Controllers\Admin\StateController;
 use App\Http\Controllers\Admin\CompanyClientController;
 use App\Http\Controllers\admin\JoiningRequestsController;
-
-use App\Http\Controllers\admin\RequestsForJoiningController;
 use App\Http\Controllers\Admin\AdminQuotationTemplateController;
 
-
+use App\Http\Controllers\admin\RequestsForJoiningController;
 use App\Http\Controllers\AdminLoginController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Company\ApiDataController;
@@ -40,14 +38,19 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
+
+/*28-10 prerna*/
+
 use App\Http\Controllers\Company\PartyController;
 use App\Http\Controllers\Company\QuotationController;
 use App\Http\Controllers\Company\QuotationDetailController;
-use App\Http\Controllers\Company\QuotationPdfController;
 
-use App\Http\Controllers\Company\QuotationDesignController;
 use App\Http\Controllers\Company\QuotationTemplateController;
 use App\Http\Controllers\Company\YearController;
+
+
+use App\Http\Controllers\Company\InvoiceController;
+use App\Http\Controllers\Company\InvoiceDetailController;
 
 
 /*
@@ -224,7 +227,6 @@ Route::prefix('clients/service')->name('service.')->middleware(['auth:web_employ
     Route::get('/edit/{id}', [ServiceController::class, 'edit'])->name('edit');
     Route::post('/update', [ServiceController::class, 'update'])->name('update');
     Route::delete('/delete', [ServiceController::class, 'destroy'])->name('destroy');
-
 });
 
 Route::prefix('clients/')->name('leads.')->middleware(['auth:web_employees'])->group(function () {
@@ -374,7 +376,7 @@ Route::get('thank-you', [RazorpayController::class, 'thank_you'])->name('razorpa
 
 
 
-
+//------------------------------ prerna (04-11) route ---------------------------------------//
 Route::prefix('clients/quotation')->name('quotation.')->middleware(['auth:web_employees'])->group(function () 
 {
     Route::get('/quotation', [QuotationController::class, 'index'])->name('index');
@@ -415,18 +417,11 @@ Route::get('/services/lookup', [QuotationDetailController::class, 'serviceLookup
 Route::get('/services/{id}', [QuotationDetailController::class, 'serviceById'])
     ->whereNumber('id')
     ->name('services.byId');
-
 Route::post('/{quotationId}/discount', [QuotationDetailController::class, 'applyDiscount'])->name('applyDiscount');
 
 Route::post('/check-duplicate', [QuotationDetailController::class, 'checkDuplicate'])
     ->name('checkDuplicate');
-
 });
-
-
-// routes/web.php
-
-
 Route::prefix('quotationdetails')->name('quotationdetails.')->group(function () {
     Route::get('/productfetch', [QuotationDetailController::class, 'productfetch'])
         ->name('productfetch');
@@ -449,32 +444,6 @@ Route::middleware(['auth:web_employees'])->group(function () {
 
   });
 });
-
-
-
-Route::middleware(['auth'])->group(function () {
-});
-
-
-
-Route::prefix('company')->name('company.')->group(function () {
-    Route::get('quotations/{id}/preview',  [QuotationPdfController::class, 'preview'])->name('quotations.pdf.preview');
-    Route::get('quotations/{id}/pdf',      [QuotationPdfController::class, 'stream'])->name('quotations.pdf.stream');
-    Route::get('quotations/{id}/download', [QuotationPdfController::class, 'download'])->name('quotations.pdf.download');
-});
-
-
-/*Route::prefix('company/quotations')->name('company.quotations.')->group(function () {
-    // Design picker UI (shows latest quotation in chosen design)
-    Route::get('designs',               [QuotationDesignController::class, 'picker'])->name('designs');
-    Route::get('latest/preview/{d}',    [QuotationDesignController::class, 'previewLatest'])->name('latest.preview');
-    Route::get('latest/pdf/{d}',        [QuotationDesignController::class, 'pdfLatest'])->name('latest.pdf');
-
-    // (Optional) Preview/PDF for a specific quotation id
-    Route::get('{id}/preview/{d}',      [QuotationDesignController::class, 'preview'])->name('preview');
-    Route::get('{id}/pdf/{d}',          [QuotationDesignController::class, 'pdf'])->name('pdf');
-});*/
-
 
 Route::prefix('admin/quotations')->name('admin.quotations.')->middleware('auth')->group(function () {
 
@@ -517,7 +486,6 @@ Route::prefix('company/quotations')->name('quotations.')->middleware('auth:web_e
 });
 
 
-
 Route::prefix('company/year')->middleware(['auth:web_employees'])->group(function () {
     Route::get('/year',                 [YearController::class, 'index'])->name('year.index');
     Route::post('/year/store',          [YearController::class, 'store'])->name('year.store');
@@ -525,3 +493,56 @@ Route::prefix('company/year')->middleware(['auth:web_employees'])->group(functio
     Route::delete('/year/{year}',       [YearController::class, 'destroy'])->name('year.destroy');
     Route::post('/year/{year}/status',  [YearController::class, 'toggleStatus'])->name('year.status');
 });
+
+
+
+//invoice routes 
+Route::prefix('clients/invoice')->name('invoice.')->middleware(['auth:web_employees'])->group(function () 
+{
+    Route::get('/invoice', [InvoiceController::class, 'index'])->name('index');
+    Route::get('/create', [InvoiceController::class, 'createview'])->name('create');
+    Route::post('/store',       [InvoiceController::class, 'create'])->name('store'); // store action
+    Route::get('/{id}/edit', [InvoiceController::class, 'editview'])->name('edit');
+    Route::put('/{id}',      [InvoiceController::class, 'update'])->name('update');
+    Route::delete('/{id}', [InvoiceController::class, 'delete'])->name('delete');
+    Route::get('/showdetail/{id}', [InvoiceController::class, 'showdetail'])->name('showDetails');
+    Route::get('/detail-pdf/{id}', [InvoiceController::class, 'detailPDF'])->name('DetailPDF');
+    Route::post('/search', [InvoiceController::class, 'search'])->name('search');
+    Route::get('/mapping/{id}', [InvoiceController::class, 'mapping'])->name('mapping');
+    Route::get('/termcondition-fetch', [InvoiceController::class, 'termconditionFetch'])->name('termconditionFetch');
+    Route::get('/copy/{id}', [InvoiceController::class, 'copyinvoice'])->name('copy');
+    Route::get('/get-next-no/{companyId}', [InvoiceController::class, 'getNextinvoiceNo'])->name('getNextNo');
+    // Route::post('/invoice/{id}/whatsapp', [InvoiceController::class, 'sendWhatsApp'])->name('invoice.whatsapp');
+    Route::post('/invoice/{id}/send-whatsapp', [InvoiceController::class, 'sendWhatsApp'])
+    ->name('sendWhatsApp');
+
+
+})->whereNumber('id')->whereNumber('companyId');
+
+
+
+
+
+Route::prefix('clients/invoicedetails')->name('invoicedetails.')->middleware('auth:web_employees')->group(function () {
+    Route::get('/{getId}', [InvoiceDetailController::class, 'index'])->name('index');
+    Route::get('/create', [InvoiceDetailController::class, 'createview'])->name('create');
+    Route::post('/create', [InvoiceDetailController::class, 'create'])->name('create');
+    // Route::get('invoicedetails/{Id}', [InvoiceDetailController::class, 'editview'])->name('edit');
+Route::get('/{id}/edit',[InvoiceDetailController::class, 'editview'])->name('edit');
+    Route::post('/invoicedetails-update/{Id?}', [InvoiceDetailController::class, 'update'])->name('update');
+    Route::delete('/invoicedetails-delete/{Id}', [InvoiceDetailController::class, 'delete'])->name('delete');
+Route::get('/services/lookup', [InvoiceDetailController::class, 'serviceLookup'])
+    ->name('services.lookup');
+
+Route::get('/services/{id}', [InvoiceDetailController::class, 'serviceById'])
+    ->whereNumber('id')
+    ->name('services.byId');
+Route::post('/{quotationId}/discount', [InvoiceDetailController::class, 'applyDiscount'])->name('applyDiscount');
+
+Route::post('/check-duplicate', [InvoiceDetailController::class, 'checkDuplicate'])
+    ->name('checkDuplicate');
+});
+Route::prefix('invoicedetails')->name('invoicedetails.')->group(function () {
+    Route::get('/productfetch', [InvoiceDetailController::class, 'productfetch'])
+        ->name('productfetch');
+    });

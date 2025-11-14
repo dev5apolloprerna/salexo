@@ -3,9 +3,11 @@
 @section('title', 'Add Quotation')
 
 @section('content')
+
 @php
     $company_id = Auth::guard('web_employees')->user()->company_id ?? '0';
 @endphp
+
 <div class="main-content">
         <div class="page-content">
             <div class="container-fluid">
@@ -35,9 +37,11 @@
 
             <form method="POST" action="{{ route('quotation.store') }}" enctype="multipart/form-data">
                 @csrf
+                <input type="hidden" name="companyId" value="{{ $company_id }}" id="companyId">
+                     
                 <div class="card-body">
                     <div class="form-group row">
-                     <input type="hidden" name="companyId" value="{{ $company_id }}" id="companyId">
+                     
                         <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
                           <label for="mappingParty"><span style="color:red;">*</span> Party Name</label>
 
@@ -123,7 +127,7 @@
                                 placeholder="Enter Payment Terms" value="{{ old('paymentTerms') ? old('paymentTerms') : $Company->payment_terms }}">
                         </div>
 
-                        <!-- <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
+                        <!--<div class="col-sm-6 mb-3 mt-3 mb-sm-0">
                             <span style="color:red;">*</span>GST Type</label>
                             <select class="form-control form-control-user" @error('iGstType') is-invalid @enderror
                                 name="iGstType" required>
@@ -131,7 +135,7 @@
                                 <option value="1">GST</option>
                                 <option value="2">IGST</option>
                             </select>
-                        </div> -->
+                        </div>-->
                         <div class="col-sm-12 mb-3 mt-3 mb-sm-0">
                             <span style="color:red;"></span>Terms & Condition</label>
                             <textarea class="form-control" id="fetchtermcondition" name="strTermsCondition"> {{ old('strTermsCondition') ? old('strTermsCondition') : $Company->terms_condition }} </textarea>
@@ -168,7 +172,7 @@
 
 
     <script>
-$(function () {
+          $(function () {
     $('#mappingParty').select2({
       placeholder: 'Select Party Name',
       allowClear: true,
@@ -279,7 +283,7 @@ $(function () {
     
     
     <script>
-$(function () {
+    $(function () {
     const COMPANY_ID = Number($('#companyId').val() || 0);
 
     function setQuotationNo() {
@@ -301,7 +305,23 @@ $(function () {
     // Hydrate on load
     setQuotationNo();
   });
-
+        /*$('#mappingCompany').change(function () {
+            var companyId = $(this).val();
+            if (companyId) {
+                $.ajax({
+                    url: "{{ route('quotation.getNextNo', ':companyId') }}".replace(':companyId', companyId),
+                    type: 'GET',
+                    success: function (data) {
+                        $('input[name="iQuotationNo"]').val(data);
+                    },
+                    error: function (xhr, status, error) {
+                        console.error(xhr.responseText);
+                    }
+                });
+            } else {
+                $('input[name="iQuotationNo"]').val(''); // Clear the input if no company is selected
+            }
+        });*/
     </script>
 
 

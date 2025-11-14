@@ -23,7 +23,7 @@ class CalenderLeadController extends Controller
         try {
             $emp_id = Auth::guard('web_employees')->user()->company_id;
 
-            $employees = Employee::where(['iStatus' => 1, 'isDelete' => 0])->get();
+            $employees = Employee::where(['iStatus' => 1, 'isDelete' => 0,'company_id'=>$emp_id])->get();
             // dd($employees);
 
             return view('company_client.calender.index', compact('employees'));

@@ -18,8 +18,8 @@ use App\Http\Controllers\Api\PartyApiController;
 use App\Http\Controllers\Api\QuotationApiController;
 use App\Http\Controllers\Api\ListingController;
 use App\Http\Controllers\Api\QuotationDetailApiController;
-use App\Http\Controllers\Api\QuotationTemplateApiController;
 use App\Http\Controllers\Api\QuotationPdfController;
+use App\Http\Controllers\Api\QuotationTemplateApiController;
 use App\Http\Controllers\Api\QuotationDiscountApiController;
 
 /*
@@ -114,49 +114,50 @@ Route::prefix('employee')->group(function () {
 
         Route::post('/firebase/device/update', [EmployeeApiController::class, 'firebase_device_update']);
 
-//party 
-
+        // 14-10-2025
+        Route::post('udf/list', [UDFMasterApiController::class, 'udf_list']);
+        Route::post('udf/create', [UDFMasterApiController::class, 'udf_create']);
+        Route::post('udf/update', [UDFMasterApiController::class, 'udf_update']);
+        Route::post('udf/delete', [UDFMasterApiController::class, 'udf_delete']);
+        
+        
+        // prerna
+    
             Route::post('party', [PartyApiController::class, 'index']);
             Route::post('party/detail',        [PartyApiController::class, 'show']);
             Route::post('party/create',        [PartyApiController::class, 'store']);
             Route::post('party/update',        [PartyApiController::class, 'update']);
             Route::post('party/delete',        [PartyApiController::class, 'destroy']);
-
             Route::post('/party/search', [PartyApiController::class, 'search']);
             Route::post('/party/lookup/name', [PartyApiController::class, 'lookupByName']);
             Route::post('/party/lookup/mobile', [PartyApiController::class, 'lookupByMobile']);
-
             Route::post('party/toggle-status', [PartyApiController::class, 'toggleStatus']);
 
 
 
-
-        Route::prefix('quotations')->group(function () {
-            Route::post('/',              [QuotationApiController::class, 'index']);
-            Route::post('/next-number',   [QuotationApiController::class, 'getNextQuotationNo']);
-            Route::post('/create',       [QuotationApiController::class, 'store']);
-            Route::post('/{id}/show',          [QuotationApiController::class, 'show']);
-            Route::post('/{id}/update',          [QuotationApiController::class, 'update']);
-            Route::post('/{id}/delete',       [QuotationApiController::class, 'destroy']);
-
-            Route::post('/{id}/details',  [QuotationApiController::class, 'details']);
-            // Route::post('/{id}/pdf',      [QuotationApiController::class, 'quotation_pdf'])->name('api.quotations.pdf');
-            Route::post('/{id}/copy',    [QuotationApiController::class, 'copy']);
-            Route::post('/{id}/send-whatsapp', [QuotationApiController::class, 'sendWhatsApp']);
-        });
-
+            Route::prefix('quotations')->group(function () {
+                Route::post('/',              [QuotationApiController::class, 'index'])->name('api.quotations.index');
+                Route::post('/next-number',   [QuotationApiController::class, 'getNextQuotationNo'])->name('api.quotations.next');
+                Route::post('/create',       [QuotationApiController::class, 'store'])->name('api.quotations.store');
+                Route::post('/{id}/show',          [QuotationApiController::class, 'show'])->name('api.quotations.show');
+                Route::post('/{id}/update',          [QuotationApiController::class, 'update'])->name('api.quotations.update');
+                Route::post('/{id}/delete',       [QuotationApiController::class, 'destroy'])->name('api.quotations.destroy');
+    
+                Route::post('/{id}/details',  [QuotationApiController::class, 'details'])->name('api.quotations.details');
+                // Route::post('/{id}/pdf',      [QuotationApiController::class, 'pdf'])->name('api.quotations.pdf');
+                Route::post('/{id}/copy',    [QuotationApiController::class, 'copy'])->name('api.quotations.copy');
+                Route::post('/{id}/send-whatsapp', [QuotationApiController::class, 'sendWhatsApp'])->name('api.quotations.whatsapp');
+            });
+    
         Route::post('/quotations/{id}/pdf', [QuotationPdfController::class, 'quotationPdfLink'])
         ->name('api.employee.quotations.pdf.link');
 
-
         Route::post('/quotations/{quotationId}/apply-discount', [QuotationDiscountApiController::class, 'apply']);
 
-/*    Route::post('/pdf-by-default', [QuotationPdfController::class, 'generateByDefaultTemplate'])
-        ->name('api.employee.quotations.pdf.default');*/
-
-
-         // 07-11
-
+            Route::post('/party-mapping',     [QuotationApiController::class, 'mapping'])->name('api.party.mapping');
+            Route::post('/term-conditions',   [QuotationApiController::class, 'termConditions'])->name('api.termconditions.index');
+        ///// prerna 
+        
         // Quotation details (scoped to quotation)
         Route::post('/quotations-detail/list', [QuotationDetailApiController::class, 'index']);
         Route::post('/quotations-detail/create', [QuotationDetailApiController::class, 'store']);
@@ -165,7 +166,8 @@ Route::prefix('employee')->group(function () {
         Route::post('/quotation-detail/productshow',  [QuotationDetailApiController::class, 'productshow']);
         Route::post('/quotation-detail/update',  [QuotationDetailApiController::class, 'update']);
         Route::post('/quotation-detail/delete',  [QuotationDetailApiController::class, 'destroy']);
-
+        
+        
         Route::post('/quotation-templates', [QuotationTemplateApiController::class, 'index']);
         Route::patch('/quotation-templates/{template}/toggle', [QuotationTemplateApiController::class, 'toggle']);
         Route::post('/quotation-templates/{template}/set-default', [QuotationTemplateApiController::class, 'setDefault']);
@@ -175,22 +177,10 @@ Route::prefix('employee')->group(function () {
         Route::post('/quotation-templates/preview-default', [QuotationTemplateApiController::class, 'previewDefault']);
 
 
-        // 14-10-2025
-        Route::post('udf/list', [UDFMasterApiController::class, 'udf_list']);
-        Route::post('udf/create', [UDFMasterApiController::class, 'udf_create']);
-        Route::post('udf/update', [UDFMasterApiController::class, 'udf_update']);
-        Route::post('udf/delete', [UDFMasterApiController::class, 'udf_delete']);
-
-
-        Route::post('/party-mapping',     [QuotationApiController::class, 'mapping'])->name('api.party.mapping');
-        Route::post('/term-conditions',   [QuotationApiController::class, 'termConditions'])->name('api.termconditions.index');
-
-   
     });
 });
 
 Route::post('/dropdown-list', [ListingController::class, 'dropdown_list'])->name('api.dropdown.list');
-
 
 Route::post('forgot/password', [EmployeeApiController::class, 'forgot_password']);
 Route::post('otp/verify', [EmployeeApiController::class, 'otp_verify']);

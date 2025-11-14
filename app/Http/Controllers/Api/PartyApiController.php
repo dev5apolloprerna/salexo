@@ -118,7 +118,7 @@ class PartyApiController extends Controller
             $q = trim((string) $request->input('name', $request->input('q', '')));
             if (mb_strlen($q) < 3) {
                 return response()->json([
-                    'success'=>false,
+                    'success' => false,
                     'message' => 'Please type at least 3 characters.',
                 ], 422);
             }
@@ -161,7 +161,7 @@ class PartyApiController extends Controller
 
         if ($hits->isEmpty()) {
             return response()->json([
-                'success'=>false,
+                'success' => false,
                 'message' => 'No lead found for this name.',
             ], 404);
         }
@@ -194,7 +194,7 @@ class PartyApiController extends Controller
 
         if (strlen($mobile) < 6) {
             return response()->json([
-                'success'=>false,
+                'success' => false,
                 'message' => 'Please provide a valid mobile number.',
             ], 422);
         }
@@ -213,7 +213,7 @@ class PartyApiController extends Controller
 
         if (!$lead) {
             return response()->json([
-                'success'=>false,
+                'success' => false,
                 'message' => 'No lead found for this mobile.',
             ], 404);
         }
@@ -303,11 +303,10 @@ class PartyApiController extends Controller
             $row->update($data);
             // return response()->json(['message' => 'Party updated successfully', 'party' => $row->fresh()]);
             return response()->json(['success' => true,'message' => 'Party updated successfully']);
-        } catch (QueryException $e) {
-            if ((int) $e->getCode() === 23000) {
-                return response()->json(['status'=>'error','message' => 'This GST is already registered for your company.'], 422);
-            }
-            throw $e;
+        }  catch (ValidationException $e) {
+            return response()->json(['errors' => $e->errors()], 422);
+        } catch (\Throwable $th) {
+            return response()->json(['error' => $th->getMessage()], 500);
         }
     }
 

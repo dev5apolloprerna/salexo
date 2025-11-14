@@ -51,7 +51,6 @@ class ServiceController extends Controller
         $request->validate([
             'service_name' => 'required|string|max:255',
             'service_description' => 'nullable|string',
-            'rate' => 'required|int',
         ]);
         try {
 
@@ -59,8 +58,8 @@ class ServiceController extends Controller
                 'company_id' => auth()->user()->company_id,
                 'service_name' => $request->service_name,
                 'HSN' => $request->HSN,
-                'service_description' => $request->service_description,
                 'rate' => $request->rate,
+                'service_description' => $request->service_description,
                 'created_at' => now(),
             ]);
 
@@ -86,8 +85,7 @@ class ServiceController extends Controller
     {
         $request->validate([
             'service_name' => 'required|string|max:255',
-            'service_description' => 'nullable|string',
-            'rate' => 'required|int'
+            'service_description' => 'nullable|string'
         ]);
 
         try {
@@ -95,8 +93,8 @@ class ServiceController extends Controller
             $service->update([
                 "service_name" => $request->service_name,
                 "HSN" => $request->HSN,
-                "service_description" => $request->service_description,
                 "rate" => $request->rate,
+                "service_description" => $request->service_description,
                 'updated_at' => now()
             ]);
             return redirect()->route('service.index')->with('success', 'Service updated successfully.');

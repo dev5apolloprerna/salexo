@@ -25,39 +25,32 @@
                                <hr> 
                                
                             </div>
-    <div class="card-body">
-
-
-            {{-- Alert Messages --}}
+                        <div class="card-body">
+                        {{-- Alert Messages --}}
            
-            <!-- DataTales Example -->
-                    <div style="display: flex;
-                justify-content: space-between;">
-                        <h6 class="m-0 font-weight-bold text-primary">
+                        <!-- DataTales Example -->
+                    <div class="card-title" style="display: flex;justify-content: space-between;">
+                        <h6 class="m-0 font-weight-bold">
                           Company Name : {{ $CompanyName->company_name ?? '-' }}
                         </h6>
-                        <h6 class="m-0 font-weight-bold text-primary">
+                        <h6 class="m-0 font-weight-bold">
                           Party Name : {{ $CompanyName->strPartyName ?? '-' }}
                         </h6>
+                        <h6 class="m-0 font-weight-bold">
+                          Year : {{ $CompanyName->strYear ?? '-' }}
+                        </h6>
+                        <h6 class="m-0 font-weight-bold">
+                          Quotation No : {{ $CompanyName->iQuotationNo ?? '-' }}
+                        </h6>
+                        <h6 class="m-0 font-weight-bold">
+                          Date :
+                          @if(!empty($CompanyName?->entryDate))
+                            {{ \Carbon\Carbon::parse($CompanyName->entryDate)->format('d-m-Y') }}
+                          @else
+                            -
+                          @endif
+                        </h6>
                     </div>
-                    
-                    <div style="display: flex;
-                justify-content: space-between;margin-top:20px;">
-                    <h6 class="m-0 font-weight-bold text-primary">
-                      Year : {{ $CompanyName->strYear ?? '-' }}
-                    </h6>
-                    <h6 class="m-0 font-weight-bold text-primary">
-                      Quotation No : {{ $CompanyName->iQuotationNo ?? '-' }}
-                    </h6>
-                    <h6 class="m-0 font-weight-bold text-primary">
-                      Date :
-                      @if(!empty($CompanyName?->entryDate))
-                        {{ \Carbon\Carbon::parse($CompanyName->entryDate)->format('d-m-Y') }}
-                      @else
-                        -
-                      @endif
-                    </h6>
-                        </div>
                 </div>
                 <form method="POST" action="{{ route('quotationdetails.create') }}" enctype="multipart/form-data">
                     @csrf
@@ -66,7 +59,7 @@
 
                             <input type="hidden" name="quotationID" value={{ $id }}>
                             <input type="hidden" name="company_id" value={{ Auth::guard('web_employees')->user()->company_id }}>
-                            
+
                             <div class="col-sm-6 mb-3 mt-3 mb-sm-0">
                                 <span style="color:red;"></span>Product Name / Service Name</label>
                                 <select class="form-control form-control-user js-service" id="getproductID" name="productID">
@@ -93,13 +86,13 @@
                                 <textarea style="width: 100%;" class="form-control" name="description" rows="7" id="fetchdescription"></textarea>
                             </div>
 
-                            @if($CompanyName->GST != null)
+
                             <div class="col-sm-4 mb-3 mt-3 mb-sm-0">
                                 <span style="color:red;">*</span>HSN</label>
                                 <input class="form-control" id="HSN" name="uom" type="text"
                                     placeholder="Enter UOM" value="{{ old('uom') }}" required>
                             </div>
-                            @endif
+
                             <div class="col-sm-4 mb-3 mt-3 mb-sm-0">
                                 <span style="color:red;">*</span>Quantity</label>
                                 <input class="form-control" id="quantity" name="quantity" type="text"
@@ -113,7 +106,6 @@
                                     placeholder="Enter Unit Rate" value="{{ old('rate') }}" onchange="AmountTotal();"
                                     required>
                             </div>
-                            @if($CompanyName->GST != null)
 
                             <div class="col-sm-4 mb-3 mt-3 mb-sm-0">
                                 <div class="form-group">
@@ -122,7 +114,6 @@
                                         required>
                                 </div>
                             </div>
-                            @endif
                             <div class="col-sm-4 mb-3 mt-3 mb-sm-0">
                                 <span style="color:red;">*</span>Net Amount</label>
                                 <input class="form-control" id="NetAmount" name="netAmount" type="text"
@@ -262,7 +253,7 @@
                                         @method('post')
                                         <input type="hidden" name="quotationID" value="{{ $id }}">
                                         <input type="hidden" name="quotationdetailsId" id="quotationdetailsId" value="">
-                            <input type="hidden" name="company_id" value={{ Auth::guard('web_employees')->user()->company_id }}>
+                                        <input type="hidden" name="company_id" value={{ Auth::guard('web_employees')->user()->company_id }}>
 
                                         <div class="modal-body">
                                           <div class="row">
@@ -280,7 +271,7 @@
 
                                             <div class="col-md-12 mb-3">
                                               <label><span class="text-danger">*</span> Description</label>
-                                              <textarea class="form-control" id="Editdescription" name="description" rows="6" ></textarea>
+                                              <textarea class="form-control" id="Editdescription" name="description" rows="6"></textarea>
                                             </div>
 
                                             <div class="col-md-6 mb-3">
@@ -417,11 +408,12 @@
     if ($scope.attr('id') === 'getproductID') {
       if (desc) $('#fetchdescription').val(desc);
       if (hsn)  $('#HSN').val(hsn);
-      if (hsn)  $('#rate').val(rate);
+        if (rate)  $('#rate').val(rate);
+
     } else if ($scope.attr('id') === 'EditproductID') {
       if (desc) $('#Editdescription').val(desc);
       if (hsn)  $('#Edituom').val(hsn); // map HSN into your Edit UOM field (as per your UI)
-      if (hsn)  $('#Editrate').val(rate); // map HSN into your Edit UOM field (as per your UI)
+      if (rate)  $('#Editrate').val(rate); // map HSN into your Edit UOM field (as per your UI)
     }
   }
 

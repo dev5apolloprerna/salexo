@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Str;
 
-use Illuminate\Support\Facades\Blade;
+    use Illuminate\Support\Facades\Blade;
 
 class QuotationTemplateController extends Controller
 {
@@ -257,27 +257,21 @@ class QuotationTemplateController extends Controller
     $partyAddr  = implode(', ', array_filter([$partyAddr1, $partyCity, $partyStateName], fn($x)=>$x!==null && trim($x)!==''));
 
     /* -----------------  Line items  ----------------- */
-    $details = \DB::table('quotationdetails')
-        ->where(['quotationID'=>$qId,'isDelete'=>0])
-        ->get();
+     $details = QuotationDetail::with('service')
+            ->where(['quotationID'=>$qId,'isDelete'=>0])
+            ->get();
 
     $items = [];
     foreach ($details as $d) {
         $qty  = (float)($d->quantity ?? $d->qty ?? 0);
         $rate = (float)($d->rate ?? 0);
-        $netAmount = (float)($d->netAmount ?? 0);
-        $discount = (float)($d->discount ?? 0);
-        $amount = (float)($d->totalAmount ?? 0);
         $items[] = [
-            'name' => $clean($d->strProductName ?? $d->productName ?? $d->service_name ?? 'Item'),
+            'name' => $clean($d->service->service_name ?? $d->service->service_name ?? $d->service->service_name ?? ''),
             'desc' => $clean($d->strDescription ?? $d->description ?? ''),
-            'hsn'  => $clean($d->uom ?? $d->uom ?? ''),
+            'hsn'  => $clean($d->HSN ?? $d->hsn ?? ''),
             'gst'  => $clean($d->iGstPercentage ?? $d->iGstPercentage ?? ''),
             'qty'  => $qty,
             'rate' => $rate,
-            'amount' => $amount,
-            'netAmount' => $netAmount,
-            'discount' => $discount,
         ];
     }
 
@@ -295,11 +289,11 @@ class QuotationTemplateController extends Controller
     $validTill       = $fmtDate($quotation->valid_till ?? $quotation->quotationValidity, now()->addDays(7));
 
     /* -----------------  Footer  ----------------- */
-    $paymentTerms = $clean($quotation->paymentTerms) ?? '50% advance, balance on delivery';
-    $delivery     = $clean($quotation->deliveryTerm) ?? 'Within 7–10 business days from PO';
+    $paymentTerms = $clean($quotation->paymentTerms) ?? '-';
+    $delivery     = $clean($quotation->deliveryTerm) ?? '-';
     $modeOfDespatch = $clean($quotation->modeOfDespatch) ?? '';
-    $warranty     = $clean($quotation->warranty) ?? '12 months from invoice date';
-    $extraTerms     = $clean($quotation->strTermsCondition) ?? '12 months from invoice date';
+    $warranty     = $clean($quotation->warranty) ?? '-';
+        $extraTerms     = $clean($quotation->strTermsCondition) ?? '';
 
     $bankName   = $get($company, ['bank_account_name','company_name']) ?? $companyName;
     $bankAcc    = $get($company, ['bank_account_no','account_no','acno']);

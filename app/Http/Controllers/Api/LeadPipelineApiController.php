@@ -8,6 +8,7 @@ use App\Models\LeadPipeline;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class LeadPipelineApiController extends Controller
@@ -225,6 +226,7 @@ class LeadPipelineApiController extends Controller
             ]);
             $data['admin'] = 0;
             $data['company_id'] = $employee->company_id;
+            $data['slugname'] = Str::slug($data['pipeline_name']);
             $data['created_at'] = now();
 
             $pipeline = LeadPipeline::create($data);
@@ -298,6 +300,7 @@ class LeadPipelineApiController extends Controller
 
             $pipeline->update([
                 'pipeline_name' => $request->pipeline_name,
+                'slugname' => Str::slug($request->pipeline_name),
                 'followup_needed' => $request->followup_needed,
                 'company_id' => $employee->company_id,
                 'color' => $request->color,
