@@ -43,15 +43,15 @@
                                                             placeholder="Enter HSN" maxlength="100"
                                                             autocomplete="off" required autofocus>
                                                     </div>
-                                                     <div class="">
+                                                     <div class="mt-4 mb-3">
                                                         Rate <span style="color:red;">*</span>
                                                         <input type="text" class="form-control" name="rate"
-                                                            placeholder="Enter Rate" maxlength="100"
+                                                            placeholder="Enter rate" maxlength="100"
                                                             autocomplete="off" required autofocus>
                                                     </div>
 
                                                     <div class="mt-4 mb-3">
-                                                        Description Name <span style="color:red;">*</span>
+                                                        Description Name <span style="color:red;"></span>
                                                         <textarea class="form-control" name="service_description" id="service_description" cols="30" rows="3"></textarea>
                                                     </div>
 
@@ -156,18 +156,20 @@
                                         <input type="text" class="form-control" name="service_name" id="Editservice_name"
                                             placeholder="Enter Service Name" maxlength="100" autocomplete="off" required>
                                     </div>
+                                    
                                     <div class="mb-3">
                                         HSN <span style="color:red;">*</span>
                                         <input type="text" class="form-control" name="HSN" id="EditHSN"
                                             placeholder="Enter HSN" maxlength="100" autocomplete="off" required>
-                                    </div>
+                                    </div> 
                                     <div class="mb-3">
                                         Rate <span style="color:red;">*</span>
                                         <input type="text" class="form-control" name="rate" id="Editrate"
                                             placeholder="Enter Rate" maxlength="100" autocomplete="off" required>
                                     </div>
+
                                     <div class="mb-3">
-                                        Description Name <span style="color:red;">*</span>
+                                        Description Name <span style="color:red;"></span>
                                         <textarea class="form-control" name="service_description" id="Editservice_description" cols="30"
                                             rows="3"></textarea>
                                     </div>
@@ -247,7 +249,7 @@
                         var obj = JSON.parse(data);
                         $("#Editservice_name").val(obj.service_name);
                         $("#EditHSN").val(obj.HSN);
-                        $("#Editrate").val(obj.Rate);
+                        $("#EditRate").val(obj.rate);
                         $("#Editservice_description").val(obj.service_description);
                         $('#service_id').val(id);
                     },

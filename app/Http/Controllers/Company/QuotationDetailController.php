@@ -47,37 +47,35 @@ class QuotationDetailController extends Controller
         }
         return response()->json($row);
     }
+
     public function checkDuplicate(Request $request)
-    {
-
-        $request->validate([
-            'quotationID' => 'required|integer',
-            'productID'   => 'required',
-        ]);
-
-        $detailId    = $request->quotationdetailsId;       // dd-mm-YYYY or yyyy-mm-dd
-
-        $exists = QuotationDetail::query()
-                    ->join('quotation as q', 'quotationdetails.quotationID', '=', 'q.quotationId')
-                    ->where('quotationdetails.quotationID', $request->quotationID)   // from details
-                    ->where('q.iCompanyId', $request->company_id)                    // from quotation
-                    ->where('quotationdetails.productID', $request->productID) 
-                    ->when($detailId, function($q) use($detailId) {
-                                return $q->where('quotationdetails.quotationdetailsId','!=', $detailId);
-                            })
-                                  // from details
-                    ->where([
-                        'quotationdetails.isDelete' => 0,
-                        'quotationdetails.iStatus'  => 1,
-                    ])
-                    ->exists();
-
-
-        return response()->json(['exists' => $exists]);
-    }
-
-
-
+        {
+    
+            $request->validate([
+                'quotationID' => 'required|integer',
+                'productID'   => 'required',
+            ]);
+    
+            $detailId    = $request->quotationdetailsId;       // dd-mm-YYYY or yyyy-mm-dd
+    
+            $exists = QuotationDetail::query()
+                        ->join('quotation as q', 'quotationdetails.quotationID', '=', 'q.quotationId')
+                        ->where('quotationdetails.quotationID', $request->quotationID)   // from details
+                        ->where('q.iCompanyId', $request->company_id)                    // from quotation
+                        ->where('quotationdetails.productID', $request->productID) 
+                        ->when($detailId, function($q) use($detailId) {
+                                    return $q->where('quotationdetails.quotationdetailsId','!=', $detailId);
+                                })
+                                      // from details
+                        ->where([
+                            'quotationdetails.isDelete' => 0,
+                            'quotationdetails.iStatus'  => 1,
+                        ])
+                        ->exists();
+    
+    
+            return response()->json(['exists' => $exists]);
+        }
 
     public function index(Request $request, $id)
     {
@@ -473,73 +471,39 @@ class QuotationDetailController extends Controller
 
 
     public function delete(Request $request, $Id)
-{
-    $Id = (int) $Id;
+    {
+        // 1) Find the row (need quotationID)
+        $row = DB::table('quotationdetails')
+            ->where(['quotationdetailsId' => (int)$Id, 'isDelete' => 0])
+            ->select('quotationID')
+            ->first();
 
-    // 1) Verify the row; we need the parent quotationID
-    $row = DB::table('quotationdetails')
-        ->where(['quotationdetailsId' => $Id, 'isDelete' => 0])
-        ->select('quotationID')
-        ->first();
+        if (!$row) {
+            return back()->with('error', 'Record not found or already deleted.');
+        }
 
-    if (!$row) {
-        return back()->with('error', 'Record not found or already deleted.');
-    }
-
-    DB::beginTransaction();
-    try {
-        // 2) Delete the row
-        // SOFT-DELETE (recommended):
+        // 2) Hard delete (keep as-is if you really want hard delete)
         $deleted = DB::table('quotationdetails')
-            ->where(['quotationdetailsId' => $Id, 'isDelete' => 0])
-            ->update(['isDelete' => 1, 'updated_at' => now()]);
-        // HARD-DELETE (if you truly want to remove):
-        // $deleted = DB::table('quotationdetails')
-        //     ->where(['quotationdetailsId' => $Id, 'isDelete' => 0])
-        //     ->delete();
+            ->where(['quotationdetailsId' => (int)$Id, 'isDelete' => 0])
+            ->delete();
 
         if (!$deleted) {
-            DB::rollBack();
             return back()->with('error', 'Delete failed.');
         }
 
-        // 3) Read header discount info (guard if missing)
+        // 3) If header has flat amount discount, reallocate across remaining lines
         $header = DB::table('quotation')
-            ->where(['quotationId' => (int) $row->quotationID, 'isDelete' => 0])
+            ->where('quotationId', (int)$row->quotationID)
             ->select('discount_type', 'discount')
             ->first();
 
-        if ($header && ($header->discount_type === 'amount') && (float) $header->discount > 0) {
-            // Reallocate across remaining lines
-            $this->reallocateAmountDiscount((int) $row->quotationID, (float) $header->discount);
+        if (($header->discount_type ?? '') === 'amount' && (float)($header->discount ?? 0) > 0) {
+            $this->reallocateAmountDiscount((int)$row->quotationID, (float)$header->discount);
         }
 
-        // 4) If no remaining products, clear header discount fields
-        $remaining = DB::table('quotationdetails')
-            ->where([
-                'quotationID' => (int) $row->quotationID,
-                'isDelete'    => 0,
-            ])
-            ->count();
-
-        if ($remaining === 0) {
-            DB::table('quotation')
-                ->where(['quotationId' => (int) $row->quotationID, 'isDelete' => 0])
-                ->update([
-                    'discount'      => 0,
-                    'discount_type' => null,
-                    'updated_at'    => now(),
-                ]);
-        }
-
-        DB::commit();
+        // 4) Done
         return back()->with('success', 'Quotation detail deleted successfully.');
-    } catch (\Throwable $e) {
-        DB::rollBack();
-        return back()->with('error', 'Unexpected error: ' . $e->getMessage());
     }
-}
-
 
 
     // JSON product fetch (used by AJAX)

@@ -15,6 +15,6 @@ class QuotationDetail extends Model
 
      public function service()
     {
-        return $this->belongsTo(service::class, 'productID', 'service_id');
+        return $this->belongsTo(Service::class, 'productID', 'service_id');
     }
 }

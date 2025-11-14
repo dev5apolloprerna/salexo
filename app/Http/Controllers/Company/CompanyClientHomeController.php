@@ -214,11 +214,16 @@ class CompanyClientHomeController extends Controller
         }
     }
 
-    public function updateProfile(Request $request)
+   public function updateProfile(Request $request)
     {
         $user_role_id = Auth::user()->role_id;
          $userId =  Auth::user()->emp_id;
          $company_id =  Auth::user()->company_id;
+
+
+        /*$user_role_id = session()->get('user_role_id');
+        $userId       = session()->get('emp_id');
+        $company_id   = session()->get('company_id');*/
 
         // Validations
         $request->validate([
@@ -262,7 +267,7 @@ class CompanyClientHomeController extends Controller
                     $file = $request->file('company_logo');
 
                     // Destination: public_html/uploads/company
-                    $destAbs = public_path('../uploads/company'); // public_path() -> public_html on live
+                    $destAbs = base_path('../public_html/uploads/company'); // public_path() -> public_html on live
                     if (!File::isDirectory($destAbs)) {
                         File::makeDirectory($destAbs, 0775, true);
                     }
@@ -275,7 +280,8 @@ class CompanyClientHomeController extends Controller
 
                     // Delete old logo if exists
                     if (!empty($company->company_logo)) {
-                        $oldAbs = public_path(ltrim($company->company_logo, '/\\'));
+                        $oldAbs = base_path('../public_html/' . ltrim($company->company_logo, '/\\'));
+                        // public_path(ltrim($company->company_logo, '/\\'));
                         if (File::exists($oldAbs)) {
                             @File::delete($oldAbs);
                         }
@@ -287,7 +293,7 @@ class CompanyClientHomeController extends Controller
 
                 // Commit company updates
                 CompanyClient::where(['company_id' => $company_id])->update($companyUpdate);
-                 if (!empty($request->terms_condition)) 
+                if (!empty($request->terms_condition)) 
                  {
                     $raw   = $request->terms_condition;
 
@@ -314,7 +320,6 @@ class CompanyClientHomeController extends Controller
 
                     }
                 }
-
             }
 
             DB::commit();

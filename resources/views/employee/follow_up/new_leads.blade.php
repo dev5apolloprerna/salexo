@@ -22,7 +22,23 @@
                                     New Lead List
                                 </h5>
                             </div>
-
+                            <div class="card-body border-bottom">
+                                <form action="{{ route('employee.status', $profileId) }}" method="POST" class="row g-3 align-items-end">
+                                    @csrf
+                                    <div class="col-md-4">
+                                        <label for="search" class="form-label">Search by Company Name or Contact Person Name</label>
+                                        <input type="text" class="form-control" id="search" name="search" 
+                                               placeholder="Enter company name or contact person name" 
+                                               value="{{ old('search', request('search')) }}">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="d-flex gap-2">
+                                            <button type="submit" class="btn btn-primary">Search</button>
+                                            <a href="{{ route('employee.status', $profileId) }}" class="btn btn-secondary">Reset</a>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
                             <div class="row">
                                 <div class="col-lg-12">
                                     <div class="card-body">

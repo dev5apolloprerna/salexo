@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\QuotationTemplate;
 use App\Models\Quotation;
+use App\Models\QuotationDetail;
 use App\Models\CompanyClient;
 use App\Models\Party;
 use Illuminate\Http\Request;
@@ -112,12 +113,12 @@ class QuotationTemplateApiController extends Controller
     public function preview(QuotationTemplate $template, Request $request)
 {
     try {
-       
         $quotation = Quotation::with(['company','party'])
             ->where(['iStatus'=>1,'isDelete'=>0])->orderByDesc('quotationId')
             ->first();
 
             $quotationId=$quotation->quotationId;
+
         if (!file_exists(public_path($template->file_path))) {
             return response()->json([
                 'success'=>false,
@@ -362,14 +363,17 @@ protected function simpleReplace(string $html, array $data): string
         $partyAddr = implode(', ', array_filter([$partyAddr1, $partyCity, $partyStateName], fn($x)=>$x!==null && trim($x)!==''));
 
         // --- Line items
-         $details = QuotationDetail::with('service')
+        $details = QuotationDetail::with('service')
             ->where(['quotationID'=>$qId,'isDelete'=>0])
             ->get();
-
         $items = [];
         foreach ($details as $d) {
             $qty  = (float)($d->quantity ?? $d->qty ?? 0);
             $rate = (float)($d->rate ?? 0);
+            $netAmount = (float)($d->netAmount ?? 0);
+            $discount = (float)($d->discount ?? 0);
+            $amount = (float)($d->totalAmount ?? 0);
+            
             $items[] = [
                 'name' => $clean($d->service->service_name ?? $d->service->service_name ?? $d->service->service_name ?? ''),
                 'desc' => $clean($d->strDescription ?? $d->description ?? ''),
@@ -377,6 +381,10 @@ protected function simpleReplace(string $html, array $data): string
                 'gst'  => $clean($d->iGstPercentage ?? ''),
                 'qty'  => $qty,
                 'rate' => $rate,
+                'amount' => $amount,
+                'netAmount' => $netAmount,
+                'discount' => $discount,
+
             ];
         }
 

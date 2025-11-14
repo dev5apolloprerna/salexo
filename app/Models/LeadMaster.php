@@ -44,6 +44,8 @@ class LeadMaster extends Model
         'initially_contacted',
         'iEnterBy',
         'deal_converted_at',
+        'json',
+        'link',
 
     ];
 

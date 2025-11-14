@@ -15,20 +15,20 @@ use Illuminate\Validation\ValidationException;
 
 class WebHookController extends Controller
 {
-    public function web_hook(Request $request,$guid)
+    public function web_hook(Request $request, $guid)
     {
         try {
             $employee = Employee::where('isDelete', 0)
-                    ->where('guid', $guid)
-                    ->first();
-            
+                ->where('guid', $guid)
+                ->first();
+
             if (!$employee) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Invalid GUID or Employee not found'
+                    'message' => 'Invalid GUID or User not found'
                 ], 404);
-            }        
-            
+            }
+
             $request->validate([
                 'SENDER_NAME' => 'required|string|max:255',
                 'SENDER_MOBILE' => 'required',
@@ -40,11 +40,11 @@ class WebHookController extends Controller
                 'company_id' => $employee->company_id,
                 'pipeline_name' => "New Lead"
             ])->first();
-            
-            $service = Service::where(['company_id'=> $employee->company_id, 'service_name' => $request->QUERY_PRODUCT_NAME])->first();
-            if($service){
+
+            $service = Service::where(['company_id' => $employee->company_id, 'service_name' => $request->QUERY_PRODUCT_NAME])->first();
+            if ($service) {
                 $service_name = $service->service_id;
-            }else{
+            } else {
                 $service_name = Service::create([
                     'company_id' => $employee->company_id,
                     'service_name' => $request->QUERY_PRODUCT_NAME,
@@ -52,18 +52,18 @@ class WebHookController extends Controller
                 ]);
                 $service_name = $service_name->service_id;
             }
-            
-            $lead_source = LeadSource::where(['company_id'=> $employee->company_id, 'lead_source_name' => 'IndiaMart'])->first();
-            if($lead_source){
+
+            $lead_source = LeadSource::where(['company_id' => $employee->company_id, 'lead_source_name' => 'IndiaMart'])->first();
+            if ($lead_source) {
                 $lead_source = $lead_source->lead_source_id;
-            }else{
+            } else {
                 $lead_source = LeadSource::create([
                     'company_id' => $employee->company_id,
                     'lead_source_name' => 'IndiaMart',
                 ]);
                 $lead_source = $lead_source->lead_source_id;
-            }    
-            
+            }
+
             $data = array(
                 'iCustomerId' => $employee->company_id,
                 'iemployeeId' => $employee->emp_id ?? 0,
@@ -86,12 +86,11 @@ class WebHookController extends Controller
             );
             $lead = LeadMaster::Create($data);
 
-          
+
             return response()->json([
                 'success' => true,
                 'message' => 'Lead created successfully'
             ], 201);
-            
         } catch (ValidationException $e) {
             return response()->json(['errors' => $e->errors()], 422);
         } catch (\Throwable $th) {
@@ -102,21 +101,21 @@ class WebHookController extends Controller
             ], 500);
         }
     }
-    
-    public function crm_inquiry(Request $request,$guid)
+
+    public function crm_inquiry(Request $request, $guid)
     {
         try {
             $employee = Employee::where('isDelete', 0)
-                    ->where('guid', $guid)
-                    ->first();
-            
+                ->where('guid', $guid)
+                ->first();
+
             if (!$employee) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Invalid GUID or Employee not found'
+                    'message' => 'Invalid GUID or User not found'
                 ], 404);
-            }        
-            
+            }
+
             $request->validate([
                 'contact_person_name' => 'required|string|max:255',
                 'mobile' => 'required',
@@ -128,11 +127,11 @@ class WebHookController extends Controller
                 'company_id' => $employee->company_id,
                 'pipeline_name' => "New Lead"
             ])->first();
-            
-            $service = Service::where(['company_id'=> $employee->company_id, 'service_name' => $request->product_service])->first();
-            if($service){
+
+            $service = Service::where(['company_id' => $employee->company_id, 'service_name' => $request->product_service])->first();
+            if ($service) {
                 $service_name = $service->service_id;
-            }else{
+            } else {
                 $service_name = Service::create([
                     'company_id' => $employee->company_id,
                     'service_name' => $request->product_service,
@@ -140,18 +139,18 @@ class WebHookController extends Controller
                 ]);
                 $service_name = $service_name->service_id;
             }
-            
-            $lead_source = LeadSource::where(['company_id'=> $employee->company_id, 'lead_source_name' => $request->lead_source])->first();
-            if($lead_source){
+
+            $lead_source = LeadSource::where(['company_id' => $employee->company_id, 'lead_source_name' => $request->lead_source])->first();
+            if ($lead_source) {
                 $lead_source = $lead_source->lead_source_id;
-            }else{
+            } else {
                 $lead_source = LeadSource::create([
                     'company_id' => $employee->company_id,
                     'lead_source_name' => $request->lead_source,
                 ]);
                 $lead_source = $lead_source->lead_source_id;
-            }    
-            
+            }
+
             $data = array(
                 'iCustomerId' => $employee->company_id,
                 'iemployeeId' => $employee->emp_id ?? 0,
@@ -175,12 +174,11 @@ class WebHookController extends Controller
             );
             $lead = LeadMaster::Create($data);
 
-          
+
             return response()->json([
                 'success' => true,
                 'message' => 'Lead created successfully'
             ], 201);
-            
         } catch (ValidationException $e) {
             return response()->json(['errors' => $e->errors()], 422);
         } catch (\Throwable $th) {

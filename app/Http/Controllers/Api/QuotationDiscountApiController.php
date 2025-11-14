@@ -171,15 +171,14 @@ class QuotationDiscountApiController extends Controller
                 $grandTotal += $tot;
             }
 
-            DB::table('quotation')
+        DB::table('quotation')
             ->where('quotationId', $quotationId)
             ->update([
                 'discount_type' => $mode,         // "percent" or "amount"
                 'discount'      => round($value, 2),  // the raw value user entered
                 'updated_at'    => now(),
             ]);
-
-
+            
             DB::commit();
         } catch (\Throwable $e) {
             DB::rollBack();

@@ -32,7 +32,7 @@
                 <option value="">Select Role</option>
                 <option value="2" {{ old('role_id', $employee->role_id ?? '') == 2 ? 'selected' : '' }}>Admin
                 </option>
-                <option value="3" {{ old('role_id', $employee->role_id ?? '') == 3 ? 'selected' : '' }}>Employee
+                <option value="3" {{ old('role_id', $employee->role_id ?? '') == 3 ? 'selected' : '' }}>User
                 </option>
             </select>
             @if ($errors->has('role_id'))

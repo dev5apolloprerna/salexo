@@ -1,6 +1,5 @@
 @php
-
-    $company_id = Auth::guard('web_employees')->user()->company_id ?? '0';
+    $company_id = Auth::guard('web_employees')->user()->company_id;
 
     $roleid = Auth::guard('web_employees')->user()->role_id;
 
@@ -16,7 +15,6 @@
 @endphp
 
 <style>
-
     /* Sidebar Gradient and Base Styles */
     .app-menu.navbar-menu {
         /*background: linear-gradient(to bottom, #3ccf90, #246fdb) !important;*/
@@ -92,7 +90,7 @@
                             href="{{ route('employee.index') }}">
                             <i class="fa fa-id-badge"></i>
 
-                            <span>Employee Master</span>
+                            <span>User Master</span>
                         </a>
                     </li>
 
@@ -222,15 +220,14 @@
                             <span>Calender</span>
                         </a>
                     </li>
-                    @if($company_id == 5)
-                      <li class="nav-item">
+                  @if($company_id == 5)
+                  <li class="nav-item">
                           <a href="{{ route('year.index') }}"
                              class="nav-link {{ request()->routeIs('year.*') ? 'active' : '' }}">
                             <i class="fa fa-calendar-alt"></i>
                             <span>Year Master</span>
                           </a>
                     </li>
-
                     <li class="nav-item">
                       <a href="{{ route('party.index') }}"
                          class="nav-link {{ request()->routeIs('party.*') ? 'active' : '' }}">
@@ -239,15 +236,22 @@
                       </a>
                     </li>
 
-                     <li class="nav-item">
+                    <li class="nav-item">
                         <a class="nav-link collapsed" href="{{ route('quotation.index') }}">
-                            <!-- <i class="fas fa-user-alt"></i> -->
                             <i class="fas fa-file-pdf"></i>
-                            <span>Quotation Master</span>
+                            <span>Quotation</span>
                         </a>
                     </li>
-                     
+                    <li class="nav-item">
+                        <a class="nav-link collapsed" href="{{ route('invoice.index') }}">
+                            <i class="fa-solid fa-file-invoice"></i>
+                            <span>Invoice</span>
+                        </a>
+                    </li>
                     @endif
+                    
+                    
+
                     <!-- Reports -->
                     <li class="nav-item">
                         <a class="nav-link menu-link {{ in_array(request()->route()->getName(), [
@@ -317,7 +321,7 @@
                                             'clients.reports.lead_given_detail',
                                         ])) active @endif"
                                         href="{{ route('clients.reports.emp_performance') }}">
-                                        <i class="fas fa-user-tie"></i> Employee Performance
+                                        <i class="fas fa-user-tie"></i> User Performance
                                     </a>
                                 </li>
                                 <li class="nav-item">
@@ -333,7 +337,6 @@
 
                                     </a>
                                 </li>
-                               
                             </ul>
                         </div>
                     </li>
@@ -366,24 +369,8 @@
                             <span>Calender</span>
                         </a>
                     </li>
-                    <li class="nav-item">
-                      <a href="{{ route('party.index') }}"
-                         class="nav-link {{ request()->routeIs('party.*') ? 'active' : '' }}">
-                        <i class="fa fa-users me-2"></i>
-                        <span>Party Master</span>
-                      </a>
-                    </li>
-
-                     <li class="nav-item">
-                        <a class="nav-link collapsed" href="{{ route('quotation.index') }}">
-                            <!-- <i class="fas fa-user-alt"></i> -->
-                            <i class="fas fa-file-pdf"></i>
-                            <span>Quotation Master</span>
-                        </a>
-                    </li>
                 @endif
             </ul>
-
         </div>
     </div>
 </div>

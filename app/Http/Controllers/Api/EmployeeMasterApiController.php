@@ -35,7 +35,7 @@ class EmployeeMasterApiController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Employee list fetched successfully',
+                'message' => 'User list fetched successfully',
                 'data' => $employees,
                 'total_count_user' => $company_client->no_of_users,
                 'current_user_count' => $currentEmployeeCount,
@@ -43,7 +43,7 @@ class EmployeeMasterApiController extends Controller
         } catch (\Throwable $th) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to fetch employee list',
+                'message' => 'Failed to fetch user list',
                 'error' => $th->getMessage(),
             ], 500);
         }
@@ -71,7 +71,7 @@ class EmployeeMasterApiController extends Controller
             if ($currentEmployeeCount >= $company_client->no_of_users) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'You have reached the maximum number of employees allowed for your plan.',
+                    'message' => 'You have reached the maximum number of users allowed for your plan.',
                 ], 403);
             }
 
@@ -97,7 +97,7 @@ class EmployeeMasterApiController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Employee created successfully',
+                'message' => 'User created successfully',
                 'data' => $newEmployee,
             ], 201);
         } catch (ValidationException $e) {
@@ -105,7 +105,7 @@ class EmployeeMasterApiController extends Controller
         } catch (\Throwable $th) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to create employee',
+                'message' => 'Failed to create user',
                 'error' => $th->getMessage(),
             ], 500);
         }
@@ -141,13 +141,13 @@ class EmployeeMasterApiController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Employee updated successfully',
+                'message' => 'User updated successfully',
                 'data' => $targetEmployee,
             ]);
         } catch (\Throwable $th) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update employee',
+                'message' => 'Failed to update user',
                 'error' => $th->getMessage(),
             ], 500);
         }
@@ -170,12 +170,12 @@ class EmployeeMasterApiController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Employee deleted successfully',
+                'message' => 'User deleted successfully',
             ]);
         } catch (\Throwable $th) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete employee',
+                'message' => 'Failed to delete user',
                 'error' => $th->getMessage(),
             ], 500);
         }

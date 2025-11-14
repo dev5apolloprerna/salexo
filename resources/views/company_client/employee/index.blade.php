@@ -1,5 +1,5 @@
 @extends('layouts.client')
-@section('title', 'Employee List')
+@section('title', 'User List')
 @section('content')
 
     <?php $profileId = Request::segment(3); ?>
@@ -14,10 +14,10 @@
                     <div class="col-lg-12">
                         <div class="card">
                             <div class="card-body">
-                                <h5 class="card-title mb-0">Employee List
+                                <h5 class="card-title mb-0">User List
                                     <a href="{{ route('employee.create') }}" style="float: right;"
                                         class="btn btn-sm btn-primary">
-                                        <i class="far fa-plus"></i> Add Employee
+                                        <i class="far fa-plus"></i> Add User
                                     </a>
 
                                 </h5>
@@ -30,7 +30,7 @@
                                     <div class="row">
                                         <div class="col-md-5 ">
                                             <div class="form-group">
-                                                <label for="name">Search By Employee Name </label>
+                                                <label for="name">Search By User Name </label>
                                                 <input type="text" name="emp_name" id="search" class="form-control"
                                                     value="{{ $search ?? '' }}" autocomplete="off">
                                             </div>
@@ -55,7 +55,7 @@
                                                 <thead>
                                                     <tr class="text-center">
                                                         <th>Sr.No</th>
-                                                        <th>Employee Name</th>
+                                                        <th>User Name</th>
                                                         <th>Mobile</th>
                                                         <th>Email</th>
                                                         <th>Actions</th>
@@ -89,7 +89,7 @@
                                                         </tr>
                                                     @empty
                                                         <tr>
-                                                            <td colspan="5" class="text-center">No Employees Found.</td>
+                                                            <td colspan="5" class="text-center">No Users Found.</td>
                                                         </tr>
                                                     @endforelse
                                             </table>
