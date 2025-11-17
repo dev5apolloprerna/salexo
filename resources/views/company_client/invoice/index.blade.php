@@ -108,7 +108,7 @@
                                                                         <i class="fa fa-trash" aria-hidden="true"></i>
                                                                     </a>
                                      
-                                        <a href="{{ route('quotationdetails.index', $inv->invoiceId) }}" title="Add"
+                                        <a href="{{ route('invoicedetails.index', $inv->invoiceId) }}" title="Add"
                                             class="m-2"> <i class="fa fa-plus"></i></a>
 
                                         <a href="{{ route('invoice.showDetails', $inv->invoiceId) }}" title="View" target="blank"
@@ -132,7 +132,7 @@
                                               // Phone must be in international format, without plus, e.g., 9198XXXXXXXX
                                               $phone = preg_replace('/\D/','', $inv->iMobile ?? '');
                                               $pdfUrl = route('invoice.DetailPDF', $inv->invoiceId, true); // absolute URL
-                                              $text   = urlencode("Hello! Here is your quotation PDF:\n{$pdfUrl}");
+                                              $text   = urlencode("Hello! Here is your invoice PDF:\n{$pdfUrl}");
                                             @endphp
 
                                                 @if(($product) > 0)
@@ -202,7 +202,7 @@
                             method="POST">
                             @csrf
                             @method('DELETE')
-                            <input type="hidden" name="emp_id" id="deleteid" value="">
+                            <input type="hidden" name="invoice_id" id="deleteid" value="">
 
                         </form>
                     </div>

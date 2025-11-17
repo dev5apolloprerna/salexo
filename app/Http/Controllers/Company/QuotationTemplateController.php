@@ -227,7 +227,7 @@ class QuotationTemplateController extends Controller
 
     // Company logo → base64 inline
     $companyLogoUrl = null;
-        $root = base_path('../public_html/');
+        /*$root = base_path('../public_html/');
 
         // 1) pick relative path (from DB or fallback)
         $rel = data_get($company, 'company_logo'); // e.g. 'uploads/company/logo.png' or 'logo.png'
@@ -244,7 +244,7 @@ class QuotationTemplateController extends Controller
         $ext  = strtolower(pathinfo($path, PATHINFO_EXTENSION) ?: 'png');
         $mime = $ext === 'jpg' ? 'image/jpeg' : "image/$ext";
         $companyLogoUrl = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($path));
-        
+       */ 
 
     /* -----------------  Party fields  ----------------- */
    $partyName  = $party->strPartyName ?? 'Party';

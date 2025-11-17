@@ -5,6 +5,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class QuotationTemplate extends Model
 {
+    public $table = 'quotation_templates';
     protected $fillable = [
          'id', 'company_id', 'name', 'file_path', 'guid', 'is_active', 'created_at', 'updated_at'
     ];

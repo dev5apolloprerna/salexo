@@ -20,12 +20,10 @@
                                     class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
                                     Back
                                 </a>
-                            </h5>
+                            </h5></h5>
                           
                                <hr> 
                                
-                            </div>
-    <div class="card-body">
 
 
             {{-- Alert Messages --}}
@@ -133,17 +131,16 @@
             </div>
         </div>
 </div>
+
         <!-- DataTales Example -->
          <div class="row">
                     <div class="col-lg-12">
                         <div class="card">
                             <div class="card-body">
-                                <h5 class="card-title mb-0">Quotation Details List
+                                <h5 class="card-title mb-0">Invoice Details List
                                 </h5>
                                 <hr>
-                            </div>
-                            <div class="card-body">
-                             <h6 >Apply Discount to This Quotation</h6>
+                             <h6 >Apply Discount to This Invoice</h6>
 
                                 <form action="{{ route('invoicedetails.applyDiscount', $id) }}" method="POST" class="row  mb-3 g-3" id="discountForm">
                                   @csrf
@@ -216,7 +213,7 @@
                                     <td style="align-items: center;">
                                         <a class="m-2"  
                                                 data-toggle="modal"
-                                                data-target="#editQuotationDetailModal"
+                                                data-target="#editInvoiceDetailModal"
                                                 onclick="return editdata({{ $detail->invoicedetailsId }});">
                                           <i class="fa fa-edit"></i>
                                         </a>
@@ -241,12 +238,12 @@
                                 <?php $i++; ?>
 
 
-                                <div class="modal fade" id="editQuotationDetailModal" tabindex="-1" role="dialog" aria-labelledby="editQDLabel" aria-hidden="true">
+                                <div class="modal fade" id="editInvoiceDetailModal" tabindex="-1" role="dialog" aria-labelledby="editQDLabel" aria-hidden="true">
                                   <div class="modal-dialog modal-lg" role="document"><!-- bigger -->
                                     <div class="modal-content">
 
                                       <div class="modal-header">
-                                        <h5 class="modal-title" id="editQDLabel">Edit Quotation Detail</h5>
+                                        <h5 class="modal-title" id="editQDLabel">Edit Invoice Detail</h5>
                                                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                       </div>
 
@@ -496,7 +493,7 @@
   });
 
   // 2) Edit modal: init Select2 when modal becomes visible (BS5 event)
-  const $modal = $('#editQuotationDetailModal');
+  const $modal = $('#editInvoiceDetailModal');
 
   $modal.on('shown.bs.modal', function () {
     ensureInitSelect2($('#EditproductID'), this);

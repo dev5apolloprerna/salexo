@@ -5,13 +5,13 @@
 
   // Company full address
   $fullAddress = trim(
-      trim($popupQuotation->strAddressOne . ' ' . $popupQuotation->strAddressTwo . ' ' . $popupQuotation->strAddressThree)
+      trim($popupInvoice->strAddressOne . ' ' . $popupInvoice->strAddressTwo . ' ' . $popupInvoice->strAddressThree)
   );
 
   // Totals from details
   $iGstAmount = 0.0;
   $TotalNetAmount = 0.0;
-  foreach ($QuotationDetail as $d) {
+  foreach ($InvoiceDetail as $d) {
       $gstAmt = ((float)$d->netAmount) * ((float)$d->iGstPercentage) / 100.0;
       $iGstAmount += $gstAmt;
       $TotalNetAmount += (float)$d->netAmount;
@@ -19,13 +19,13 @@
   $grand = $TotalNetAmount + $iGstAmount;
 
   // GST label
-  $gstLabel = ($popupQuotation->iGstType ?? 1) == 2 ? 'IGST' : 'GST';
+  $gstLabel = ($popupInvoice->iGstType ?? 1) == 2 ? 'IGST' : 'GST';
 @endphp
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Quotation {{ $popupQuotation->iQuotationNo }}</title>
+  <title>Quotation {{ $popupInvoice->iQuotationNo }}</title>
   <style>
     /* Proper Rupee symbol in Dompdf */
     @font-face{
@@ -88,22 +88,22 @@
       </div>
       <div class="h-meta">
         <h1>Sales Quotation</h1>
-        @if(!empty($popupQuotation->strCompanyName))
-          <div class="subtitle">{{ $popupQuotation->strCompanyName }}</div>
+        @if(!empty($popupInvoice->strCompanyName))
+          <div class="subtitle">{{ $popupInvoice->strCompanyName }}</div>
         @endif
         @if(!empty($fullAddress))
           <div class="subtitle">{{ $fullAddress }}</div>
         @endif
         <div class="subtitle">
-          @if(!empty($popupQuotation->companyEmail)) Email: {{ $popupQuotation->companyEmail }} @endif
-          @if(!empty($popupQuotation->companyMobile)) &nbsp;|&nbsp; Contact: {{ $popupQuotation->companyMobile }} @endif
+          @if(!empty($popupInvoice->companyEmail)) Email: {{ $popupInvoice->companyEmail }} @endif
+          @if(!empty($popupInvoice->companyMobile)) &nbsp;|&nbsp; Contact: {{ $popupInvoice->companyMobile }} @endif
         </div>
       </div>
       <div class="q-meta">
-        <div><span class="chip">SQ No:</span> {{ $popupQuotation->iQuotationNo }}</div>
-        <div><strong>Date:</strong> {{ \Carbon\Carbon::parse($popupQuotation->entryDate)->format('d-m-Y') }}</div>
-        @if(!empty($popupQuotation->quotationValidity))
-          <div><strong>Quote Validity:</strong> {{ $popupQuotation->quotationValidity }}</div>
+        <div><span class="chip">SQ No:</span> {{ $popupInvoice->iQuotationNo }}</div>
+        <div><strong>Date:</strong> {{ \Carbon\Carbon::parse($popupInvoice->entryDate)->format('d-m-Y') }}</div>
+        @if(!empty($popupInvoice->quotationValidity))
+          <div><strong>Quote Validity:</strong> {{ $popupInvoice->quotationValidity }}</div>
         @endif
       </div>
     </div>
@@ -111,8 +111,8 @@
     {{-- GST / PAN --}}
     <table style="padding:0 16px 8px">
       <tr>
-        <td style="font-size:12px"><strong>GSTIN:</strong> {{ $popupQuotation->strGST }}</td>
-        <td class="right" style="font-size:12px"><strong>PAN:</strong> {{ $popupQuotation->strPanNo }}</td>
+        <td style="font-size:12px"><strong>GSTIN:</strong> {{ $popupInvoice->strGST }}</td>
+        <td class="right" style="font-size:12px"><strong>PAN:</strong> {{ $popupInvoice->strPanNo }}</td>
       </tr>
     </table>
 
@@ -120,18 +120,18 @@
     <div class="block-row">
       <div class="block">
         <h3>Bill To (Customer)</h3>
-        <div class="kv"><span class="k">Name:</span> {{ $popupQuotation->strPartyName }}</div>
-        @if(!empty($popupQuotation->address1)) <div class="kv"><span class="k">Address 1:</span> {{ $popupQuotation->address1 }}</div> @endif
-        @if(!empty($popupQuotation->address2)) <div class="kv"><span class="k">Address 2:</span> {{ $popupQuotation->address2 }}</div> @endif
-        @if(!empty($popupQuotation->address3)) <div class="kv"><span class="k">Address 3:</span> {{ $popupQuotation->address3 }}</div> @endif
-        @if(!empty($popupQuotation->iMobile))  <div class="kv"><span class="k">Mobile:</span> {{ $popupQuotation->iMobile }}</div> @endif
-        @if(!empty($popupQuotation->strEmail))  <div class="kv"><span class="k">Email:</span> {{ $popupQuotation->strEmail }}</div> @endif
+        <div class="kv"><span class="k">Name:</span> {{ $popupInvoice->strPartyName }}</div>
+        @if(!empty($popupInvoice->address1)) <div class="kv"><span class="k">Address 1:</span> {{ $popupInvoice->address1 }}</div> @endif
+        @if(!empty($popupInvoice->address2)) <div class="kv"><span class="k">Address 2:</span> {{ $popupInvoice->address2 }}</div> @endif
+        @if(!empty($popupInvoice->address3)) <div class="kv"><span class="k">Address 3:</span> {{ $popupInvoice->address3 }}</div> @endif
+        @if(!empty($popupInvoice->iMobile))  <div class="kv"><span class="k">Mobile:</span> {{ $popupInvoice->iMobile }}</div> @endif
+        @if(!empty($popupInvoice->strEmail))  <div class="kv"><span class="k">Email:</span> {{ $popupInvoice->strEmail }}</div> @endif
       </div>
       <div class="block">
         <h3>Quotation Terms</h3>
-        @if(!empty($popupQuotation->modeOfDespatch)) <div class="kv"><span class="k">Mode of Despatch:</span> {{ $popupQuotation->modeOfDespatch }}</div> @endif
-        @if(!empty($popupQuotation->deliveryTerm))   <div class="kv"><span class="k">Delivery Term:</span> {{ $popupQuotation->deliveryTerm }}</div> @endif
-        @if(!empty($popupQuotation->paymentTerms))   <div class="kv"><span class="k">Payment Term:</span> {{ $popupQuotation->paymentTerms }}</div> @endif
+        @if(!empty($popupInvoice->modeOfDespatch)) <div class="kv"><span class="k">Mode of Despatch:</span> {{ $popupInvoice->modeOfDespatch }}</div> @endif
+        @if(!empty($popupInvoice->deliveryTerm))   <div class="kv"><span class="k">Delivery Term:</span> {{ $popupInvoice->deliveryTerm }}</div> @endif
+        @if(!empty($popupInvoice->paymentTerms))   <div class="kv"><span class="k">Payment Term:</span> {{ $popupInvoice->paymentTerms }}</div> @endif
       </div>
     </div>
 
@@ -152,7 +152,7 @@
         </thead>
         <tbody>
           @php $i=1; @endphp
-          @foreach ($QuotationDetail as $detail)
+          @foreach ($InvoiceDetail as $detail)
             @php
               $qty  = (float)($detail->quantity ?? 0);
               $rate = (float)($detail->rate ?? 0);
@@ -173,7 +173,7 @@
             @php $i++; @endphp
           @endforeach
 
-          @if(count($QuotationDetail) === 0)
+          @if(count($InvoiceDetail) === 0)
             <tr><td colspan="8" class="center muted" style="padding:10px">No items</td></tr>
           @endif
         </tbody>
@@ -184,17 +184,17 @@
     <div class="totals">
       <div class="note">
         <div><strong>GST Type:</strong> {{ $gstLabel }}</div>
-        @if(!empty($popupQuotation->quotationValidity))
-          <div><strong>Quote Validity:</strong> {{ $popupQuotation->quotationValidity }}</div>
+        @if(!empty($popupInvoice->quotationValidity))
+          <div><strong>Quote Validity:</strong> {{ $popupInvoice->quotationValidity }}</div>
         @endif
-        @if(!empty($popupQuotation->modeOfDespatch))
-          <div><strong>Mode of Despatch:</strong> {{ $popupQuotation->modeOfDespatch }}</div>
+        @if(!empty($popupInvoice->modeOfDespatch))
+          <div><strong>Mode of Despatch:</strong> {{ $popupInvoice->modeOfDespatch }}</div>
         @endif
-        @if(!empty($popupQuotation->deliveryTerm))
-          <div><strong>Delivery Term:</strong> {{ $popupQuotation->deliveryTerm }}</div>
+        @if(!empty($popupInvoice->deliveryTerm))
+          <div><strong>Delivery Term:</strong> {{ $popupInvoice->deliveryTerm }}</div>
         @endif
-        @if(!empty($popupQuotation->paymentTerms))
-          <div><strong>Payment Term:</strong> {{ $popupQuotation->paymentTerms }}</div>
+        @if(!empty($popupInvoice->paymentTerms))
+          <div><strong>Payment Term:</strong> {{ $popupInvoice->paymentTerms }}</div>
         @endif
       </div>
 
@@ -218,13 +218,13 @@
     <div class="terms">
       <div class="terms-h">Terms &amp; Conditions</div>
       <div class="terms-b">
-        {!! $popupQuotation->strTermsCondition !!}
+        {!! $popupInvoice->strTermsCondition !!}
       </div>
     </div>
 
     {{-- Footer --}}
     <div class="foot">
-      <div>Place of Supply / Jurisdiction: <strong>{{ $popupQuotation->jurisdiction ?? '-' }}</strong></div>
+      <div>Place of Supply / Jurisdiction: <strong>{{ $popupInvoice->jurisdiction ?? '-' }}</strong></div>
       <div class="stamp">Authorized Signatory</div>
     </div>
   </div>
