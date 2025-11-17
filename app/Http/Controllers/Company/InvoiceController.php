@@ -12,7 +12,7 @@ use App\Models\State;
 use App\Models\Invoice;
 use App\Models\InvoiceDetail;
 use App\Models\TermCondition;
-use App\Models\QuotationTemplate;
+use App\Models\InvoiceTemplate;
 use App\Models\Service;
 
 use Illuminate\Support\Facades\File;
@@ -187,7 +187,7 @@ class InvoiceController extends Controller
 
     public function delete(Request $request, $Id)
     {
-        DB::table('invoice')->where(['iStatus' => 1, 'isDelete' => 0, 'invoiceId' => $Id])->delete();
+        DB::table('invoice')->where(['iStatus' => 1, 'isDelete' => 0, 'invoiceId' => $request->invoice_id])->delete();
 
         return redirect()->route('invoice.index')->with('success', 'Invoice Deleted Successfully!.');
     }
@@ -216,7 +216,7 @@ class InvoiceController extends Controller
 
     public function detailPDF(Request $request, $id)
     {
-        // 1) Load quotation with relations
+        // 1) Load invoice with relations
         $invoice = Invoice::with(['company','party'])
             ->where(['iStatus' => 1, 'isDelete' => 0, 'invoiceId' => $id])
             ->firstOrFail();
@@ -247,7 +247,7 @@ class InvoiceController extends Controller
                 'isRemoteEnabled'      => true,
             ])->loadHTML($html);
 
-$pdf->setPaper('a4');
+        $pdf->setPaper('a4');
 
         /*return $pdf->download($fileName);*/
         return $pdf->stream($fileName);
@@ -550,7 +550,7 @@ $pdf->setPaper('a4');
 
         // Company logo → base64 inline
         $companyLogoUrl = null;
-        $root = base_path('../public_html/');
+        /*$root = base_path('../public_html/');
 
         // 1) pick relative path (from DB or fallback)
         $rel = data_get($company, 'company_logo'); // e.g. 'uploads/company/logo.png' or 'logo.png'
@@ -567,7 +567,7 @@ $pdf->setPaper('a4');
         $ext  = strtolower(pathinfo($path, PATHINFO_EXTENSION) ?: 'png');
         $mime = $ext === 'jpg' ? 'image/jpeg' : "image/$ext";
         $companyLogoUrl = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($path));
-        
+        */
 
        /* if ($get($company, ['company_logo'])) {
             $path = public_path('CompanyLogo/'.$company->company_logo);

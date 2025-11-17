@@ -701,7 +701,7 @@ class InvoiceDetailController extends Controller
                 $gstTotal      += $gst;
                 $grandTotal    += $tot;
             }
-            DB::table('quotation')
+            DB::table('invoice')
             ->where('invoiceID', $invoiceID)
             ->update([
                 'discount_type' => $mode,         // "percent" or "amount"

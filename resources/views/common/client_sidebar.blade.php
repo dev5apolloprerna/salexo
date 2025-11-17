@@ -248,6 +248,12 @@
                             <span>Invoice</span>
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link collapsed" href="{{ route('performainvoice.index') }}">
+                            <i class="fa-solid fa-file-invoice"></i>
+                            <span>Performa Invoice</span>
+                        </a>
+                    </li>
                     @endif
                     
                     

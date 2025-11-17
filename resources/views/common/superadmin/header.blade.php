@@ -99,6 +99,10 @@ if (Auth::guard('web')->user()) {
                                 class="fa fa-file-text text-muted fs-16 align-middle me-1"></i> <span
                                 class="align-middle" data-key="t-template">Quotation Templates</span>
                         </a>
+                        <a class="dropdown-item" href="{{ route('invoiceT.templates') }}"><i
+                                class="fa fa-file-text text-muted fs-16 align-middle me-1"></i> <span
+                                class="align-middle" data-key="t-template">Invoice Templates</span>
+                        </a>
                         @endif
                         <a class="dropdown-item" href="{{ route('empuserlogout') }}"><i
                                 class="mdi mdi-logout text-muted fs-16 align-middle me-1"></i> <span
