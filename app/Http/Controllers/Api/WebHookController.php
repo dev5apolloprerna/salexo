@@ -8,6 +8,7 @@ use App\Models\LeadPipeline;
 use App\Models\Employee;
 use App\Models\Service;
 use App\Models\LeadSource;
+use App\Models\UserData;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
@@ -21,7 +22,7 @@ class WebHookController extends Controller
             $employee = Employee::where('isDelete', 0)
                 ->where('guid', $guid)
                 ->first();
-
+            $userData=UserData::where(['api_id'=>1])->first();
             if (!$employee) {
                 return response()->json([
                     'success' => false,
@@ -66,7 +67,7 @@ class WebHookController extends Controller
 
             $data = array(
                 'iCustomerId' => $employee->company_id,
-                'iemployeeId' => $employee->emp_id ?? 0,
+                'iemployeeId' => $userData->emp_id ?? $employee->emp_id ?? 0,
                 'company_name' => $request->SENDER_COMPANY,
                 'customer_name' => $request->SENDER_NAME,
                 'email' => $request->SENDER_EMAIL,
@@ -108,6 +109,7 @@ class WebHookController extends Controller
             $employee = Employee::where('isDelete', 0)
                 ->where('guid', $guid)
                 ->first();
+            $userData=UserData::where(['api_id'=>1])->first();
 
             if (!$employee) {
                 return response()->json([
@@ -153,7 +155,7 @@ class WebHookController extends Controller
 
             $data = array(
                 'iCustomerId' => $employee->company_id,
-                'iemployeeId' => $employee->emp_id ?? 0,
+                'iemployeeId' => $userData->emp_id ?? $employee->emp_id,
                 'company_name' => $request->company_name,
                 'GST_No' => $request->gst_no,
                 'customer_name' => $request->contact_person_name,

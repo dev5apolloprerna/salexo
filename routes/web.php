@@ -263,6 +263,11 @@ Route::prefix('clients/')->name('api_data.')->middleware(['auth:web_employees'])
 
     Route::get('/api-docs/indiamart', [ApiDataController::class, 'indiamart'])->name('pdf.indiamart');
     Route::get('/api-docs/general', [ApiDataController::class, 'general'])->name('pdf.general');
+
+    Route::post('/client/api-settings', [ApiDataController::class, 'store'])->name('api-settings.store');
+    Route::post('/client/api/meta-token', [ApiDataController::class, 'storeMetaTokens'])
+    ->name('meta-token.store');
+
 });
 
 //Follow Up
