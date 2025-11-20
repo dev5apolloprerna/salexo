@@ -5,14 +5,36 @@ namespace App\Http\Controllers\Company;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\DB;
+
+use App\Models\Employee;
+use App\Models\LeadSource;
+use App\Models\Service;
+use App\Models\UserData;
+
+use Illuminate\Support\Facades\Auth;
+
+
 
 class ApiDataController extends Controller
 {
-    public function index(Request $request)
+     public function index(Request $request)
     {
-        return view('company_client.api_data.index');
-    }
+        $user = Auth::user();
+        $employees=Employee::where(['iStatus'=>1,'isDelete'=>0,'company_id'=>$user->company_id])->get();
+        $product=Service::where(['iStatus'=>1,'isDelete'=>0])->get();
+        $leadSources=LeadSource::where(['company_id'=>$user->company_id])->get();
+        
+         $apiSettings = UserData::where('company_id', $user->company_id)
+            ->get()
+            ->keyBy('api_id');   // so you can do $apiSettings[1], [2], [3]
 
+        $indiamartSettings = $apiSettings->get(1); // may be null if not set
+        $generalSettings   = $apiSettings->get(2);
+        $metaSettings      = $apiSettings->get(3);
+
+        return view('company_client.api_data.index',compact('employees','product','leadSources','indiamartSettings','generalSettings','metaSettings'));
+    }
     public function indiamart()
     {
         $params = [
@@ -60,4 +82,73 @@ class ApiDataController extends Controller
         $pdf = Pdf::loadView('company_client.api_data.api_doc', ['data' => $params]);
         return $pdf->stream('general_api.pdf'); // opens in browser
     }
+    //store api setting data 
+        public function store(Request $request)
+        {
+
+            if($request->api_name == 'indiamart')
+            {
+                $api_id=1;
+            }
+            else if($request->api_name == 'general')
+            {
+                $api_id=2;
+            }
+            else{
+                $api_id=3;
+            }
+
+            $request->validate([
+                'employee_id' => ['nullable', 'integer'],
+                'source_id'   => ['nullable', 'integer'],
+                'api_name'    => ['nullable', 'string'], // optional, in case you want to use it later
+            ]);
+
+            $companyId = auth()->user()->company_id;
+
+            // upsert row in user_data table for this company
+            DB::table('user_data')->updateOrInsert(
+                ['company_id' => $companyId,'api_id'=>$api_id], // unique key
+                [
+                    'emp_id'     => $request->input('employee_id') ?: null,
+                    'source_id'  => $request->input('source_id') ?: null,
+                    'api_id'     => $api_id,
+                    'updated_at' => now(),
+                    'created_at' => now(), // will only be used on insert
+                ]
+            );
+
+            return response()->json([
+                'success'    => true,
+                'message'    => 'API settings saved successfully.',
+            ]);
+        }
+            public function storeMetaTokens(Request $request)
+        {
+            $request->validate([
+                'access_token' => ['nullable', 'string'],
+                'verify_token' => ['nullable', 'string'],
+            ]);
+    
+            $companyId = auth()->user()->company_id;
+    
+            DB::table('user_data')->updateOrInsert(
+                [
+                    'company_id' => $companyId,
+                    'api_id'     => 3, // 3 = Meta API
+                ],
+                [
+                    'access_token' => $request->input('access_token') ?: null,
+                    'verify_token' => $request->input('verify_token') ?: null,
+                    'updated_at'   => now(),
+                    'created_at'   => now(),
+                ]
+            );
+    
+            return response()->json([
+                'success' => true,
+                'message' => 'Meta API tokens saved successfully.',
+            ]);
+        }
+
 }
