@@ -187,6 +187,19 @@
         required readonly>
 </div>
 
+<div class="col-lg-6 col-md-6">
+    <label for="notify_api">Notify on API on lead receive</label><br>
+
+    <input type="hidden" name="notify_api" value="0"> {{-- Default value when unchecked --}}
+    
+    <input type="checkbox" name="notify_api" id="notify_api" value="1"
+                    {{ old('notify_api', $client->notify_api ?? 0) == 1 ? 'checked' : '' }}>
+    <span>Enable notification</span>
+
+    @if ($errors->has('notify_api'))
+        <span class="text-danger">{{ $errors->first('notify_api') }}</span>
+    @endif
+</div>
 
 
 @section('scripts')

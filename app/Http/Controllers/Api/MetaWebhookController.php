@@ -9,7 +9,7 @@ use App\Models\LeadPipeline;
 use App\Models\LeadSource;
 use App\Models\LeadMaster;
 use App\Models\UserData;
-use App\Models\Employee; // ðŸ‘ˆ make sure this exists
+use App\Models\Employee; // 👈 make sure this exists
 use Illuminate\Support\Facades\Log;
 
 class MetaWebhookController extends Controller
@@ -71,7 +71,7 @@ class MetaWebhookController extends Controller
 
         Log::info('Meta Webhook Received:', $data);
 
-        // (Optional) store raw payload â€“ remove if you don't want extra row
+        // (Optional) store raw payload – remove if you don't want extra row
         // LeadMaster::create([
         //     'iCustomerId'       => 0,
         //     'iemployeeId'       => 0,
@@ -113,11 +113,11 @@ class MetaWebhookController extends Controller
 
             if (!empty($normalizedId)) {
                 Log::info("Normalized lead id: " . $normalizedId);
-                // ðŸ‘‡ pass guid here
+                // 👇 pass guid here
                 $this->fetchLeadDetails($normalizedId, $guid);
             } else {
                 Log::warning("Lead id exists but normalizes to empty. Using raw id for fetch.");
-                // ðŸ‘‡ and here
+                // 👇 and here
                 $this->fetchLeadDetails($leadgenId, $guid);
             }
         } else {
@@ -227,7 +227,7 @@ class MetaWebhookController extends Controller
                 LeadMaster::create([
                     'iCustomerId'       => $employee->company_id ?? 0,
                     'company_name'       => $employee->company->company_name ?? null,
-                    'iemployeeId'       => $mappedEmpId,
+                    'iemployeeId'       => $employee->emp_id,
                     'product_service_id'=> 0,
                     'LeadSourceId'      => $lead_source,
                     'lead_history_id'   => 0,
@@ -273,7 +273,7 @@ class MetaWebhookController extends Controller
             }
         }
 
-        // If direct fetch failed, just log â€“ you can also create a "failed" lead if you want
+        // If direct fetch failed, just log – you can also create a "failed" lead if you want
         $status = $response->status();
         Log::warning("Direct lead fetch failed: HTTP {$status}");
     }

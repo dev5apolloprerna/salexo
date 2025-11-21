@@ -19,7 +19,7 @@
 
                             <div class="card-header">
                                 <h5 class="card-title mb-0">
-                                    New Lead List
+                                     {{ $leadPipeline->pipeline_name }} List
                                 </h5>
                             </div>
                             <div class="card-body border-bottom">
@@ -78,13 +78,13 @@
 
                                                             @if ($profileId === 'new-lead')
                                                                 <td>
-                                                                    <a href="{{ route('employee.followup_detail', $lead->lead_id) }}"
+                                                                    <a href="{{ route('employee.followup_detail',[$status, $lead->lead_id]) }}"
                                                                         class="btn btn-sm btn-success" title="Add Followup">
                                                                         <i class="fa fa-plus"></i>
                                                                     </a>
                                                                 </td>
                                                             @else
-                                                                @if ($leadPipeline->followup_needed == 'yes')
+                                                                <!-- @if ($leadPipeline->followup_needed == 'yes') -->
                                                                     <td>
                                                                         <a href="{{ route('employee.followup_detail', [$status, $lead->lead_id]) }}"
                                                                             class="btn btn-sm btn-success"
@@ -92,7 +92,7 @@
                                                                             <i class="fa fa-plus"></i>
                                                                         </a>
                                                                     </td>
-                                                                @endif
+                                                                <!-- @endif -->
                                                             @endif
 
                                                         </tr>

@@ -59,7 +59,7 @@
                                                         <th>Mobile</th>
                                                         <th>Service / Product</th>
                                                         @if (!in_array($status, ['deal-done']))
-                                                            <th>Followup Date</th>
+                                                            <th width="8%">Followup Date</th>
                                                         @endif
                                                         <th>Lead Source</th>
                                                         @if ($status === 'deal-done')
@@ -68,6 +68,7 @@
                                                         @if ($status === 'deal-cancel')
                                                             <th>Lead Cancel Date</th>
                                                         @endif
+                                                        <th width="8%">Entry Date</th>
                                                         <th>Action</th>
                                                     </tr>
                                                 </thead>
@@ -99,7 +100,9 @@
                                                                     {{ $lead->deal_cancel_at ? date('d-m-Y H:i', strtotime($lead->deal_cancel_at)) : '-' }}
                                                                 </td>
                                                             @endif
-
+                                                                <td>
+                                                                    {{ date('d-m-Y h:i A',strtotime($lead->created_at)) }}
+                                                                </td>
                                                             @if ($profileId === 'new-lead')
                                                                 <td>
                                                                     <a href="{{ route('clients.followup_detail', [$status, $lead->lead_id]) }}"

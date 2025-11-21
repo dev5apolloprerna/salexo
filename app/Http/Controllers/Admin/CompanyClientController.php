@@ -158,6 +158,7 @@ class CompanyClientController extends Controller
             $data = $request->all();
             $data['subscription_start_date'] = Carbon::now();
             $data['no_of_users'] = $request->no_of_users;
+            $data['isNotifyApi'] = $request->notify_api; // 0 or 1
 
             // Get the plan days
             $planDays = isset($request->plan_days) ? (int)$request->plan_days : 0;
@@ -185,6 +186,7 @@ class CompanyClientController extends Controller
                 'isCompanyAdmin' => 1,
                 'can_access_LMS' => 1,
                 'role_id'        => 2,
+
             ]);
 
             $lead_pipelines = [

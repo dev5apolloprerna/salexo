@@ -200,7 +200,7 @@ class QuotationController extends Controller
 
     public function delete(Request $request, $Id)
     {
-        DB::table('quotation')->where(['iStatus' => 1, 'isDelete' => 0, 'quotationId' => $Id])->delete();
+        DB::table('quotation')->where(['iStatus' => 1, 'isDelete' => 0, 'quotationId' => $request->quotation_id])->delete();
 
         return redirect()->route('quotation.index')->with('success', 'Quotation Deleted Successfully!.');
     }

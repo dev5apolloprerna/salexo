@@ -135,23 +135,6 @@
                                               $text   = urlencode("Hello! Here is your quotation PDF:\n{$pdfUrl}");
                                             @endphp
 
-                                                @if(($product) > 0)
-                                            <a href="https://wa.me/{{ $phone }}?text={{ $text }}"
-                                               target="_blank"
-                                               class="m-2"
-                                               title="Share on WhatsApp">
-                                              <i class="fab fa-whatsapp"></i>
-                                            </a>
-                                            @else
-                                            <a href="#"
-                                               target="_blank"
-                                               class="m-2"
-                                               title="Share on WhatsApp">
-                                              <i class="fab fa-whatsapp"></i>
-                                            </a>
-                                            
-                                            @endif
-                                            
                                             <a href="{{ route('quotation.copy', $quotation->quotationId) }}" title="Copy"
                                             class="btn btn-primary btn-sm m-2"> <i class="fa-solid fa-copy"></i></a>
                                                 </td>
@@ -202,7 +185,7 @@
                             method="POST">
                             @csrf
                             @method('DELETE')
-                            <input type="hidden" name="emp_id" id="deleteid" value="">
+                            <input type="hidden" name="quotation_id" id="deleteid" value="">
 
                         </form>
                     </div>

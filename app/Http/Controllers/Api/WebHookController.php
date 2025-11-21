@@ -22,7 +22,9 @@ class WebHookController extends Controller
             $employee = Employee::where('isDelete', 0)
                 ->where('guid', $guid)
                 ->first();
+            
             $userData=UserData::where(['api_id'=>1])->first();
+ 
             if (!$employee) {
                 return response()->json([
                     'success' => false,
@@ -109,7 +111,7 @@ class WebHookController extends Controller
             $employee = Employee::where('isDelete', 0)
                 ->where('guid', $guid)
                 ->first();
-            $userData=UserData::where(['api_id'=>1])->first();
+            $userData=UserData::where(['api_id'=>2])->first();
 
             if (!$employee) {
                 return response()->json([
@@ -155,7 +157,7 @@ class WebHookController extends Controller
 
             $data = array(
                 'iCustomerId' => $employee->company_id,
-                'iemployeeId' => $userData->emp_id ?? $employee->emp_id,
+                'iemployeeId' => $userData->emp_id ?? $employee->emp_id ?? 0,
                 'company_name' => $request->company_name,
                 'GST_No' => $request->gst_no,
                 'customer_name' => $request->contact_person_name,

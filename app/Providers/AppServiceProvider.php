@@ -10,6 +10,10 @@ use Illuminate\Support\ServiceProvider;
 
 use Illuminate\Pagination\Paginator;
 
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Queue\Events\WorkerStopping;
+
 
 
 class AppServiceProvider extends ServiceProvider
@@ -46,13 +50,22 @@ class AppServiceProvider extends ServiceProvider
 
      */
 
-    public function boot()
+public function boot()
+{
+    Event::listen(WorkerStopping::class, function () {
+        DB::disconnect('mysql');
+    });
+            Paginator::useBootstrap();
+
+}
+
+   /* public function boot()
 
     {
 
         Paginator::useBootstrap();
 
-    }
+    }*/
 
 }
 
