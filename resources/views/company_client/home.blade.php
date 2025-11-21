@@ -505,12 +505,10 @@
 
                     @foreach ($piplines as $pipline)
                         <div class="col-md-4">
-                            {{--  @if ($pipline->pipeline_name == 'New Lead')  --}}
                             @php
                                 $slug = Str::slug($pipline->pipeline_name);
                             @endphp
                             <a href="{{ route('clients.new_lead', $slug) }}">
-                                {{--  @endif  --}}
                                 <div class="card  text-center p-3 text-white"
                                     style="background:{{ $pipline->color ?? '#000000' }};">
                                     <div class="card-title">
@@ -528,9 +526,7 @@
                                         </div>    
                                     </div>
                                 </div>
-                                {{--  @if ($pipline->pipeline_name == 'New Lead')  --}}
                             </a>
-                            {{--  @endif  --}}
                         </div>
                     @endforeach
 

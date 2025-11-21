@@ -25,10 +25,10 @@
                                <hr> 
                                
                             </div>
-                        <div class="card-body">
-                        {{-- Alert Messages --}}
+    <div class="card-body">
+            {{-- Alert Messages --}}
            
-                        <!-- DataTales Example -->
+            <!-- DataTales Example -->
                     <div class="card-title" style="display: flex;justify-content: space-between;">
                         <h6 class="m-0 font-weight-bold">
                           Company Name : {{ $CompanyName->company_name ?? '-' }}

@@ -13,30 +13,7 @@ class CompanyClient extends Model
 
 
     protected $fillable = [
-        'company_name',
-        'GST',
-        'contact_person_name',
-        'mobile',
-        'email',
-        'Address',
-        'pincode',
-        'city',
-        'state_id',
-        'password',
-        'subscription_start_date',
-        'subscription_end_date',
-        'plan_id',
-        'plan_amount',
-        'plan_days',
-        'payment_terms',
-        'delivery_terms',
-        'terms_condition',
-        'no_of_users',
-        'companyTemplate',
-        'iStatus',
-        'isDeleted',
-        'created_at',
-        'updated_at'
+         'company_id', 'company_name', 'GST', 'contact_person_name', 'mobile', 'email', 'Address', 'pincode', 'city', 'state_id', 'password', 'subscription_start_date', 'subscription_end_date', 'plan_id', 'plan_amount', 'plan_days', 'delivery_terms', 'payment_terms', 'terms_condition', 'isNotifyApi', 'company_logo', 'companyTemplate', 'no_of_users'
     ];
 
     public function Plan()
@@ -52,3 +29,5 @@ class CompanyClient extends Model
         return $this->hasOne(Employee::class, 'company_id', 'company_id');
     }
 }
+
+

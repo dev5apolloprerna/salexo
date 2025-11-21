@@ -110,6 +110,10 @@
                                                 </div>
                                             @endforeach
                                         @endif
+                                        <div class="d-flex">
+                                        <strong class="w-50">Remarks:</strong>
+                                        <span>{{ $lead->remarks ?? '-' }}</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>

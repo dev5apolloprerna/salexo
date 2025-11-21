@@ -168,7 +168,7 @@ class FollowUpController extends Controller
                             ->orWhere('deal_done.customer_name', 'like', '%' . $search . '%');
                         });
                     })
-                    ->paginate(config('app.per_page'));
+                    ->orderBy('lead_id','asc')->paginate(config('app.per_page'));
             } elseif ($status === 'deal-cancel') {
                 // Get leads from `deal_cancel` table
                 $leads = DB::table('deal_cancel')
@@ -195,7 +195,7 @@ class FollowUpController extends Controller
                             ->orWhere('deal_cancel.customer_name', 'like', '%' . $search . '%');
                         });
                     })
-                    ->paginate(config('app.per_page'));
+                    ->orderBy('lead_id','asc')->paginate(config('app.per_page'));
             } else {
                 // Get leads from `lead_master` table
                 $leads = LeadMaster::where([
@@ -221,7 +221,7 @@ class FollowUpController extends Controller
                             ->orWhere('lead_master.customer_name', 'like', '%' . $search . '%');
                         });
                     })
-                    ->paginate(config('app.per_page'));
+                    ->orderBy('lead_id','asc')->paginate(config('app.per_page'));
             }
 
             return view('company_client.follow_up.new_leads', compact('leads', 'status'));

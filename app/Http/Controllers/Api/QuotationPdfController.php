@@ -19,13 +19,16 @@ use PDF; // Barryvdh\DomPDF
 
 class QuotationPdfController extends Controller
 {
-
 public function quotationPdfLink(Request $request, int $id)
 {
     try {
         // 1) Load Quotation + relations
-        $quotation = Quotation::with(['company','party'])
-            ->where(['iStatus' => 1, 'isDelete' => 0, 'quotationId' => $id])
+        $quotation = Quotation::with(['company', 'party'])
+            ->where([
+                'iStatus'     => 1,
+                'isDelete'    => 0,
+                'quotationId' => $id,
+            ])
             ->firstOrFail();
 
         // 2) Resolve default template for this company
@@ -42,7 +45,11 @@ public function quotationPdfLink(Request $request, int $id)
 
         // Optional: company-specific terms if your template shows them
         $data['extraTerms'] = DB::table('termcondition')
-            ->where(['iStatus' => 1, 'isDelete' => 0, 'companyID' => $quotation->iCompanyId])
+            ->where([
+                'iStatus'   => 1,
+                'isDelete'  => 0,
+                'companyID' => $quotation->iCompanyId,
+            ])
             ->orderBy('termconditionId')
             ->pluck('description')
             ->filter()
@@ -62,10 +69,12 @@ public function quotationPdfLink(Request $request, int $id)
 
         // 6) Save under /public/uploads/quotation_pdf/
         $safeParty = Str::slug($data['partyName'] ?? 'party');
-        $safeNo    = Str::slug($data['quotationNumber'] ?? ('QTN-'.$id));
+        $safeNo    = Str::slug($data['quotationNumber'] ?? ('QTN-' . $id));
         $fileName  = "{$safeParty}-{$safeNo}.pdf";
 
-        $dir = base_path('../public_html/uploads/quotation_pdf');
+        // use standard public_path so URL and path match
+        $dir = public_path('uploads/quotation_pdf');
+
         if (!File::isDirectory($dir)) {
             File::makeDirectory($dir, 0775, true);
         }
@@ -73,26 +82,29 @@ public function quotationPdfLink(Request $request, int $id)
         $absPath = $dir . DIRECTORY_SEPARATOR . $fileName;
         file_put_contents($absPath, $pdf->output());
 
-        // 7) Public URL to the PDF (served directly from /public)
-        $url = asset('../uploads/quotation_pdf/'.$fileName);
+        // 7) Full public URL to the PDF
+        // e.g. https://your-domain.com/uploads/quotation_pdf/party-qtn-123.pdf
+        $url = url('uploads/quotation_pdf/' . $fileName);
 
         return response()->json([
-            'success'   => true,
-            'message'   => 'Quotation PDF generated.',
-            'pdfurl'       =>  $url,
-            // ],
-            // 'template'  => [
-            //     'guid' => (string)$template->guid,
-            //     'name' => (string)$template->name,
-            // ],
+            'success' => true,
+            'message' => 'Quotation PDF generated.',
+            'pdfurl'  => $url, // full PDF URL
         ], 200);
 
     } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-        return response()->json(['success' => false, 'message' => 'Quotation not found.'], 404);
+        return response()->json([
+            'success' => false,
+            'message' => 'Quotation not found.',
+        ], 404);
     } catch (\Throwable $th) {
-        return response()->json(['success' => false, 'message' => $th->getMessage()], 500);
+        return response()->json([
+            'success' => false,
+            'message' => $th->getMessage(),
+        ], 500);
     }
 }
+
 
 /**
  * Fetch default template for a company using company_client_master.companyTemplate (GUID).

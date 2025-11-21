@@ -195,4 +195,4 @@ Route::post('/inquiry/{guid}', [WebHookController::class, 'crm_inquiry']);
 
 
 Route::get('/meta/webhook/{guid}', [MetaWebhookController::class, 'verify']);
-Route::post('/meta/webhook/{guid}}', [MetaWebhookController::class, 'receive']);
+Route::post('/meta/webhook/{guid}', [MetaWebhookController::class, 'receive']);

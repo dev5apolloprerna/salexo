@@ -28,6 +28,7 @@ class EmployeeLeadMasterController extends Controller
             //     'iCustomerId' => Auth::user()->company_id,
             //     'iEnterBy' => Auth::user()->emp_id,
             // ]);
+
             $query = LeadMaster::select(
                 'lead_master.*',
                 'lead_pipeline_master.pipeline_name',
@@ -40,7 +41,7 @@ class EmployeeLeadMasterController extends Controller
                 ->where([
                     'lead_master.isDelete' => 0,
                     'lead_master.iCustomerId' => Auth::user()->company_id,
-                    'iEnterBy' => Auth::user()->emp_id,
+                    'employee_id' => Auth::user()->emp_id,
                 ]);
 
             if (!empty($search)) {
