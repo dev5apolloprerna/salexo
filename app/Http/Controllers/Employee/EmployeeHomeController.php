@@ -150,8 +150,8 @@ class EmployeeHomeController extends Controller
             // dd($piplines);
 
             $allLeads = LeadMaster::where([
-                'iemployeeId' => $emp->company_id,
-                'iEnterBy' => $emp->emp_id
+                'iCustomerId' => $emp->company_id,
+                'employee_id' => $emp->emp_id
             ])
                 ->where('iStatus', 1)
                 ->where('isDelete', 0)
@@ -395,7 +395,7 @@ class EmployeeHomeController extends Controller
                 'lead_master.iStatus' => 1,
                 'lead_master.isDelete' => 0,
                 'lead_master.iCustomerId' => Auth::user()->company_id,
-                'lead_master.iEnterBy' => Auth::user()->emp_id
+                'lead_master.employee_id' => Auth::user()->emp_id
             ])
                 ->leftJoin('service_master', 'lead_master.product_service_id', '=', 'service_master.service_id')
                 ->leftJoin('lead_source_master', 'lead_master.LeadSourceId', '=', 'lead_source_master.lead_source_id')
@@ -455,7 +455,7 @@ class EmployeeHomeController extends Controller
                 'lead_master.iStatus' => 1,
                 'lead_master.isDelete' => 0,
                 'lead_master.iCustomerId' => Auth::user()->company_id,
-                'lead_master.iEnterBy' => Auth::user()->emp_id
+                'lead_master.employee_id' => Auth::user()->emp_id
             ])
                 ->leftJoin('service_master', 'lead_master.product_service_id', '=', 'service_master.service_id')
                 ->leftJoin('lead_source_master', 'lead_master.LeadSourceId', '=', 'lead_source_master.lead_source_id')
@@ -502,13 +502,31 @@ class EmployeeHomeController extends Controller
         try {
             $emp = Auth::guard('web_employees')->user();
             $leadPipeline = LeadPipeline::where(['slugname' => $status])->first();
-
             if (!$leadPipeline) {
                 return redirect()->back()->with('error', 'Invalid pipeline status provided.');
             }
             $leadPipeline = $leadPipeline->pipeline_name;
 
-            
+            // $leads = LeadMaster::where([
+            //     'lead_master.iStatus' => 1,
+            //     'lead_master.isDelete' => 0,
+            //     'lead_master.iCustomerId' => $emp->company_id,
+            //     'lead_master.iEnterBy' => $emp->emp_id,
+            // ])
+            //     ->whereIn('lead_master.status', function ($query) use ($emp, $leadPipeline) {
+            //         $query->select('pipeline_id')
+            //             ->from('lead_pipeline_master')
+            //             ->where('company_id', $emp->company_id)
+            //             ->where('pipeline_name', 'like', $leadPipeline);
+            //     })
+            //     ->join('service_master', 'lead_master.product_service_id', '=', 'service_master.service_id')
+            //     ->join('lead_source_master', 'lead_master.LeadSourceId', '=', 'lead_source_master.lead_source_id')
+            //     ->select(
+            //         'lead_master.*',
+            //         'service_master.service_name',
+            //         'lead_source_master.lead_source_name'
+            //     )
+            //     ->paginate(10);
             $search = request('search');
             if ($status === 'deal-done') {
                 // Get leads from `deal_done` table
@@ -669,7 +687,7 @@ class EmployeeHomeController extends Controller
     {
         // dd($request);
         // try {
-
+$user = Auth::guard('web_employees')->user();
         $request->validate([
             'status' => 'required',
             'cancel_reason_id' => 'nullable|exists:lead_cancel_reason,lead_cancel_reason_id',

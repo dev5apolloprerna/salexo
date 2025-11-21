@@ -1341,7 +1341,7 @@ class EmployeeApiController extends Controller
 
             // ✅ Add this if not admin
             if ($employee->isCompanyAdmin == 0) {
-                $query->where('lead_master.iEnterBy', $employee->emp_id);
+                $query->where('lead_master.employee_id', $employee->emp_id);
             }
 
             $leads = $query->leftjoin('service_master', 'lead_master.product_service_id', '=', 'service_master.service_id')

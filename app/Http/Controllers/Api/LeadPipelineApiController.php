@@ -44,7 +44,7 @@ class LeadPipelineApiController extends Controller
 
                     // ✅ Add this if not admin
                     if ($employee->isCompanyAdmin == 0) {
-                        $join->where('lead_master.iEnterBy', $employee->emp_id);
+                        $join->where('lead_master.employee_id', $employee->emp_id);
                     }
                 })
                 ->where('lead_pipeline_master.company_id', $employee->company_id)
@@ -149,16 +149,27 @@ class LeadPipelineApiController extends Controller
                 );
 
             $pipeline = $pipline->union($piplineDones)->union($piplineCancels)->get();
-
-            //Today and Overdua Followup
-            $allLeads = LeadMaster::where([
-                // 'iemployeeId', $employee->company_id
-                'lead_master.iCustomerId' => $employee->company_id,
-                'lead_master.iEnterBy' => $employee->emp_id
-            ])
-                ->where(['iStatus' => 1, 'isDelete' => 0])
-                ->get();
-
+    
+            if($employee->role_id == '3')
+                {
+                    //Today and Overdua Followup
+                    $allLeads = LeadMaster::where([
+                        // 'iemployeeId', $employee->company_id
+                        'lead_master.iCustomerId' => $employee->company_id,
+                        'lead_master.employee_id' => $employee->emp_id
+                    ])
+                        ->where(['iStatus' => 1, 'isDelete' => 0])
+                        ->get();
+                        
+                }else{
+                    $allLeads = LeadMaster::where([
+                        // 'iemployeeId', $employee->company_id
+                        'lead_master.iCustomerId' => $employee->company_id,
+                    ])
+                        ->where(['iStatus' => 1, 'isDelete' => 0])
+                        ->get();
+                }
+            
             // Today's follow-ups
             $todays_followup = $allLeads->filter(function ($lead) {
                 try {
