@@ -221,6 +221,9 @@ class MetaWebhookController extends Controller
                 $commentText = implode("\n", $lines);
 
 
+                $cleanMobile = preg_replace('/^\+?91[-\s]?/', '', $leadInfo['phone_number']);
+
+
                 LeadMaster::create([
                     'iCustomerId'       => $employee->company_id ?? 0,
                     'company_name'       => $employee->company->company_name ?? null,
@@ -235,7 +238,7 @@ class MetaWebhookController extends Controller
                     'iEnterBy'          => 0,
                     'customer_name'     => $leadInfo['full_name'] ?? $leadInfo['name'] ?? null,
                     'email'             => $leadInfo['email'] ?? null,
-                    'mobile'            => $leadInfo['phone_number'] ?? null,
+                    'mobile'            => $cleanMobile ?? null,
                     'address'           => $leadInfo['city'] ?? null,
                     'comments'          => $commentText,
                     'created_at'        => !empty($leadData['created_time']) ? date('Y-m-d H:i:s', strtotime($leadData['created_time'])) : now(),
