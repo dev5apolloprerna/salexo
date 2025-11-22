@@ -25,164 +25,234 @@ class CompanyClientHomeController extends Controller
 
     public function index()
     {
+    try {
+        $employee = Auth::guard('web_employees')->user();
+        $emp_id = $employee->company_id;
 
-        try {
-            $emp_id = Auth::guard('web_employees')->user()->company_id;
+        // -------------------------------
+        // 1. PIPELINE COUNTS (New, Deal Done, Deal Cancel)
+        // -------------------------------
+        $pipelineBaseQuery = LeadPipeline::select(
+            'lead_pipeline_master.pipeline_id',
+            'lead_pipeline_master.pipeline_name',
+            'lead_pipeline_master.color',
+            'lead_pipeline_master.icon',
+            'lead_pipeline_master.created_at',
+            'lead_pipeline_master.company_id'
+        )
+        ->where('lead_pipeline_master.company_id', $emp_id);
 
-            $pipline = LeadPipeline::select(
-
+        // New Lead Pipelines
+        $pipline = (clone $pipelineBaseQuery)
+            ->addSelect(DB::raw('COUNT(lead_master.lead_id) as status_count'))
+            ->leftJoin('lead_master', function ($join) use ($emp_id) {
+                $join->on('lead_master.status', '=', 'lead_pipeline_master.pipeline_id')
+                    ->where('lead_master.iCustomerId', $emp_id)
+                    ->where('lead_master.isDelete', 0);
+            })
+            ->whereNotIn('lead_pipeline_master.slugname', ['deal-done', 'deal-cancel'])
+            ->groupBy(
                 'lead_pipeline_master.pipeline_id',
                 'lead_pipeline_master.pipeline_name',
                 'lead_pipeline_master.color',
                 'lead_pipeline_master.icon',
                 'lead_pipeline_master.created_at',
-                'lead_pipeline_master.company_id',
-                DB::raw('COUNT(lead_master.lead_id) as status_count')
+                'lead_pipeline_master.company_id'
+            );
 
-            )
-                ->leftJoin('lead_master', function ($join) use ($emp_id) {
-                    $join->on('lead_master.status', '=', 'lead_pipeline_master.pipeline_id')
-                        ->where('lead_master.iCustomerId', $emp_id)
-                        ->where('lead_master.isDelete', 0);
-                })
-                ->where('lead_pipeline_master.company_id', $emp_id)
-                ->whereNotIn('lead_pipeline_master.slugname', ['deal-done', 'deal-cancel'])
-                ->groupBy(
-
-                    'lead_pipeline_master.pipeline_id',
-                    'lead_pipeline_master.pipeline_name',
-                    'lead_pipeline_master.color',
-                    'lead_pipeline_master.icon',
-                    'lead_pipeline_master.created_at',
-                    'lead_pipeline_master.company_id'
-
-                );
-
-            $piplineDones = LeadPipeline::select(
-
+        // Deal Done Pipeline
+        $piplineDones = (clone $pipelineBaseQuery)
+            ->addSelect(DB::raw('COUNT(deal_done.lead_id) as status_count'))
+            ->leftJoin('deal_done', function ($join) use ($emp_id) {
+                $join->on('deal_done.status', '=', 'lead_pipeline_master.pipeline_id')
+                    ->where('deal_done.iCustomerId', $emp_id)
+                    ->where('deal_done.isDelete', 0);
+            })
+            ->where('lead_pipeline_master.slugname', 'deal-done')
+            ->groupBy(
                 'lead_pipeline_master.pipeline_id',
                 'lead_pipeline_master.pipeline_name',
                 'lead_pipeline_master.color',
                 'lead_pipeline_master.icon',
                 'lead_pipeline_master.created_at',
-                'lead_pipeline_master.company_id',
-                DB::raw('COUNT(deal_done.lead_id) as status_count')
+                'lead_pipeline_master.company_id'
+            );
 
-            )
-                ->leftJoin('deal_done', function ($join) use ($emp_id) {
-                    $join->on('deal_done.status', '=', 'lead_pipeline_master.pipeline_id')
-                        ->where('deal_done.iCustomerId', $emp_id)
-                        ->where('deal_done.isDelete', 0);
-                })
-                ->where('lead_pipeline_master.company_id', $emp_id)
-                ->whereIn('lead_pipeline_master.slugname', ['deal-done'])
-                ->groupBy(
-
-                    'lead_pipeline_master.pipeline_id',
-                    'lead_pipeline_master.pipeline_name',
-                    'lead_pipeline_master.color',
-                    'lead_pipeline_master.icon',
-                    'lead_pipeline_master.created_at',
-                    'lead_pipeline_master.company_id'
-
-                );
-
-            $piplineCancels = LeadPipeline::select(
-
+        // Deal Cancel Pipeline
+        $piplineCancels = (clone $pipelineBaseQuery)
+            ->addSelect(DB::raw('COUNT(deal_cancel.lead_id) as status_count'))
+            ->leftJoin('deal_cancel', function ($join) use ($emp_id) {
+                $join->on('deal_cancel.status', '=', 'lead_pipeline_master.pipeline_id')
+                    ->where('deal_cancel.iCustomerId', $emp_id)
+                    ->where('deal_cancel.isDelete', 0);
+            })
+            ->where('lead_pipeline_master.slugname', 'deal-cancel')
+            ->groupBy(
                 'lead_pipeline_master.pipeline_id',
                 'lead_pipeline_master.pipeline_name',
                 'lead_pipeline_master.color',
                 'lead_pipeline_master.icon',
                 'lead_pipeline_master.created_at',
-                'lead_pipeline_master.company_id',
-                DB::raw('COUNT(deal_cancel.lead_id) as status_count')
+                'lead_pipeline_master.company_id'
+            );
 
-            )
-                ->leftJoin('deal_cancel', function ($join) use ($emp_id) {
-                    $join->on('deal_cancel.status', '=', 'lead_pipeline_master.pipeline_id')
-                        ->where('deal_cancel.iCustomerId', $emp_id)
-                        ->where('deal_cancel.isDelete', 0);
-                })
-                ->where('lead_pipeline_master.company_id', $emp_id)
-                ->whereIn('lead_pipeline_master.slugname', ['deal-cancel'])
-                ->groupBy(
-
-                    'lead_pipeline_master.pipeline_id',
-                    'lead_pipeline_master.pipeline_name',
-                    'lead_pipeline_master.color',
-                    'lead_pipeline_master.icon',
-                    'lead_pipeline_master.created_at',
-                    'lead_pipeline_master.company_id'
-
-                );
-
-            $piplines = $pipline->union($piplineDones)->union($piplineCancels)->get();
-
-            $allLeads = LeadMaster::where('iCustomerId', $emp_id)
-                ->where('iStatus', 1)
-                ->where('isDelete', 0)
-                ->get();
-
-            $todays_followup_count = $allLeads->filter(function ($lead) {
-                try {
-                    if (!$lead->next_followup_date) return false;
-                    $date = \Carbon\Carbon::createFromFormat('d-m-Y h:i A', trim($lead->next_followup_date));
-                    return $date->isToday();
-                } catch (\Exception $e) {
-                    return false;
-                }
-            })->count();
-
-            $overdues_followup_count = $allLeads->filter(function ($lead) {
-
-                try {
-
-                    if (!$lead->next_followup_date) return false;
+        // Union all pipelines
+        $piplines = $pipline->union($piplineDones)->union($piplineCancels)->get();
 
 
+        // -------------------------------
+        // 2. FOLLOWUP COUNTS
+        // -------------------------------
+        $allLeads = LeadMaster::where('iCustomerId', $emp_id)
+            ->where('iStatus', 1)
+            ->where('isDelete', 0)
+            ->get();
 
-                    $date = \Carbon\Carbon::createFromFormat('d-m-Y h:i A', trim($lead->next_followup_date));
+        $todays_followup_count = $allLeads->filter(function ($lead) {
+            if (!$lead->next_followup_date) return false;
 
-                    return $date->lt(today());
-                } catch (\Exception $e) {
+            try {
+                $date = \Carbon\Carbon::createFromFormat('d-m-Y h:i A', trim($lead->next_followup_date));
+                return $date->isToday();
+            } catch (\Exception $e) {
+                return false;
+            }
+        })->count();
 
-                    return false;
-                }
-            })->count();
+        $overdues_followup_count = $allLeads->filter(function ($lead) {
+            if (!$lead->next_followup_date) return false;
 
-            $employees = Employee::orderBy('emp_name', 'asc')
-                ->where([
-                    'isDelete' => 0,
-                    'isCompanyAdmin' => 0,
-                    'company_id' => Auth::guard('web_employees')->user()->company_id
-                ])
-                ->get();
+            try {
+                $date = \Carbon\Carbon::createFromFormat('d-m-Y h:i A', trim($lead->next_followup_date));
+                return $date->lt(today());
+            } catch (\Exception $e) {
+                return false;
+            }
+        })->count();
 
+
+        // -------------------------------
+        // 3. EMPLOYEE LIST
+        // -------------------------------
+        $employees = Employee::where([
+                'isDelete' => 0,
+                'isCompanyAdmin' => 0,
+                'company_id' => $emp_id
+            ])
+            ->orderBy('emp_name', 'asc')
+            ->get();
+
+
+        // -------------------------------
+        // 4. TOP SELLING PRODUCTS
+        // -------------------------------
+        $lead_pipeline = LeadPipeline::where([
+            'company_id' => $emp_id,
+            'pipeline_name' => "Deal Done"
+        ])->first();
+
+        $topProducts = DealDone::select(
+            'service_master.service_name',
+            DB::raw('COUNT(deal_done.lead_id) as quantity'),
+            DB::raw('SUM(deal_done.amount) as total_value')
+        )
+        ->leftJoin('service_master', 'service_master.service_id', '=', 'deal_done.product_service_id')
+        ->where('deal_done.iCustomerId', $emp_id)
+        ->where('deal_done.status', $lead_pipeline->pipeline_id)
+        ->where('deal_done.isDelete', 0)
+        ->groupBy('deal_done.product_service_id', 'service_master.service_name')
+        ->get();
+
+
+    $leadsGenerated = DB::table(function ($query) use ($emp_id) {
+        $leadQuery = DB::table('lead_master')
+            ->selectRaw('MONTH(created_at) as month, COUNT(*) as total')
+            ->whereYear('created_at', now()->year)
+            ->where('iCustomerId', $emp_id)
+            ->groupByRaw('MONTH(created_at)');
+
+        $dealDoneQuery = DB::table('deal_done')
+            ->selectRaw('MONTH(created_at) as month, COUNT(*) as total')
+            ->whereYear('created_at', now()->year)
+            ->where('iCustomerId', $emp_id)
+            ->groupByRaw('MONTH(created_at)');
+
+        $dealCancelQuery = DB::table('deal_cancel')
+            ->selectRaw('MONTH(created_at) as month, COUNT(*) as total')
+            ->whereYear('created_at', now()->year)
+            ->where('iCustomerId', $emp_id)
+            ->groupByRaw('MONTH(created_at)');
+
+        $query->fromSub(
+            $leadQuery->unionAll($dealDoneQuery)->unionAll($dealCancelQuery),
+            'combined'
+        );
+            }, 'monthly')
+            ->select('month', DB::raw('SUM(total) as total'))
+            ->groupBy('month')
+            ->pluck('total', 'month')
+            ->toArray();
+
+            // Converted Leads
             $lead_pipeline = LeadPipeline::where([
                 'company_id' => $emp_id,
                 'pipeline_name' => "Deal Done"
             ])->first();
 
-            $topProducts = DealDone::select(
-                'service_master.service_name',
-                DB::raw('COUNT(deal_done.lead_id) as quantity'),
-                DB::raw('SUM(deal_done.amount) as total_value')
-            )
-                ->leftJoin('service_master', 'service_master.service_id', '=', 'deal_done.product_service_id')
-                ->where([
-                    'deal_done.iCustomerId' => $emp_id,
-                    'deal_done.status' => $lead_pipeline->pipeline_id
-                ])
-                ->where('deal_done.isDelete', 0)
-                ->groupBy('deal_done.product_service_id', 'service_master.service_name')
-                ->get();
+            $leadsConverted = DealDone::selectRaw('MONTH(created_at) as month, COUNT(*) as total')
+                ->where('status', $lead_pipeline->pipeline_id)
+                ->whereYear('created_at', now()->year)
+                ->where('iCustomerId', $emp_id)
+                ->groupByRaw('MONTH(created_at)')
+                ->pluck('total', 'month')
+                ->toArray();
 
-            return view('company_client.home', compact('emp_id', 'piplines', 'todays_followup_count', 'overdues_followup_count', 'employees', 'topProducts'));
-        } catch (\Exception $e) {
-            Log::error('Error in HomeController@index: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
-            return redirect()->back()->with('error', 'An unexpected error occurred. Please try again later.');
-        }
+            // 6 MONTHS RANGE
+            $currentMonth = now()->month;
+            $monthsToShow = 6;
+            $startMonth = max(1, $currentMonth - $monthsToShow);
+
+            // Labels
+            $allLabels = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            $labels = [];
+            $generatedData = [];
+            $convertedData = [];
+
+            for ($i = $startMonth; $i <= $currentMonth; $i++) {
+                $labels[] = $allLabels[$i-1];
+                $generatedData[] = $leadsGenerated[$i] ?? 0;
+                $convertedData[] = $leadsConverted[$i] ?? 0;
+            }
+
+        $employeeLeads = LeadMaster::selectRaw('employee_id, COUNT(*) as leads')
+            ->where('iCustomerId', $emp_id)
+            ->where('isDelete', 0)
+            ->groupBy('employee_id')
+            ->pluck('leads', 'employee_id')
+            ->toArray();
+
+        // -------------------------------
+        // RETURN VIEW
+        // -------------------------------
+    return view('company_client.home', compact(
+    'emp_id',
+    'piplines',
+    'todays_followup_count',
+    'overdues_followup_count',
+    'employees',
+    'topProducts',
+    'labels',
+    'generatedData',
+    'convertedData',
+    'employeeLeads'
+));
+
+
+    } catch (\Exception $e) {
+        Log::error('HomeController Error: ' . $e->getMessage());
+        return back()->with('error', 'Something went wrong.');
     }
+}
 
     public function getProfile()
     {

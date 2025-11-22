@@ -9,27 +9,11 @@ use App\Models\LeadPipeline;
 use App\Models\LeadSource;
 use App\Models\LeadMaster;
 use App\Models\UserData;
-use App\Models\Employee; // 👈 make sure this exists
+use App\Models\Employee; //  make sure this exists
 use Illuminate\Support\Facades\Log;
 
 class MetaWebhookController extends Controller
 {
-    // Facebook verification (GET)
-    /*public function verify(Request $request)
-    {
-        $mode        = $request->query('hub_mode', $request->query('hub.mode'));
-        $verifyToken = $request->query('hub_verify_token', $request->query('hub.verify_token'));
-        $challenge   = $request->query('hub_challenge', $request->query('hub.challenge'));
-
-        $expectedToken = "mycustom78"; // your verify token
-
-        //if ($mode === 'subscribe' && $verifyToken === $expectedToken) {
-            return response($challenge, 200)->header('Content-Type', 'text/plain');
-        //}
-
-        return response('Invalid verify token', 403);
-    }*/
-
     public function verify(Request $request, $guid)
     {
         // 1) Find employee by guid
@@ -44,12 +28,12 @@ class MetaWebhookController extends Controller
         }
     
         // 2) From user_data get Meta API settings for this company (api_id = 3)
-        $userData = UserData::where('company_id', $employee->company_id ?? 0)
+        $userData = UserData::with('company')->where('company_id', $employee->company_id ?? 0)
             ->where('api_id', 3)
             ->first();
     
         // If you store verify token per company in user_data, use it here
-        $expectedToken = $userData->verify_token ?? 'mycustom78';
+        $expectedToken = $userData->company->verify_token ?? 'mycustom78';
     
         // 3) Standard Meta verify logic
         $mode        = $request->query('hub_mode', $request->query('hub.mode'));
@@ -71,23 +55,7 @@ class MetaWebhookController extends Controller
 
         Log::info('Meta Webhook Received:', $data);
 
-        // (Optional) store raw payload – remove if you don't want extra row
-        // LeadMaster::create([
-        //     'iCustomerId'       => 0,
-        //     'iemployeeId'       => 0,
-        //     'product_service_id'=> 0,
-        //     'LeadSourceId'      => 0,
-        //     'lead_history_id'   => 0,
-        //     'followup_by'       => 0,
-        //     'status'            => 0,
-        //     'cancel_reason_id'  => 0,
-        //     'employee_id'       => 0,
-        //     'iEnterBy'          => 0,
-        //     'json'              => json_encode($data),
-        //     'created_at'        => now(),
-        // ]);
-
-        // Try multiple places where lead id might appear
+        
         $leadgenId = null;
 
         // 1) common nested page webhook structure
@@ -134,11 +102,11 @@ class MetaWebhookController extends Controller
             ->where('guid', $guid)
             ->first();
 
-            $userData = UserData::where('company_id', $employee->company_id ?? 0)
+            $userData = UserData::with('company')->where('company_id', $employee->company_id ?? 0)
             ->where('api_id', 3)
             ->first();
 
-        $pageAccessToken = $userData->access_token;
+        $pageAccessToken = $userData->company->access_token;
 
         $url = "https://graph.facebook.com/v21.0/{$leadgenId}";
 

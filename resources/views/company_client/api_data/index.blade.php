@@ -136,8 +136,8 @@
                                                 title="Meta Token Settings"
                                                 data-bs-toggle="modal"
                                                 data-bs-target="#metaTokenModal"
-                                                data-access-token="{{ $metaSettings->access_token ?? '' }}"
-                                                data-verify-token="{{ $metaSettings->verify_token ?? '' }}">
+                                                data-access-token="{{ $metaSettings->company->access_token ?? '' }}"
+                                                data-verify-token="{{ $metaSettings->company->verify_token ?? '' }}">
                                             <i class="fas fa-cog"></i>
                                         </button>
                                     </span>

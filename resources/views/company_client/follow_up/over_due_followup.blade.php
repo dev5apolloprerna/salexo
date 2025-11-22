@@ -19,7 +19,7 @@
                         <div class="card">
 
                             <div class="card-header">
-                                <h5 class="card-title mb-0">
+                                <h5 class="card-title mb-0"> 
                                     Over Due Follow Up List
                                 </h5>
                             </div>

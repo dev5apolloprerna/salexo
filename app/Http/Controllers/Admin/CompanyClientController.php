@@ -141,6 +141,7 @@ class CompanyClientController extends Controller
         $request->validate([
             'email' => 'required|unique:company_client_master,email',
             'password' => 'required|min:6',
+            'no_of_users' => 'required',
             'GST' => [
                 'nullable', // or 'required' if mandatory
                 'string',
@@ -186,7 +187,6 @@ class CompanyClientController extends Controller
                 'isCompanyAdmin' => 1,
                 'can_access_LMS' => 1,
                 'role_id'        => 2,
-
             ]);
 
             $lead_pipelines = [

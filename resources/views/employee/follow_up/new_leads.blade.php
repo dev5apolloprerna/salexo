@@ -19,7 +19,8 @@
 
                             <div class="card-header">
                                 <h5 class="card-title mb-0">
-                                     {{ $leadPipeline->pipeline_name }} List
+                                   {{ $leadPipeline->pipeline_name }} List
+                                    
                                 </h5>
                             </div>
                             <div class="card-body border-bottom">
@@ -84,7 +85,7 @@
                                                                     </a>
                                                                 </td>
                                                             @else
-                                                                <!-- @if ($leadPipeline->followup_needed == 'yes') -->
+                                                               
                                                                     <td>
                                                                         <a href="{{ route('employee.followup_detail', [$status, $lead->lead_id]) }}"
                                                                             class="btn btn-sm btn-success"
@@ -92,7 +93,7 @@
                                                                             <i class="fa fa-plus"></i>
                                                                         </a>
                                                                     </td>
-                                                                <!-- @endif -->
+                                                                
                                                             @endif
 
                                                         </tr>

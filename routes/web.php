@@ -352,6 +352,7 @@ Route::prefix('employee')->name('employee.')->middleware(['auth:web_employees'])
     Route::any('/followup/update', [EmployeeHomeController::class, 'followup_update'])->name('followup_update');
     Route::any('/followup/detail/{status}/{id?}', [EmployeeHomeController::class, 'followup_detail'])->name('followup_detail');
     Route::any('/{status?}', [EmployeeHomeController::class, 'status'])->name('status');
+
 });
 
 /*----------------------------------------Employee Admin Route End------------------------------------- */
