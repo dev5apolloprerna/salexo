@@ -70,7 +70,7 @@
                                                     <td>{{ $lead->service_name ?? '-' }}</td>
                                                     <td>{{ $lead->lead_source_name ?? '-' }}</td>
                                                     <td>
-                                                        <a href="{{ route('clients.followup_detail', $lead->lead_id) }}"
+                                                        <a href="{{ route('clients.followup_detail', ['todays-followup', $lead->lead_id]) }}"
                                                             class="btn btn-sm btn-success" title="Add Followup">
                                                             <i class="fa fa-plus"></i> {{-- You can change to another icon if needed --}}
                                                         </a>

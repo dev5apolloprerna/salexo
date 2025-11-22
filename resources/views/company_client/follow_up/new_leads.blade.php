@@ -59,7 +59,7 @@
                                                         <th>Mobile</th>
                                                         <th>Service / Product</th>
                                                         @if (!in_array($status, ['deal-done']))
-                                                            <th width="8%">Followup Date</th>
+                                                            <th>Followup Date</th>
                                                         @endif
                                                         <th>Lead Source</th>
                                                         @if ($status === 'deal-done')
@@ -68,7 +68,7 @@
                                                         @if ($status === 'deal-cancel')
                                                             <th>Lead Cancel Date</th>
                                                         @endif
-                                                        <th width="8%">Entry Date</th>
+                                                        <th>Entry Date</th>
                                                         <th>Action</th>
                                                     </tr>
                                                 </thead>

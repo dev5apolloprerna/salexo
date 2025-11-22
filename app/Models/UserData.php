@@ -19,4 +19,6 @@ class UserData extends Model
         'api_id'
     ];
 
+        public function company(){ return $this->belongsTo(CompanyClient::class, 'company_id','company_id'); }
+
 }

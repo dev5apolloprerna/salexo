@@ -4,7 +4,7 @@
 
     <?php $profileId = Request::segment(3); ?>
 
-    <div class="main-content">
+    <div class="main-content ">
         <div class="page-content">
             <div class="container-fluid">
 

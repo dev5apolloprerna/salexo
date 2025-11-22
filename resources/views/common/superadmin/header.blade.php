@@ -90,11 +90,12 @@ if (Auth::guard('web')->user()) {
                                 class="mdi mdi-account-circle text-muted fs-16 align-middle me-1"></i> <span
                                 class="align-middle">Profile</span>
                         </a>
-                          @if($roleid == 2)
+                         @if($roleid == 2)
                         <a class="dropdown-item" href="{{ route('api_data.index') }}"><i
                                 class="mdi mdi-account-circle text-muted fs-16 align-middle me-1"></i>
                             <span class="align-middle">API</span>
                         </a>
+                         
                         <a class="dropdown-item" href="{{ route('quotations.templates') }}"><i
                                 class="fa fa-file-text text-muted fs-16 align-middle me-1"></i> <span
                                 class="align-middle" data-key="t-template">Quotation Templates</span>

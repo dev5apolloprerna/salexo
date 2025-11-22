@@ -150,7 +150,9 @@ class LeadPipelineApiController extends Controller
 
             $pipeline = $pipline->union($piplineDones)->union($piplineCancels)->get();
     
-            if($employee->role_id == '3')
+            
+            //Today and Overdua Followup
+              if($employee->role_id == '3')
                 {
                     //Today and Overdua Followup
                     $allLeads = LeadMaster::where([
@@ -162,6 +164,7 @@ class LeadPipelineApiController extends Controller
                         ->get();
                         
                 }else{
+                    
                     $allLeads = LeadMaster::where([
                         // 'iemployeeId', $employee->company_id
                         'lead_master.iCustomerId' => $employee->company_id,
@@ -169,7 +172,7 @@ class LeadPipelineApiController extends Controller
                         ->where(['iStatus' => 1, 'isDelete' => 0])
                         ->get();
                 }
-            
+
             // Today's follow-ups
             $todays_followup = $allLeads->filter(function ($lead) {
                 try {

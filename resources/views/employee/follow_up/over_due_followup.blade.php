@@ -72,7 +72,7 @@
                                                                 {{ $lead->lead_source_name ?? '' }}
                                                             </td>
                                                             <td>
-                                                                <a href="{{ route('clients.followup_detail', $lead->lead_id) }}"
+                                                                <a href="{{ route('clients.followup_detail', ['over-due', $lead->lead_id]) }}"
                                                                     class="btn btn-sm btn-success" title="Add Followup">
                                                                     <i class="fa fa-plus"></i>
                                                                 </a>

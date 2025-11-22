@@ -25,7 +25,7 @@ class ApiDataController extends Controller
         $product=Service::where(['iStatus'=>1,'isDelete'=>0])->get();
         $leadSources=LeadSource::where(['company_id'=>$user->company_id])->get();
         
-         $apiSettings = UserData::where('company_id', $user->company_id)
+         $apiSettings = UserData::with('company')->where('company_id', $user->company_id)
             ->get()
             ->keyBy('api_id');   // so you can do $apiSettings[1], [2], [3]
 
@@ -132,10 +132,9 @@ class ApiDataController extends Controller
     
             $companyId = auth()->user()->company_id;
     
-            DB::table('user_data')->updateOrInsert(
+            DB::table('company_client_master')->updateOrInsert(
                 [
                     'company_id' => $companyId,
-                    'api_id'     => 3, // 3 = Meta API
                 ],
                 [
                     'access_token' => $request->input('access_token') ?: null,
