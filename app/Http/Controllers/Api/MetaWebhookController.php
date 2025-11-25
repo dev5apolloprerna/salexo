@@ -9,8 +9,9 @@ use App\Models\LeadPipeline;
 use App\Models\LeadSource;
 use App\Models\LeadMaster;
 use App\Models\UserData;
-use App\Models\Employee; //  make sure this exists
+use App\Models\Employee; // ðŸ‘ˆ make sure this exists
 use Illuminate\Support\Facades\Log;
+    use App\Helpers\WhatsAppHelper;
 
 class MetaWebhookController extends Controller
 {
@@ -55,7 +56,7 @@ class MetaWebhookController extends Controller
 
         Log::info('Meta Webhook Received:', $data);
 
-        
+        // Try multiple places where lead id might appear
         $leadgenId = null;
 
         // 1) common nested page webhook structure
@@ -81,11 +82,11 @@ class MetaWebhookController extends Controller
 
             if (!empty($normalizedId)) {
                 Log::info("Normalized lead id: " . $normalizedId);
-                // 👇 pass guid here
+                // ðŸ‘‡ pass guid here
                 $this->fetchLeadDetails($normalizedId, $guid);
             } else {
                 Log::warning("Lead id exists but normalizes to empty. Using raw id for fetch.");
-                // 👇 and here
+                // ðŸ‘‡ and here
                 $this->fetchLeadDetails($leadgenId, $guid);
             }
         } else {
@@ -213,6 +214,23 @@ class MetaWebhookController extends Controller
                     'json'              => json_encode($leadData),
                     
                 ]);
+                $mapemp=Employee::with('company')->where(['emp_id'=>$mappedEmpId])->first();
+                
+                if($employee->company->isNotifyApi == 1)
+                {
+            
+                    $name = $mapemp->emp_name;          // replace {{1}}
+                    $sourceName = 'Facebook';      // replace {{2}}
+                    
+                    WhatsAppHelper::sendTemplateMessage(
+                        $mapemp->emp_mobile,            // mobile number
+                        "utility_message",           // template name
+                        [
+                            $name,                        // {{1}}
+                            $sourceName                   // {{2}}
+                        ]
+                    );
+                }
                 
                 $userdata = UserData::where(['company_id' => $employee->company_id,'api_id'=> 3])->first();
 
@@ -241,7 +259,7 @@ class MetaWebhookController extends Controller
             }
         }
 
-        // If direct fetch failed, just log – you can also create a "failed" lead if you want
+        // If direct fetch failed, just log â€“ you can also create a "failed" lead if you want
         $status = $response->status();
         Log::warning("Direct lead fetch failed: HTTP {$status}");
     }
