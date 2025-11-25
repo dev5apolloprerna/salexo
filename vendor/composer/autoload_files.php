@@ -42,4 +42,5 @@ return array(
     '13906c19e3d8fcd1341b24ed4d51cf72' => $vendorDir . '/razorpay/razorpay/Deprecated.php',
     '320163ac6b93aebe3dc25b60a0533d56' => $vendorDir . '/spatie/laravel-ignition/src/helpers.php',
     '377b22b161c09ed6e5152de788ca020a' => $vendorDir . '/spatie/laravel-permission/src/helpers.php',
+    '87128213838d52f10d4429ae03b6aff0' => $baseDir . '/app/Helpers/WhatsAppHelper.php',
 );
