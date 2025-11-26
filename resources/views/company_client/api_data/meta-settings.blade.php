@@ -73,9 +73,9 @@
 
                                         {{-- API ID --}}
                                         <div class="col-md-4 mb-3">
-                                            <label class="form-label">API ID (For multiple assignment)</label>
+                                            <label class="form-label">Advertisement ID (For multiple assignment)</label>
                                             <input type="text" name="ad_id" id="ad_id" class="form-control"
-                                            placeholder="Enter API ID (required for multiple)">
+                                            placeholder="Enter Advertisement Id (required for multiple)">
                                         </div>
 
                                     </div>
@@ -113,7 +113,7 @@
                                                 <th>Employee</th>
                                                 <th>Lead Source</th>
                                                 <th>Product</th>
-                                                <th>AD ID</th>
+                                                <th>Advertisement Id</th>
                                                 <th>Assign Type</th>
                                                 <!-- <th>Created</th> -->
                                                 <th>Action</th>
@@ -157,10 +157,9 @@
                             </div>
                         </div>
                     </div>
-
-</div>
-</div>
-</div>
+                </div>
+            </div>
+        </div>
 </div>
 
                     <!-- Delete Modal -->
@@ -187,31 +186,28 @@
         </div>
     </div>
 </div>
+@endsection
+@section('scripts')
+{{-- JS VALIDATION --}}
+<script>
+     function setDeleteId(id) {
+        let url = "{{ route('api_data.meta.delete', ':id') }}";
+        url = url.replace(':id', id);
+        document.getElementById('deleteMetaForm').setAttribute('action', url);
+    }
 
 
+        // AD ID required only when Multiple
+        document.querySelectorAll('input[name="assign_type"]').forEach(radio => {
+            radio.addEventListener('change', function () {
+                const adField = document.getElementById('ad_id');
+                if (this.value === 'multiple') {
+                    adField.setAttribute('required', true);
+                } else {
+                    adField.removeAttribute('required');
+                }
+            });
+        });
+</script>
 
-                    @endsection
-                    @section('scripts')
-                    {{-- JS VALIDATION --}}
-                    <script>
-                         function setDeleteId(id) {
-                            let url = "{{ route('api_data.meta.delete', ':id') }}";
-                            url = url.replace(':id', id);
-                            document.getElementById('deleteMetaForm').setAttribute('action', url);
-                        }
-
-
-                            // AD ID required only when Multiple
-                            document.querySelectorAll('input[name="assign_type"]').forEach(radio => {
-                                radio.addEventListener('change', function () {
-                                    const adField = document.getElementById('ad_id');
-                                    if (this.value === 'multiple') {
-                                        adField.setAttribute('required', true);
-                                    } else {
-                                        adField.removeAttribute('required');
-                                    }
-                                });
-                            });
-                    </script>
-
-                    @endsection
+@endsection

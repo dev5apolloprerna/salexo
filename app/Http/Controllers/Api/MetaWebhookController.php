@@ -132,7 +132,7 @@ class MetaWebhookController extends Controller
             'verify' => false, // ⛔ turn off SSL verification only on local
         ])->asForm()->get($url, [
             'access_token' => $pageAccessToken,
-            'fields'       => 'field_data,created_time,form_id,ad_id'
+            'fields'       => 'field_data,created_time,form_id,ad_id,platform'
         ]);
 
 
@@ -184,7 +184,7 @@ class MetaWebhookController extends Controller
         $sourceId = $mapping->source_id;          // From user_data table
         $productId = $mapping->product_id ?? 0;   // From user_data table
 
-        if ($sourceId) 
+       /* if ($sourceId) 
         {
             $sourceExists = LeadSource::where('company_id', $employee->company_id)
                 ->where('lead_source_id', $sourceId)
@@ -206,7 +206,8 @@ class MetaWebhookController extends Controller
                 ['company_id' => $employee->company_id, 'lead_source_name' => "Facebook"],
                 ['lead_source_name' => "Facebook"]
             )->lead_source_id;
-        }
+        }*/
+
 
         $mappedEmpId = $mapping->emp_id ?? $employee->emp_id;
 

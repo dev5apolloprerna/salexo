@@ -86,7 +86,7 @@
                                             data-bs-target="#apiSettingsModal"
                                             data-api-name="general"
                                             data-api-id="2"
-                                            data-show-source="0"
+                                            data-show-source="1"
                                             data-employee-id="{{ $generalSettings->emp_id ?? '' }}"
                                             data-source-id="{{ $generalSettings->source_id ?? '' }}">
                                         <i class="fas fa-cog"></i>
@@ -117,29 +117,24 @@
 
                                     <span class="d-flex gap-2">
                                         <!-- Settings icon (employee/source mapping) -->
-
-                                        <a href="{{ route('api_data.meta.index') }}"
-                                           class="btn btn-sm btn-outline-secondary me-2"
-                                           title="Meta API Advanced Settings">
-                                            <i class="fas fa-user"></i>
-                                        </a>
-
-                                       <!--  <button type="button"
+                                       <!-- <button type="button"
                                                 class="btn btn-sm btn-outline-secondary me-2"
                                                 title="Settings"
                                                 data-bs-toggle="modal"
                                                 data-bs-target="#apiSettingsModal"
                                                 data-api-name="meta"
                                                 data-api-id="3"
-                                                data-ad-id="{{ $metaSettings->ad_id ?? '' }}"
                                                 data-show-source="1"
                                                 data-employee-id="{{ $metaSettings->emp_id ?? '' }}"
-                                                data-source-id="{{ $metaSettings->source_id ?? '' }}"
-                                                data-product-id="{{ $metaSettings->product_id ?? '' }}"
-                                                >
+                                                data-source-id="{{ $metaSettings->source_id ?? '' }}">
                                             <i class="fas fa-user"></i>
-                                        </button> -->
+                                        </button>-->
 
+                                        <a href="{{ route('api_data.meta.index') }}"
+                                           class="btn btn-sm btn-outline-secondary me-2"
+                                           title="Meta API Advanced Settings">
+                                            <i class="fas fa-user"></i>
+                                        </a>
                                         <!-- User icon for access token + verify token -->
                                         <button type="button"
                                                 class="btn btn-sm btn-outline-secondary"
@@ -175,45 +170,20 @@
         </div>
     </div>
 
-    <!-- ========== Common Settings Modal (Employee + Source + Product + API ID + Radio) ========== -->
+    {{-- ========== Common Settings Modal (Employee + Source) ========== --}}
     <div class="modal fade" id="apiSettingsModal" tabindex="-1" aria-labelledby="apiSettingsModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
-
                 <div class="modal-header">
                     <h5 class="modal-title" id="apiSettingsModalLabel">API Settings</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
 
                 <div class="modal-body">
-
+                    {{-- Which API is being edited --}}
                     <input type="hidden" id="settings_api_name">
 
-                    <!-- Assign Type -->
-                    <div class="mb-3">
-                        <label class="form-label">Assignment Type</label><br>
-
-                        <label class="me-3">
-                            <input type="radio" name="assign_type" value="single" checked> Single
-                        </label>
-
-                        <label>
-                            <input type="radio" name="assign_type" value="multiple"> Multiple
-                        </label>
-                    </div>
-
-                    <!-- Source (General + Meta only) -->
-                    <div class="mb-3" id="settings_source_group">
-                        <label for="settings_source_id" class="form-label">Lead Source</label>
-                        <select id="settings_source_id" class="form-control">
-                            <option value="">Select Source</option>
-                            @foreach($leadSources ?? [] as $src)
-                                <option value="{{ $src->lead_source_id }}">{{ $src->lead_source_name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <!-- Employee -->
+                    {{-- Employee --}}
                     <div class="mb-3">
                         <label for="settings_employee_id" class="form-label">Employee</label>
                         <select id="settings_employee_id" class="form-control">
@@ -224,25 +194,19 @@
                         </select>
                     </div>
 
-                    <!-- Product (Meta only) -->
-                    <div class="mb-3" id="settings_product_group">
-                        <label for="settings_product_id" class="form-label">Product</label>
-                        <select id="settings_product_id" class="form-control">
-                            <option value="">Select Product</option>
-                            @foreach($product ?? [] as $prd)
-                                <option value="{{ $prd->service_id }}">{{ $prd->service_name }}</option>
+                    {{-- Lead Source (hidden for IndiaMart, visible for General & Meta) --}}
+                    <!--<div class="mb-3" id="settings_source_group">
+                        <label for="settings_source_id" class="form-label">Lead Source</label>
+                        <select id="settings_source_id" class="form-control">
+                            <option value="">Select Source</option>
+                            @foreach($leadSources ?? [] as $src)
+                                <option value="{{ $src->lead_source_id }}">{{ $src->lead_source_name }}</option>
                             @endforeach
                         </select>
-                    </div>
-
-                    <!-- API ID (Meta only) -->
-                    <div class="mb-3" id="settings_apiid_group">
-                        <label for="setting_ad_id" class="form-label">AD ID</label>
-                        <input type="text" id="setting_ad_id" class="form-control" placeholder="Enter Ad Id">
-                    </div>
+                    </div>-->
 
                     <small class="text-muted">
-                        These settings auto-attach employees/sources/products to leads from this API.
+                        These selections will be used to auto-attach employee/source to leads coming from this API.
                     </small>
                 </div>
 
@@ -252,11 +216,9 @@
                         Save
                     </button>
                 </div>
-
             </div>
         </div>
     </div>
-
 
     {{-- ========== Meta Token Modal (Access + Verify Token) ========== --}}
     <div class="modal fade" id="metaTokenModal" tabindex="-1" aria-labelledby="metaTokenModalLabel" aria-hidden="true">
@@ -303,105 +265,178 @@
 
     {{-- Scripts --}}
     <script>
-document.addEventListener("DOMContentLoaded", function () {
+        document.addEventListener('DOMContentLoaded', function () {
+            // ========== Copy to clipboard ==========
+            function copyToClipboard(elementId) {
+                var copyText = document.getElementById(elementId);
+                if (!copyText) return;
 
-    const apiSettingsModal = document.getElementById("apiSettingsModal");
+                copyText.select();
+                copyText.setSelectionRange(0, 99999);
+                document.execCommand("copy");
+                alert("Copied to clipboard: " + copyText.value);
+            }
+            window.copyToClipboard = copyToClipboard;
 
-    if (apiSettingsModal) {
-        apiSettingsModal.addEventListener("show.bs.modal", function (event) {
-            const button = event.relatedTarget;
+            // ========== API Settings Modal (Employee + Source) ==========
+            const apiSettingsModal = document.getElementById('apiSettingsModal');
+            if (apiSettingsModal) {
+                apiSettingsModal.addEventListener('show.bs.modal', function (event) {
+                    const button = event.relatedTarget;
+                    if (!button) return;
 
-            const apiName = button.getAttribute("data-api-name");
-            const showSource = button.getAttribute("data-show-source") === "1";
+                    const apiName    = button.getAttribute('data-api-name');
+                    const showSource = button.getAttribute('data-show-source') === '1';
+                    const employeeId = button.getAttribute('data-employee-id') || '';
+                    const sourceId   = button.getAttribute('data-source-id') || '';
 
-            const employeeId = button.getAttribute("data-employee-id") || "";
-            const sourceId   = button.getAttribute("data-source-id") || "";
-            const productId  = button.getAttribute("data-product-id") || "";
-            const adId  = button.getAttribute("data-ad-id") || "";
+                    const apiNameInput = document.getElementById('settings_api_name');
+                    if (apiNameInput) apiNameInput.value = apiName;
 
-            document.getElementById("settings_api_name").value = apiName;
-            document.getElementById("settings_employee_id").value = employeeId;
+                    const empSelect = document.getElementById('settings_employee_id');
+                    if (empSelect) empSelect.value = employeeId;
 
-            const sourceGroup = document.getElementById("settings_source_group");
-            const sourceSelect = document.getElementById("settings_source_id");
+                    const sourceGroup  = document.getElementById('settings_source_group');
+                    const sourceSelect = document.getElementById('settings_source_id');
 
-            const productGroup = document.getElementById("settings_product_group");
-            const productSelect = document.getElementById("settings_product_id");
-
-            const apiIdGroup = document.getElementById("settings_apiid_group");
-            const apiIdInput = document.getElementById("setting_ad_id");
-
-            /** SHOW / HIDE FIELDS */
-            if (apiName === "indiamart") {
-                sourceGroup.style.display = "none";
-                productGroup.style.display = "none";
-                apiIdGroup.style.display = "none";
-            } 
-            else if (apiName === "general") {
-                sourceGroup.style.display = "block";
-                productGroup.style.display = "none";
-                apiIdGroup.style.display = "none";
-            } 
-            else { // META
-                sourceGroup.style.display = "block";
-                productGroup.style.display = "block";
-                apiIdGroup.style.display = "block";
+                    if (sourceGroup) {
+                        sourceGroup.style.display = showSource ? 'block' : 'none';
+                    }
+                    if (sourceSelect) {
+                        sourceSelect.value = sourceId;
+                    }
+                });
             }
 
-            sourceSelect.value = sourceId;
-            productSelect.value = productId;
-            apiIdInput.value = adId;
+            function saveApiSettings() {
+                const apiNameEl   = document.getElementById('settings_api_name');
+                const empSelect   = document.getElementById('settings_employee_id');
+                const sourceSelect = document.getElementById('settings_source_id');
+
+                const apiName  = apiNameEl ? apiNameEl.value : '';
+                const employee = empSelect ? empSelect.value : '';
+                const source   = sourceSelect ? sourceSelect.value : '';
+
+                const adId = document.getElementById("setting_ad_id").value;
+
+                const assignType = document.querySelector("input[name='assign_type']:checked").value;
+        
+                // VALIDATION FOR META
+                if (apiName === "meta" && assignType === "multiple" && adId.trim() === "") {
+                    alert("AD ID is required when Multiple is selected.");
+                    return;
+                }
+        
+                const tokenMeta = document.querySelector('meta[name="csrf-token"]');
+                const token     = tokenMeta ? tokenMeta.getAttribute('content') : '';
+
+                fetch("{{ route('api_data.api-settings.store') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': token,
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        api_name: apiName,
+                        employee_id: employee || null,
+                        source_id: source || null,
+                    }),
+                })
+                .then(async (response) => {
+                    if (!response.ok) {
+                        const err = await response.json().catch(() => ({}));
+                        throw new Error(err.message || 'Something went wrong');
+                    }
+                    return response.json();
+                })
+                .then((data) => {
+                    console.log('Saved:', data);
+                    alert(data.message || 'Settings saved');
+
+                    if (apiSettingsModal) {
+                        const modalInst = bootstrap.Modal.getInstance(apiSettingsModal)
+                                          || new bootstrap.Modal(apiSettingsModal);
+                        modalInst.hide();
+                    }
+                })
+                .catch((error) => {
+                    console.error(error);
+                    alert(error.message || 'Failed to save settings');
+                });
+            }
+            window.saveApiSettings = saveApiSettings;
+
+            // ========== Meta Token Modal Logic ==========
+            const metaTokenModal = document.getElementById('metaTokenModal');
+            if (metaTokenModal) {
+                metaTokenModal.addEventListener('show.bs.modal', function (event) {
+                    const button = event.relatedTarget;
+                    if (!button) return;
+
+                    const accessToken = button.getAttribute('data-access-token') || '';
+                    const verifyToken = button.getAttribute('data-verify-token') || '';
+
+                    const accessInput = document.getElementById('meta_access_token');
+                    const verifyInput = document.getElementById('meta_verify_token');
+
+                    if (accessInput) accessInput.value = accessToken;
+                    if (verifyInput) verifyInput.value = verifyToken;
+                });
+            }
+
+            function saveMetaTokenSettings() {
+                const accessInput = document.getElementById('meta_access_token');
+                const verifyInput = document.getElementById('meta_verify_token');
+
+                const accessToken = accessInput ? accessInput.value.trim() : '';
+                const verifyToken = verifyInput ? verifyInput.value.trim() : '';
+
+                const tokenMeta = document.querySelector('meta[name="csrf-token"]');
+                const token     = tokenMeta ? tokenMeta.getAttribute('content') : '';
+
+                fetch("{{ route('api_data.meta-token.store') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': token,
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        access_token: accessToken || null,
+                        verify_token: verifyToken || null,
+                    }),
+                })
+                .then(async (response) => {
+                    if (!response.ok) {
+                        const err = await response.json().catch(() => ({}));
+                        throw new Error(err.message || 'Something went wrong');
+                    }
+                    return response.json();
+                })
+                .then((data) => {
+                    console.log('Meta tokens saved:', data);
+                    alert(data.message || 'Meta tokens saved');
+
+                    if (metaTokenModal) {
+                        const modalInst = bootstrap.Modal.getInstance(metaTokenModal)
+                                          || new bootstrap.Modal(metaTokenModal);
+                        modalInst.hide();
+                    }
+
+                    // Update data-* attributes so next open uses fresh values
+                    const metaUserButton = document.querySelector('button[title="Meta Token Settings"]');
+                    if (metaUserButton) {
+                        metaUserButton.setAttribute('data-access-token', accessToken || '');
+                        metaUserButton.setAttribute('data-verify-token', verifyToken || '');
+                    }
+                })
+                .catch((error) => {
+                    console.error(error);
+                    alert(error.message || 'Failed to save Meta tokens');
+                });
+            }
+            window.saveMetaTokenSettings = saveMetaTokenSettings;
         });
-    }
-
-
-    // SAVE FUNCTION
-    window.saveApiSettings = function () {
-
-        const apiName = document.getElementById("settings_api_name").value;
-        const employee = document.getElementById("settings_employee_id").value;
-        const source = document.getElementById("settings_source_id").value;
-        const product = document.getElementById("settings_product_id").value;
-        const adId = document.getElementById("setting_ad_id").value;
-
-        const assignType = document.querySelector("input[name='assign_type']:checked").value;
-
-        // VALIDATION FOR META
-        if (apiName === "meta" && assignType === "multiple" && adId.trim() === "") {
-            alert("AD ID is required when Multiple is selected.");
-            return;
-        }
-
-        const token = document.querySelector("meta[name='csrf-token']").getAttribute("content");
-
-        fetch("{{ route('api_data.api-settings.store') }}", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-CSRF-TOKEN": token,
-                "Accept": "application/json",
-            },
-            body: JSON.stringify({
-                api_name: apiName,
-                employee_id: employee || null,
-                source_id: source || null,
-                product_id: product || null,
-                ad_id: adId || null,
-                assign_type: assignType,
-            }),
-        })
-        .then(res => res.json())
-        .then(data => {
-            alert(data.message || "Settings saved");
-            const modal = bootstrap.Modal.getInstance(apiSettingsModal);
-            modal.hide();
-        })
-        .catch(err => {
-            console.error(err);
-            alert("Failed to save settings");
-        });
-    };
-});
-</script>
-
+    </script>
 @endsection
