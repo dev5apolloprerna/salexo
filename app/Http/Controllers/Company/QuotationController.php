@@ -43,7 +43,7 @@ class QuotationController extends Controller
         $Product = Service::orderBy('service_id','DESC')->where(['iStatus'=>1,'isDelete'=>0])->get();
 
         $Quotation = Quotation::orderBy('quotationId','DESC')
-            ->where(['quotation.iStatus'=>1,'quotation.isDelete'=>0])
+            ->where(['quotation.iStatus'=>1,'quotation.isDelete'=>0,'quotation.iCompanyId'=>$user->company_id])
 
             // ✅ Filter by Party
             ->when($PartyName, function($q) use($PartyName) {

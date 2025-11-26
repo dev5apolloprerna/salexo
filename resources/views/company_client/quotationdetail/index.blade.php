@@ -123,10 +123,11 @@
                     </div>
 
                     <div class="card-footer">
+                        <div class="mb-3" style="float: right;">
                         <button type="submit" class="btn btn-success btn-user float-right mb-3">Save</button>
                         <a class="btn btn-primary float-right mr-3 mb-3"
                             href="{{ route('quotationdetails.index',$id) }}">Cancel</a>
-                    </div>
+                    </div></div>
                 </form>
             </div>
         </div>
@@ -303,8 +304,10 @@
                                         </div>
 
                                         <div class="modal-footer">
+                                            <div class="mb-3" style="float: right;">
                                           <button type="submit" id="save" class="btn btn-primary">Update</button>
                                         <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                                    </div>
                                         </div>
                                       </form>
 

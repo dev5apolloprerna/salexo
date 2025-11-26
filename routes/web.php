@@ -252,17 +252,26 @@ Route::prefix('clients/')->name('lead.csvupload.')->middleware(['auth:web_employ
 });
 
 //Api Data
-Route::prefix('clients/')->name('api_data.')->middleware(['auth:web_employees'])->group(function () {
+Route::prefix('clients')->name('api_data.')->middleware(['auth:web_employees'])->group(function () {
+
     Route::any('/api/detail/index', [ApiDataController::class, 'index'])->name('index');
 
     Route::get('/api-docs/indiamart', [ApiDataController::class, 'indiamart'])->name('pdf.indiamart');
     Route::get('/api-docs/general', [ApiDataController::class, 'general'])->name('pdf.general');
-    Route::post('/client/api-settings', [ApiDataController::class, 'store'])->name('api-settings.store');
-    Route::post('/client/api/meta-token', [ApiDataController::class, 'storeMetaTokens'])
-    ->name('meta-token.store');
 
+    // API settings store
+    Route::post('/api-settings', [ApiDataController::class, 'store'])->name('api-settings.store');
 
-    
+    // Meta token setup
+    Route::post('/api/meta-token', [ApiDataController::class, 'storeMetaTokens'])->name('meta-token.store');
+
+    // Meta settings page + store
+    Route::get('/api-settings/meta', [ApiDataController::class, 'metaIndex'])->name('meta.index');
+    Route::post('/api-settings/meta/store', [ApiDataController::class, 'metaStore'])->name('meta.store');
+
+    // 🔥 Correct DELETE route (NO extra prefix)
+    Route::delete('/api-settings/meta/delete/{id}', [ApiDataController::class, 'metaDelete'])
+        ->name('meta.delete');
 });
 
 //Follow Up

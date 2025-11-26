@@ -117,7 +117,7 @@
 
                                     <span class="d-flex gap-2">
                                         <!-- Settings icon (employee/source mapping) -->
-                                        <button type="button"
+                                       <!-- <button type="button"
                                                 class="btn btn-sm btn-outline-secondary me-2"
                                                 title="Settings"
                                                 data-bs-toggle="modal"
@@ -128,8 +128,13 @@
                                                 data-employee-id="{{ $metaSettings->emp_id ?? '' }}"
                                                 data-source-id="{{ $metaSettings->source_id ?? '' }}">
                                             <i class="fas fa-user"></i>
-                                        </button>
+                                        </button>-->
 
+                                        <a href="{{ route('api_data.meta.index') }}"
+                                           class="btn btn-sm btn-outline-secondary me-2"
+                                           title="Meta API Advanced Settings">
+                                            <i class="fas fa-user"></i>
+                                        </a>
                                         <!-- User icon for access token + verify token -->
                                         <button type="button"
                                                 class="btn btn-sm btn-outline-secondary"
@@ -312,6 +317,16 @@
                 const employee = empSelect ? empSelect.value : '';
                 const source   = sourceSelect ? sourceSelect.value : '';
 
+                const adId = document.getElementById("setting_ad_id").value;
+
+                const assignType = document.querySelector("input[name='assign_type']:checked").value;
+        
+                // VALIDATION FOR META
+                if (apiName === "meta" && assignType === "multiple" && adId.trim() === "") {
+                    alert("AD ID is required when Multiple is selected.");
+                    return;
+                }
+        
                 const tokenMeta = document.querySelector('meta[name="csrf-token"]');
                 const token     = tokenMeta ? tokenMeta.getAttribute('content') : '';
 

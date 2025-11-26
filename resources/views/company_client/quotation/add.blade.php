@@ -143,10 +143,12 @@
                     </div>
                 </div>
 
-                <div class="card-footer">
+                <div class="card-footer mt-3" >
+                    <div class="mb-3" style="float: right;">
                     <button type="submit" class="btn btn-success btn-user float-right mb-3">Save</button>
                     <a class="btn btn-primary float-right mr-3 mb-3" href="{{ route('quotation.index') }}">Cancel</a>
                 </div>
+            </div>
             </form>
             </div>
         

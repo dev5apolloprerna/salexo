@@ -150,4 +150,107 @@ class ApiDataController extends Controller
             ]);
         }
 
+        public function metaIndex()
+        {
+            $companyId = auth()->user()->company_id;
+
+            // Fetch all rows for API 3 (Meta)
+            $metaSettings = UserData::with('employee','product','source')->where(['company_id'=> $companyId,'api_id'=>3])->orderBy('data_id', 'DESC')->get();
+
+            // Employees, Sources & Products for Dropdown
+            $employees=Employee::where(['iStatus'=>1,'isDelete'=>0,'company_id'=>$companyId])->get();
+            $products=Service::where(['iStatus'=>1,'isDelete'=>0])->get();
+            $sources=LeadSource::where(['company_id'=>$companyId])->get();
+
+
+            return view('company_client.api_data.meta-settings', compact('metaSettings','employees','sources','products'));
+        }
+        public function metaStore(Request $request)
+        {
+            $companyId = auth()->user()->company_id;
+
+            // Base validation (ad_id validated below depending on type)
+            $request->validate([
+                'employee_id' => ['nullable', 'integer'],
+                'source_id'   => ['nullable', 'integer'],
+                'product_id'  => ['nullable', 'integer'],
+                'assign_type' => ['required', 'string', 'in:single,multiple'],
+            ]);
+
+            // Get existing meta rows for company
+            $existing = UserData::where('company_id', $companyId)
+                ->where('api_id', 3)
+                ->get();
+
+            /**
+             * ------------------------------------------------------
+             * CASE 1: assign_type = SINGLE
+             * ------------------------------------------------------
+             */
+            if ($request->assign_type === 'single') 
+            {
+                // If ANY row exists → block single
+                if ($existing->count() > 0) {
+                    return back()->with('error', 'You cannot create "Single" entry because entries already exist for this company.');
+                }
+
+                // Single entries MUST NOT have ad_id
+                $request->merge(['ad_id' => null]);
+            }
+
+            /**
+             * ------------------------------------------------------
+             * CASE 2: assign_type = MULTIPLE
+             * ------------------------------------------------------
+             */
+            if ($request->assign_type === 'multiple') 
+            {
+                // If any existing entry is SINGLE → block multiple
+                $hasSingle = $existing->where('assign_type', 'single')->count();
+                if ($hasSingle > 0) {
+                    return back()->with('error', 'Cannot add "Multiple" entry because a "Single" assignment exists for this company.');
+                }
+
+                // ad_id MUST be provided
+                if (!$request->ad_id) {
+                    return back()->with('error', 'Meta Advertisement Id is required for Multiple assignment.');
+                }
+
+                // AD ID must be unique for this company only
+                $existsAd = UserData::where('company_id', $companyId)
+                    ->where('api_id', 3)
+                    ->where('ad_id', $request->ad_id)
+                    ->exists();
+
+                if ($existsAd) {
+                    return back()->with('error', 'This AD ID is already assigned. AD ID must be unique.');
+                }
+            }
+
+            // ------------------------------------------------------
+            // Insert new row (validated above)
+            // ------------------------------------------------------
+            UserData::create([
+                'company_id'   => $companyId,
+                'api_id'       => 3,
+                'emp_id'       => $request->employee_id,
+                'source_id'    => $request->source_id,
+                'product_id'   => $request->product_id,
+                'ad_id'        => $request->ad_id,
+                'assign_type'  => $request->assign_type,
+            ]);
+
+            return back()->with('success', 'Meta API setting added successfully.');
+        }
+
+        public function metaDelete($id)
+        {
+            UserData::where('data_id', $id)->delete();
+
+            return back()->with('success', 'Record deleted successfully.');
+        }
+
+
+
+
 }
