@@ -129,7 +129,7 @@ class MetaWebhookController extends Controller
 
         // 5) Call Meta Lead API
        $response = Http::withOptions([
-            'verify' => false, // ⛔ turn off SSL verification only on local
+            'verify' => true, // ⛔ turn off SSL verification only on local
         ])->asForm()->get($url, [
             'access_token' => $pageAccessToken,
             'fields'       => 'field_data,created_time,form_id,ad_id,platform'
@@ -211,11 +211,10 @@ class MetaWebhookController extends Controller
 
         $mappedEmpId = $mapping->emp_id ?? $employee->emp_id;
 
-        $flat = $leadData;
         $keysToSkip = ['email', 'full_name', 'name', 'phone_number', 'city', 'created_time'];
 
         $lines = [];
-        foreach ($flat as $key => $value) {
+        foreach ($leadData as $key => $value) {
             if (in_array($key, $keysToSkip)) continue;
             if (is_array($value)) continue;
 
