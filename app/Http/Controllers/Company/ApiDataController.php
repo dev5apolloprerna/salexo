@@ -22,7 +22,7 @@ class ApiDataController extends Controller
     {
         $user = Auth::user();
         $employees=Employee::where(['iStatus'=>1,'isDelete'=>0,'company_id'=>$user->company_id])->get();
-        $product=Service::where(['iStatus'=>1,'isDelete'=>0])->get();
+        $product=Service::where(['iStatus'=>1,'isDelete'=>0,'company_id'=>$user->company_id])->get();
         $leadSources=LeadSource::where(['company_id'=>$user->company_id])->get();
         
          $apiSettings = UserData::with('company')->where('company_id', $user->company_id)
@@ -159,7 +159,7 @@ class ApiDataController extends Controller
 
             // Employees, Sources & Products for Dropdown
             $employees=Employee::where(['iStatus'=>1,'isDelete'=>0,'company_id'=>$companyId])->get();
-            $products=Service::where(['iStatus'=>1,'isDelete'=>0])->get();
+            $products=Service::where(['iStatus'=>1,'isDelete'=>0,'company_id'=>$companyId])->get();
             $sources=LeadSource::where(['company_id'=>$companyId])->get();
 
 

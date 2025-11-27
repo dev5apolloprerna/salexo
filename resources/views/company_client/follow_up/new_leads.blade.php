@@ -75,9 +75,9 @@
                                                 <tbody>
                                                     <?php $i = 1; ?>
 
-                                                    @forelse($leads as $lead)
+                                                    @forelse($leads as $index => $lead)
                                                         <tr class="text-center">
-                                                            <td>{{ $i }}
+                                                            <td>{{ $leads->firstItem() + $index }}
                                                             </td>
                                                             <td>{{ $lead->company_name ?? '-' }}</td>
                                                             <td>{{ $lead->customer_name ?? '-' }}</td>
