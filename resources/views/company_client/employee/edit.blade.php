@@ -42,7 +42,7 @@
                                                 <button type="submit"
                                                     class="btn btn-primary btn-user float-right mb-3 mx-2">Update</button>
                                                 <a class="btn btn-primary float-right mr-3 mb-3 mx-2"
-                                                    href="{{ route('company-client.index') }}">Cancel</a>
+                                                    href="{{ route('employee.index') }}">Cancel</a>
                                             </div>
                                         </div>
                                     </form>
