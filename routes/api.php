@@ -22,6 +22,8 @@ use App\Http\Controllers\Api\QuotationPdfController;
 use App\Http\Controllers\Api\QuotationTemplateApiController;
 use App\Http\Controllers\Api\QuotationDiscountApiController;
 
+use App\Http\Controllers\Api\MetaADWebhookController;
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -196,3 +198,6 @@ Route::post('/inquiry/{guid}', [WebHookController::class, 'crm_inquiry']);
 
 Route::get('/meta/webhook/{guid}', [MetaWebhookController::class, 'verify']);
 Route::post('/meta/webhook/{guid}', [MetaWebhookController::class, 'receive']);
+
+Route::get('/meta/ad/webhook', [MetaADWebhookController::class, 'verify_token']);
+Route::post('/meta/ad/webhook', [MetaADWebhookController::class, 'receive_data']);
