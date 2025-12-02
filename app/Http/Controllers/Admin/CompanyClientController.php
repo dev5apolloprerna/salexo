@@ -20,6 +20,7 @@ use App\Models\LeadMaster;
 use App\Models\DealCancel;
 use App\Models\DealDone;
 use Illuminate\Validation\Rule;
+use App\Helpers\WhatsAppHelper;
 
 class CompanyClientController extends Controller
 {
@@ -138,6 +139,7 @@ class CompanyClientController extends Controller
 
     public function store(Request $request)
     {
+
         $request->validate([
             'email' => 'required|unique:company_client_master,email',
             'password' => 'required|min:6',
@@ -188,6 +190,26 @@ class CompanyClientController extends Controller
                 'can_access_LMS' => 1,
                 'role_id'        => 2,
             ]);
+
+            if (!empty($client->mobile)) 
+            {
+                // your whatsapp template name, example: "welcome_client"
+                $templateName = "welcome_client"; // change to your actual template name
+
+                // your template parameters
+                $templateParams = [
+                    $client->company_name,  
+                    $client->contact_person_name,
+                    $client->mobile,
+                    $request->password
+                ];
+
+                WhatsAppHelper::sendTemplateMessage(
+                    $client->mobile,
+                    $templateName,
+                    $templateParams
+                );
+            }
 
             $lead_pipelines = [
                 [

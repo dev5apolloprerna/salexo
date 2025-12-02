@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Employee;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use App\Helpers\WhatsAppHelper;
 
 class EmployeeController extends Controller
 {
@@ -33,8 +34,6 @@ class EmployeeController extends Controller
                     $query->where('employee_master.emp_name', 'like', '%' . $search . '%');
                 })
                 ->paginate(config('app.per_page'));
-
-            // $employees = $this->employeeRepo->query()->paginate(env('PER_PAGE_COUNT'));
 
             return view('company_client.employee.index', compact('employees', 'search'));
         } catch (\Exception $e) {
@@ -77,6 +76,26 @@ class EmployeeController extends Controller
 
         $this->employeeRepo->create($data);
 
+
+        if (!empty($client->mobile)) 
+            {
+                // your whatsapp template name, example: "welcome_client"
+                $templateName = "welcome_client"; // change to your actual template name
+
+                // your template parameters
+                $templateParams = [
+                    $company_client->company_name,  
+                    $request->emp_name,
+                    $request->emp_mobile,
+                    $request->password
+                ];
+
+                WhatsAppHelper::sendTemplateMessage(
+                    $request->emp_mobile,
+                    $templateName,
+                    $templateParams
+                );
+            }
         return redirect()->route('employee.index')->with('success', 'Employee created successfully');
     }
 

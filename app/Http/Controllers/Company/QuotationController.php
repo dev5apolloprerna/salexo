@@ -39,8 +39,8 @@ class QuotationController extends Controller
 
         $Year    = Year::orderBy('year_id','DESC')->where(['iStatus'=>1,'isDelete'=>0])->get();
         $Company = CompanyClient::orderBy('company_id','DESC')->where(['iStatus'=>1,'isDeleted'=>0])->get();
-        $Party   = Party::orderBy('partyId','DESC')->where(['party.iStatus'=>1,'party.isDelete'=>0])->get();
-        $Product = Service::orderBy('service_id','DESC')->where(['iStatus'=>1,'isDelete'=>0])->get();
+        $Party   = Party::orderBy('partyId','DESC')->where(['party.iStatus'=>1,'party.isDelete'=>0,'iCompanyId'=>$user->company_id])->get();
+        $Product = Service::orderBy('service_id','DESC')->where(['iStatus'=>1,'isDelete'=>0,'iCompanyId'=>$user->company_id])->get();
 
         $Quotation = Quotation::orderBy('quotationId','DESC')
             ->where(['quotation.iStatus'=>1,'quotation.isDelete'=>0,'quotation.iCompanyId'=>$user->company_id])
@@ -105,7 +105,7 @@ class QuotationController extends Controller
 
         $Year = Year::orderBy('year_id', 'DESC')->where(['iStatus' => 1, 'isDelete' => 0])->get();
         $Company = CompanyClient::orderBy('company_id', 'DESC')->where(['company_id'=>$user->company_id,'iStatus' => 1, 'isDeleted' => 0])->first();
-        $Party = Party::orderBy('partyId', 'DESC')->where(['party.iStatus' => 1, 'party.isDelete' => 0])->get();
+        $Party = Party::orderBy('partyId', 'DESC')->where(['party.iStatus' => 1, 'party.isDelete' => 0,'iCompanyId'=>$user->company_id])->get();
         $Quotation = Quotation::orderBy('quotationId', 'DESC')->where(['quotation.iStatus' => 1, 'quotation.isDelete' => 0])
             ->join('company_client_master', 'quotation.iCompanyId', '=', 'company_client_master.company_id')
             ->join('party', 'quotation.iPartyId', '=', 'party.partyId')
@@ -149,7 +149,7 @@ class QuotationController extends Controller
         ])->firstOrFail();
         $Year = Year::orderBy('year_id', 'DESC')->where(['iStatus' => 1, 'isDelete' => 0])->get();
         $Company = CompanyClient::orderBy('company_id', 'DESC')->where(['company_id'=>$user->company_id,'iStatus' => 1, 'isDeleted' => 0])->first();
-        $Party = Party::orderBy('partyId', 'DESC')->where(['party.iStatus' => 1, 'party.isDelete' => 0])->get();
+        $Party = Party::orderBy('partyId', 'DESC')->where(['party.iStatus' => 1, 'party.isDelete' => 0,'iCompanyId'=>$user->company_id])->get();
 
 
         return view('company_client.quotation.edit',compact('Data','Company','Party','Year'));
@@ -338,7 +338,7 @@ $pdf->setPaper('a4');
         $Product = Product::orderBy('productId', 'DESC')->where(['iStatus' => 1, 'isDelete' => 0])->get();
         $Year = Year::orderBy('year_id', 'DESC')->where(['iStatus' => 1, 'isDelete' => 0])->get();
         $Company = CompanyClient::orderBy('company_id', 'DESC')->where(['iStatus' => 1, 'isDeleted' => 0])->get();
-        $Party = Party::orderBy('partyId', 'DESC')->where(['party.iStatus' => 1, 'party.isDelete' => 0])->get();
+        $Party = Party::orderBy('partyId', 'DESC')->where(['party.iStatus' => 1, 'party.isDelete' => 0,'iCompanyId'=>$user->company_id])->get();
         $Quotation = Quotation::orderBy('quotationId', 'DESC')->where(['quotation.iStatus' => 1, 'quotation.isDelete' => 0])
             //->whereIn('quotation.iPartyId', array(90, 91, 92, 93))
             ->when($request->partyName, fn ($query, $PartyName) => $query->where('party.strPartyName', 'like', '%' . $PartyName . '%'))
