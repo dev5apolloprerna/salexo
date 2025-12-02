@@ -16,7 +16,10 @@ class PartyController extends Controller
 {
     public function index(Request $request)
     {
-        $companyId = (int)$request->get('company_id', 0);
+         $user = Auth::guard('web_employees')->user();
+        $companyId=$user->company_id;
+       
+       // $companyId = (int)$request->get('company_id', 0);
         $q         = $request->get('q');
         $editId    = (int)$request->get('edit', 0);
 
@@ -45,9 +48,9 @@ class PartyController extends Controller
     }
     public function search(Request $request)
     {
+        $user = Auth::guard('web_employees')->user();
+        $companyId=$user->company_id;
         $q          = trim($request->get('q', ''));
-        $companyId  = (int) $request->get('company_id', 0); // optional filter
-
         $rows = Party::query()
             ->when($companyId > 0, fn($w) => $w->where('company_id', $companyId)) // remove if not needed
             ->where(['isDelete' => 0]) // adjust flags/columns if different
@@ -63,6 +66,9 @@ class PartyController extends Controller
     }
     public function lookupByName(Request $request)
     {
+        $user = Auth::guard('web_employees')->user();
+        $companyId=$user->company_id;
+        
         $q = trim((string) $request->query('q', ''));
         if (mb_strlen($q) < 3) {
             return response()->json([
@@ -72,7 +78,7 @@ class PartyController extends Controller
         }
 
         // Optional company scoping
-        $companyId = (int) $request->query('company_id', 0);
+        // $companyId = (int) $request->query('company_id', 0);
 
         $query = DB::table('lead_master')
             ->select([

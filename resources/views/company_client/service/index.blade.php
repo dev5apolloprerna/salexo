@@ -164,7 +164,7 @@
                                     </div> 
                                     <div class="mb-3">
                                         Rate <span style="color:red;">*</span>
-                                        <input type="text" class="form-control" name="rate" id="Editrate"
+                                        <input type="text" class="form-control" name="rate" id="EditRate"
                                             placeholder="Enter Rate" maxlength="100" autocomplete="off" required>
                                     </div>
 
