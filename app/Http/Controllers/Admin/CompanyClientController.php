@@ -194,7 +194,7 @@ class CompanyClientController extends Controller
             if (!empty($client->mobile)) 
             {
                 // your whatsapp template name, example: "welcome_client"
-                $templateName = "welcome_client"; // change to your actual template name
+                $templateName = "login_update"; // change to your actual template name
 
                 // your template parameters
                 $templateParams = [
