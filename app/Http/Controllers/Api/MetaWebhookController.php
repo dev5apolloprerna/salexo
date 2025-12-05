@@ -129,21 +129,24 @@ class MetaWebhookController extends Controller
 
         // 5) Call Meta Lead API
        $response = Http::withOptions([
-            'verify' => true, // ⛔ turn off SSL verification only on local
+            'verify' => false, // ⛔ turn off SSL verification only on local
         ])->asForm()->get($url, [
             'access_token' => $pageAccessToken,
             'fields'       => 'field_data,created_time,form_id,ad_id,platform'
         ]);
 
-
         Log::info("Lead fetch response: status={$response->status()}, body=" . $response->body());
 
-        if (!$response->successful()) {
+        if (!$response->successful()) 
+        {
             Log::warning("Meta lead fetch FAILED. HTTP Status: " . $response->status());
             return;
         }
 
         $leadData = $response->json();
+
+        dd($leadData);
+
         Log::info("Lead Details:", $leadData);
 
         if (empty($leadData['field_data'])) {
