@@ -57,7 +57,7 @@ class CompanyClientLoginController extends Controller
                             'role_id',
                             'isCompanyAdmin',
                         ])
-                        ->where('emp_id', $empId)
+                        ->where('emp_id', $user->emp_id)
                         ->first();
 
                     if (!$user) {

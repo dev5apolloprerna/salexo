@@ -130,10 +130,11 @@ class EmployeeController extends Controller
         }
     }
 
-    public function destroy($id)
+    public function destroy(Request $request,$id)
     {
         try {
-            $this->employeeRepo->delete($id);
+
+            $this->employeeRepo->delete($request->emp_id);
 
             return redirect()->route('employee.index')->with('success', 'Employee deleted successfully');
         } catch (\Exception $e) {

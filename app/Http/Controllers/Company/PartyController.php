@@ -52,7 +52,7 @@ class PartyController extends Controller
         $companyId=$user->company_id;
         $q          = trim($request->get('q', ''));
         $rows = Party::query()
-            ->when($companyId > 0, fn($w) => $w->where('company_id', $companyId)) // remove if not needed
+            ->when($companyId > 0, fn($w) => $w->where('iCompanyId', $companyId)) // remove if not needed
             ->where(['isDelete' => 0]) // adjust flags/columns if different
             ->when($q !== '', fn($w) => $w->where('strPartyName', 'like', "%{$q}%"))
             ->orderBy('strPartyName')
