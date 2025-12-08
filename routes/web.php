@@ -63,6 +63,7 @@ use App\Http\Controllers\Company\YearController;
 // Force /login to redirect to /admin-login
 Route::redirect('/login', '/admin-login')->name('login');
 
+
 Route::get('/login', [FrontController::class, 'login'])->name('user_login');
 Route::fallback(function () {
     return view('errors.404');
@@ -147,6 +148,9 @@ Route::prefix('admin')->name('company-client.')->middleware('auth')->group(funct
     Route::delete('/{company_client?}', [CompanyClientController::class, 'destroy'])->name('destroy');
     Route::get('/changepassword/{id}', [CompanyClientController::class, 'changepassword'])->name('changepassword');
     Route::post('/updatepassword/{id?}', [CompanyClientController::class, 'updatepassword'])->name('updatepassword');
+    Route::post('/company-client/change-status/{id}', [CompanyClientController::class, 'changeStatus'])
+        ->name('change-status');
+
 });
 
 Route::prefix('admin')->name('reports.')->middleware('auth')->group(function () {
