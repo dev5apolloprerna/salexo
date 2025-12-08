@@ -10,15 +10,24 @@ use App\Models\State;
 use App\Models\CompanyClient;
 use App\Models\Employee;
 use App\Models\Plan;
+use App\Models\Service;
+use App\Models\Party;
 use App\Models\LeadCancelReason;
 use App\Models\LeadPipeline;
+use App\Models\LeadSource;
+use App\Models\Quotation;
+use App\Models\QuotationDetail;
+use App\Models\DealDone;
+use App\Models\LeadMaster;
+use App\Models\DealCancel;
+use App\Models\UdfMaster;
+use App\Models\LeadUdfData;
+use App\Models\LeadHistory;
+
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Carbon; // Make sure Carbon is used
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
-use App\Models\LeadMaster;
-use App\Models\DealCancel;
-use App\Models\DealDone;
 use Illuminate\Validation\Rule;
 use App\Helpers\WhatsAppHelper;
 
@@ -425,13 +434,65 @@ class CompanyClientController extends Controller
         }
     }
 
+    public function changeStatus($id)
+    {
+        $company = CompanyClient::findOrFail($id);
+        $newStatus = $company->iStatus == 1 ? 0 : 1;
+
+        // Update company
+        $company->iStatus = $newStatus;
+        $company->save();
+
+        // Update employees to same status
+        Employee::where('company_id', $id)->update([
+            'iStatus' => $newStatus
+        ]);
+
+
+        return response()->json(['status' => true, 'new_status' => $company->iStatus]);
+    }
     public function destroy(Request $request, $id = null)
     {
         try {
             $id = $request->company_id ?? '';
-            $this->clientRepo->delete($id);
+           
+
+            $LeadPipeline = LeadPipeline::where('company_id', $id)->delete();
+            $LeadCancelReason = LeadCancelReason::where('company_id', $id)->delete();
+            $LeadSource = LeadSource::where('company_id', $id)->delete();
+            $leadmaster = LeadMaster::where('iCustomerId', $id)->delete();
+            $leadmaster = LeadHistory::where('iCustomerId', $id)->delete();
+
+            $DealDone = DealDone::where('iCustomerId', $id)->delete();
+            $DealCancel = DealCancel::where('iCustomerId', $id)->delete();
+            
+            $party = Party::where('iCompanyId', $id)->delete();
+            $Service = Service::where('company_id', $id)->delete();
+            
+            $quotationIds = Quotation::where('iCompanyId', $id)->pluck('quotationId');
+
+            // If no quotations found → skip deletion
+            if ($quotationIds->isNotEmpty()) {
+
+                // delete all quotation details in one query
+                QuotationDetail::whereIn('quotationID', $quotationIds)->delete();
+            }
+
+            // delete quotations (even if none found, query is safe)
+            Quotation::where('iCompanyId', $id)->delete();
+
+            $udfIds = UdfMaster::where('company_id', $id)->pluck('id');
+            if ($udfIds->isNotEmpty()) {
+
+                    LeadUdfData::whereIn('udf_id', $udfIds)->delete();
+                }
+                    UdfMaster::where('company_id', $id)->delete();
+
+
             $employee = Employee::where('company_id', $id)->first();
             $this->employeeRepo->delete($employee->emp_id);
+            $this->clientRepo->delete($id);
+
 
             return redirect()->route('company-client.index')->with('success', 'Client deleted successfully');
         } catch (\Exception $e) {

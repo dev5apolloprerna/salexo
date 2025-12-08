@@ -67,6 +67,7 @@
                                                         <th>Subscription End Date</th>
                                                         <th>Login Date Time</th>
                                                         <th>No. of leads</th>
+                                                        <th>Status</th>
                                                         <th>Action</th>
                                                     </tr>
                                                 </thead>
@@ -100,6 +101,13 @@
                                                                 @endif
                                                             </td>
                                                             <td>{{ $client->total_leads  }}</td>
+                                                            <td>
+                                                                <span class="badge bg-{{ $client->iStatus ? 'success' : 'secondary' }} toggle-status"
+                                                                      style="cursor:pointer"
+                                                                      data-id="{{ $client->company_id }}">
+                                                                    {{ $client->iStatus ? 'Active' : 'Inactive' }}
+                                                                </span>
+                                                            </td>
                                                             <td>
                                                                 <a
                                                                     href="{{ route('company-client.edit', $client->company_id) }}"><i
@@ -186,6 +194,22 @@
             $('#search').val('');
 
         }
+
+$(function(){
+    const CSRF = '{{ csrf_token() }}';
+        $('.toggle-status').on('click', function(){
+        let id = $(this).data('id'), el=$(this);
+    $.post("{{ route('company-client.change-status', ':id') }}".replace(':id', id), {_token:CSRF}, function(resp){
+            if(resp.status){
+                if(resp.new_status==1){
+                    el.removeClass('bg-secondary').addClass('bg-success').text('Active');
+                } else {
+                    el.removeClass('bg-success').addClass('bg-secondary').text('Inactive');
+                }
+            }
+        });
+    });
+});
     </script>
 
 @endsection
