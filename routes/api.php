@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\QuotationTemplateApiController;
 use App\Http\Controllers\Api\QuotationDiscountApiController;
 
 use App\Http\Controllers\Api\MetaADWebhookController;
+use App\Http\Controllers\Api\CalenderLeadApiController;
 
 /*
 |--------------------------------------------------------------------------
@@ -46,7 +47,8 @@ Route::get('/clear-cache', function () {
 Route::prefix('employee')->group(function () {
     Route::post('login', [EmployeeApiController::class, 'login']);
 
-    Route::middleware(['auth:employee_api'])->group(function () {
+    Route::middleware(['auth:employee_api'])->group(function () 
+    {
 
         // lead-pipeline as status
         Route::post('lead/pipeline/list', [EmployeeApiController::class, 'lead_pipeline']);
@@ -135,6 +137,7 @@ Route::prefix('employee')->group(function () {
             Route::post('/party/lookup/mobile', [PartyApiController::class, 'lookupByMobile']);
             Route::post('party/toggle-status', [PartyApiController::class, 'toggleStatus']);
 
+             Route::post('/calendar-leads', [CalenderLeadApiController::class, 'getLeads']);
 
 
             Route::prefix('quotations')->group(function () {

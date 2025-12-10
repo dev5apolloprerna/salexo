@@ -30,7 +30,8 @@ class EmployeeApiController extends Controller
 {
    public function login(Request $request)
 {
-    try {
+    try 
+    {
         $request->validate([
             'mobileNumber' => 'required',
             'password'     => 'required',
