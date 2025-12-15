@@ -1,0 +1,21 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class Year extends Model
+{
+    use HasFactory;
+    public $table = 'year';
+   protected $primaryKey = 'year_id';
+    public $timestamps = true;
+
+
+    protected $fillable = [
+       'strYear',
+       'strIP',
+       'strEntryDate'
+   ];
+}
