@@ -64,6 +64,21 @@ if (Auth::guard('web')->user()) {
                             <span data-key="t-dashboards">Quotation Template</span>
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link menu-link @if (request()->routeIs('admin.invoice.templates')) {{ 'active' }} @endif"
+                            href="{{ route('admin.invoice.templates') }}">
+                            <i class="fa-solid fa fa-images"></i>
+                            <span data-key="t-dashboards">Invoice Template</span>
+                        </a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link menu-link @if (request()->routeIs('admin.performa_invoice.templates')) {{ 'active' }} @endif"
+                            href="{{ route('admin.performa_invoice.templates') }}">
+                            <i class="fa-solid fa fa-images"></i>
+                            <span data-key="t-dashboards">Performa Invoice Template</span>
+                        </a>
+                    </li>
                 @endif
 
 

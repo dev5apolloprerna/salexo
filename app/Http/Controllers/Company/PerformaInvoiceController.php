@@ -12,7 +12,7 @@ use App\Models\State;
 use App\Models\PerformaInvoice;
 use App\Models\PerformaInvoiceDetail;
 use App\Models\TermCondition;
-use App\Models\InvoiceTemplate;
+use App\Models\PerformaInvoiceTemplate;
 use App\Models\Service;
 
 use Illuminate\Support\Facades\File;
@@ -252,29 +252,29 @@ class PerformaInvoiceController extends Controller
         /*return $pdf->download($fileName);*/
         return $pdf->stream($fileName);
     }
-    protected function getDefaultTemplateForCompany(int $companyId): InvoiceTemplate
+    protected function getDefaultTemplateForCompany(int $companyId): PerformaInvoiceTemplate
     {
         // Read GUID from company table
         $guid = DB::table('company_client_master')
             ->where('company_id', $companyId)
-            ->value('companyTemplate');
+            ->value('performa_invoice_template');
 
         // Try: active template by GUID
         if ($guid) {
-            $tpl = InvoiceTemplate::where('guid', $guid)
+            $tpl = PerformaInvoiceTemplate::where('guid', $guid)
                 ->where('is_active', 1)
                 ->first();
             if ($tpl) return $tpl;
         }
 
         // Fallback: first active template marked default, else any active template
-        $tpl = InvoiceTemplate::where('is_active', 1)
-            ->where('is_default', 1 ?? 0)
+        $tpl = PerformaInvoiceTemplate::where('is_active', 1)
+            // ->where('is_default', 1 ?? 0)
             ->first();
 
 
         if (!$tpl) {
-            $tpl = InvoiceTemplate::where('is_active', 1)->first();
+            $tpl = PerformaInvoiceTemplate::where('is_active', 1)->first();
         }
 
         if (!$tpl) {
@@ -284,7 +284,7 @@ class PerformaInvoiceController extends Controller
         return $tpl;
     }
 
-    protected function renderTemplateToHtml(InvoiceTemplate $tpl, array $data): string
+    protected function renderTemplateToHtml(PerformaInvoiceTemplate $tpl, array $data): string
     {
         $full = public_path($tpl->file_path);
         if (!File::exists($full)) {
@@ -550,7 +550,7 @@ class PerformaInvoiceController extends Controller
 
         // Company logo → base64 inline
         $companyLogoUrl = null;
-        /*$root = base_path('../public_html/');
+        $root = base_path('../public_html/');
 
         // 1) pick relative path (from DB or fallback)
         $rel = data_get($company, 'company_logo'); // e.g. 'uploads/company/logo.png' or 'logo.png'
@@ -567,7 +567,7 @@ class PerformaInvoiceController extends Controller
         $ext  = strtolower(pathinfo($path, PATHINFO_EXTENSION) ?: 'png');
         $mime = $ext === 'jpg' ? 'image/jpeg' : "image/$ext";
         $companyLogoUrl = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($path));
-        */
+        
 
        /* if ($get($company, ['company_logo'])) {
             $path = public_path('CompanyLogo/'.$company->company_logo);

@@ -241,8 +241,21 @@
                             <span>Quotation</span>
                         </a>
                     </li>
-
+                    @if($company_id == 5)
+                    <li class="nav-item">
+                        <a class="nav-link collapsed" href="{{ route('invoice.index') }}">
+                            <i class="fa-solid fa-file-invoice"></i>
+                            <span>Invoice</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link collapsed" href="{{ route('performainvoice.index') }}">
+                            <i class="fa-solid fa-file-invoice"></i>
+                            <span>Performa Invoice</span>
+                        </a>
+                    </li>
                     
+                    @endif
 
                     <!-- Reports -->
                     <li class="nav-item">
