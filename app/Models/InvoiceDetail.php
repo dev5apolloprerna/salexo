@@ -17,4 +17,9 @@ class InvoiceDetail extends Model
     {
         return $this->belongsTo(Service::class, 'productID', 'service_id');
     }
+    public function invoice()
+    {
+        return $this->belongsTo(Invoice::class, 'invoiceId');
+    }
+
 }

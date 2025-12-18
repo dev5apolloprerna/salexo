@@ -257,7 +257,7 @@ class InvoiceController extends Controller
         // Read GUID from company table
         $guid = DB::table('company_client_master')
             ->where('company_id', $companyId)
-            ->value('companyTemplate');
+            ->value('invoice_template');
 
         // Try: active template by GUID
         if ($guid) {
@@ -269,7 +269,7 @@ class InvoiceController extends Controller
 
         // Fallback: first active template marked default, else any active template
         $tpl = InvoiceTemplate::where('is_active', 1)
-            ->where('is_default', 1 ?? 0)
+            // ->where('is_default', 1 ?? 0)
             ->first();
 
 
@@ -550,7 +550,7 @@ class InvoiceController extends Controller
 
         // Company logo → base64 inline
         $companyLogoUrl = null;
-        /*$root = base_path('../public_html/');
+        $root = base_path('../public_html/');
 
         // 1) pick relative path (from DB or fallback)
         $rel = data_get($company, 'company_logo'); // e.g. 'uploads/company/logo.png' or 'logo.png'
@@ -567,7 +567,7 @@ class InvoiceController extends Controller
         $ext  = strtolower(pathinfo($path, PATHINFO_EXTENSION) ?: 'png');
         $mime = $ext === 'jpg' ? 'image/jpeg' : "image/$ext";
         $companyLogoUrl = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($path));
-        */
+        
 
        /* if ($get($company, ['company_logo'])) {
             $path = public_path('CompanyLogo/'.$company->company_logo);

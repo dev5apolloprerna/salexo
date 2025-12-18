@@ -43,4 +43,9 @@ class Invoice extends Model
     {
         return $this->belongsTo(CompanyClient::class, 'partyId', 'iPartyId');
     }
+    public function details()
+    {
+        return $this->hasMany(InvoiceDetail::class, 'invoiceId');
+    }
+
 }

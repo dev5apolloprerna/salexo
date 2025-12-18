@@ -8,6 +8,8 @@ use App\Http\Controllers\Admin\StateController;
 use App\Http\Controllers\Admin\CompanyClientController;
 use App\Http\Controllers\admin\JoiningRequestsController;
 use App\Http\Controllers\Admin\AdminQuotationTemplateController;
+use App\Http\Controllers\Admin\AdminInvoiceTemplateController;
+use App\Http\Controllers\Admin\AdminPerformaInvoiceTemplateController;
 
 use App\Http\Controllers\admin\RequestsForJoiningController;
 use App\Http\Controllers\AdminLoginController;
@@ -49,6 +51,13 @@ use App\Http\Controllers\Company\QuotationTemplateController;
 use App\Http\Controllers\Company\YearController;
 
 
+use App\Http\Controllers\Company\InvoiceController;
+use App\Http\Controllers\Company\InvoiceDetailController;
+use App\Http\Controllers\Company\InvoiceTemplateController;
+
+use App\Http\Controllers\Company\PerformaInvoiceController;
+use App\Http\Controllers\Company\PerformaInvoiceDetailController;
+use App\Http\Controllers\Company\PerformaInvoiceTemplateController;
 
 /*
 |--------------------------------------------------------------------------
@@ -480,6 +489,47 @@ Route::prefix('admin/quotations')->name('admin.quotations.')->middleware('auth')
 
 
 
+Route::prefix('admin/invoice')->name('admin.invoice.')->middleware('auth')->group(function () {
+
+    Route::get('/templates', [AdminInvoiceTemplateController::class, 'index'])->name('templates');
+    Route::get('/templates/new', [AdminInvoiceTemplateController::class, 'create'])->name('templates.create');
+    Route::post('/templates', [AdminInvoiceTemplateController::class, 'store'])->name('templates.store');
+
+    Route::patch('/templates/{template}/toggle', [AdminInvoiceTemplateController::class, 'toggle'])->name('templates.toggle');
+    Route::patch('/templates/{template}/default', [AdminInvoiceTemplateController::class, 'setDefault'])->name('templates.default');
+    Route::delete('/templates/{template}', [AdminInvoiceTemplateController::class, 'destroy'])->name('templates.destroy');
+
+    // ✅ Preview specific template
+    Route::get('/template/preview/{template}/{quotationId}', [AdminInvoiceTemplateController::class, 'preview'])
+        ->name('templates.preview');
+
+    // ✅ Preview default template
+    Route::get('/designs/preview-default', [AdminInvoiceTemplateController::class, 'previewDefaultForMyCompany'])
+    ->name('designs.previewDefault');
+});
+
+
+Route::prefix('admin/performa-invoice')->name('admin.performa_invoice.')->middleware('auth')->group(function () {
+
+    Route::get('/templates', [AdminPerformaInvoiceTemplateController::class, 'index'])->name('templates');
+    Route::get('/templates/new', [AdminPerformaInvoiceTemplateController::class, 'create'])->name('templates.create');
+    Route::post('/templates', [AdminPerformaInvoiceTemplateController::class, 'store'])->name('templates.store');
+
+    Route::patch('/templates/{template}/toggle', [AdminPerformaInvoiceTemplateController::class, 'toggle'])->name('templates.toggle');
+    Route::patch('/templates/{template}/default', [AdminPerformaInvoiceTemplateController::class, 'setDefault'])->name('templates.default');
+    Route::delete('/templates/{template}', [AdminPerformaInvoiceTemplateController::class, 'destroy'])->name('templates.destroy');
+
+    // ✅ Preview specific template
+    Route::get('/template/preview/{template}/{quotationId}', [AdminPerformaInvoiceTemplateController::class, 'preview'])
+        ->name('templates.preview');
+
+    // ✅ Preview default template
+    Route::get('/designs/preview-default', [AdminPerformaInvoiceTemplateController::class, 'previewDefaultForMyCompany'])
+    ->name('designs.previewDefault');
+});
+
+
+
 Route::prefix('company/quotations')->name('quotations.')->middleware('auth:web_employees')->group(function () {
 
     Route::get('/templates', [QuotationTemplateController::class, 'index'])->name('templates');
@@ -509,3 +559,139 @@ Route::prefix('company/year')->middleware(['auth:web_employees'])->group(functio
 });
 
 
+
+Route::prefix('company/invoiceT')->name('invoiceT.')->middleware('auth:web_employees')->group(function () {
+
+    Route::get('/templates', [InvoiceTemplateController::class, 'index'])->name('templates');
+    Route::patch('/templates/{template}/toggle', [InvoiceTemplateController::class, 'toggle'])->name('templates.toggle');
+    Route::patch('/templates/{template}/default', [InvoiceTemplateController::class, 'setDefault'])->name('templates.default');
+    Route::delete('/templates/{template}', [InvoiceTemplateController::class, 'destroy'])->name('templates.destroy');
+
+    // ✅ Preview specific template
+    Route::get('/template/preview/{template}/{quotationId}', [InvoiceTemplateController::class, 'preview'])
+        ->name('templates.preview');
+
+    // ✅ Preview default template
+    Route::get('/designs/preview-default', [InvoiceTemplateController::class, 'previewDefaultForMyCompany'])
+    ->name('designs.previewDefault');
+});
+
+
+Route::prefix('company/performainvoiceT')->name('performainvoiceT.')->middleware('auth:web_employees')->group(function () {
+
+    Route::get('/templates', [PerformaInvoiceTemplateController::class, 'index'])->name('templates');
+    Route::patch('/templates/{template}/toggle', [PerformaInvoiceTemplateController::class, 'toggle'])->name('templates.toggle');
+    Route::patch('/templates/{template}/default', [PerformaInvoiceTemplateController::class, 'setDefault'])->name('templates.default');
+    Route::delete('/templates/{template}', [PerformaInvoiceTemplateController::class, 'destroy'])->name('templates.destroy');
+
+    // ✅ Preview specific template
+    Route::get('/template/preview/{template}/{quotationId}', [PerformaInvoiceTemplateController::class, 'preview'])
+        ->name('templates.preview');
+
+    // ✅ Preview default template
+    Route::get('/designs/preview-default', [PerformaInvoiceTemplateController::class, 'previewDefaultForMyCompany'])
+    ->name('designs.previewDefault');
+});
+
+//invoice routes 
+Route::prefix('clients/invoice')->name('invoice.')->middleware(['auth:web_employees'])->group(function () 
+{
+    Route::get('/invoice', [InvoiceController::class, 'index'])->name('index');
+    Route::get('/create', [InvoiceController::class, 'createview'])->name('create');
+    Route::post('/store',       [InvoiceController::class, 'create'])->name('store'); // store action
+    Route::get('/{id}/edit', [InvoiceController::class, 'editview'])->name('edit');
+    Route::put('/{id}',      [InvoiceController::class, 'update'])->name('update');
+    Route::delete('/{id}', [InvoiceController::class, 'delete'])->name('delete');
+    Route::get('/showdetail/{id}', [InvoiceController::class, 'showdetail'])->name('showDetails');
+    Route::get('/detail-pdf/{id}', [InvoiceController::class, 'detailPDF'])->name('DetailPDF');
+    Route::post('/search', [InvoiceController::class, 'search'])->name('search');
+    Route::get('/mapping/{id}', [InvoiceController::class, 'mapping'])->name('mapping');
+    Route::get('/termcondition-fetch', [InvoiceController::class, 'termconditionFetch'])->name('termconditionFetch');
+    Route::get('/copy/{id}', [InvoiceController::class, 'copyinvoice'])->name('copy');
+    Route::get('/get-next-no/{companyId}', [InvoiceController::class, 'getNextinvoiceNo'])->name('getNextNo');
+    // Route::post('/invoice/{id}/whatsapp', [InvoiceController::class, 'sendWhatsApp'])->name('invoice.whatsapp');
+    Route::post('/invoice/{id}/send-whatsapp', [InvoiceController::class, 'sendWhatsApp'])
+    ->name('sendWhatsApp');
+
+
+})->whereNumber('id')->whereNumber('companyId');
+
+Route::prefix('clients/invoicedetails')->name('invoicedetails.')->middleware('auth:web_employees')->group(function () 
+    {
+        Route::get('/{getId}', [InvoiceDetailController::class, 'index'])->name('index');
+        Route::get('/create', [InvoiceDetailController::class, 'createview'])->name('create');
+        Route::post('/create', [InvoiceDetailController::class, 'create'])->name('create');
+        // Route::get('invoicedetails/{Id}', [InvoiceDetailController::class, 'editview'])->name('edit');
+        Route::get('/{id}/edit',[InvoiceDetailController::class, 'editview'])->name('edit');
+        Route::post('/invoicedetails-update/{Id?}', [InvoiceDetailController::class, 'update'])->name('update');
+        Route::delete('/invoicedetails-delete/{Id}', [InvoiceDetailController::class, 'delete'])->name('delete');
+        Route::get('/services/lookup', [InvoiceDetailController::class, 'serviceLookup'])
+        ->name('services.lookup');
+
+        Route::get('/services/{id}', [InvoiceDetailController::class, 'serviceById'])
+        ->whereNumber('id')
+        ->name('services.byId');
+        Route::post('/{quotationId}/discount', [InvoiceDetailController::class, 'applyDiscount'])->name('applyDiscount');
+
+        Route::post('/check-duplicate', [InvoiceDetailController::class, 'checkDuplicate'])
+        ->name('checkDuplicate');
+    });
+        Route::prefix('invoicedetails')->name('invoicedetails.')->group(function () 
+        {
+            Route::get('/productfetch', [InvoiceDetailController::class, 'productfetch'])
+            ->name('productfetch');
+        });
+// Performa invoice
+
+        //invoice routes 
+Route::prefix('clients/performainvoice')->name('performainvoice.')->middleware(['auth:web_employees'])->group(function () 
+{
+    Route::get('/performainvoice', [PerformaInvoiceController::class, 'index'])->name('index');
+    Route::get('/create', [PerformaInvoiceController::class, 'createview'])->name('create');
+    Route::post('/store',       [PerformaInvoiceController::class, 'create'])->name('store'); // store action
+    Route::get('/{id}/edit', [PerformaInvoiceController::class, 'editview'])->name('edit');
+    Route::put('/{id}',      [PerformaInvoiceController::class, 'update'])->name('update');
+    Route::delete('/{id}', [PerformaInvoiceController::class, 'delete'])->name('delete');
+    Route::get('/showdetail/{id}', [PerformaInvoiceController::class, 'showdetail'])->name('showDetails');
+    Route::get('/detail-pdf/{id}', [PerformaInvoiceController::class, 'detailPDF'])->name('DetailPDF');
+    Route::post('/search', [PerformaInvoiceController::class, 'search'])->name('search');
+    Route::get('/mapping/{id}', [PerformaInvoiceController::class, 'mapping'])->name('mapping');
+    Route::get('/termcondition-fetch', [PerformaInvoiceController::class, 'termconditionFetch'])->name('termconditionFetch');
+    Route::get('/copy/{id}', [PerformaInvoiceController::class, 'copyinvoice'])->name('copy');
+    Route::get('/get-next-no/{companyId}', [PerformaInvoiceController::class, 'getNextinvoiceNo'])->name('getNextNo');
+    // Route::post('/invoice/{id}/whatsapp', [PerformaInvoiceController::class, 'sendWhatsApp'])->name('invoice.whatsapp');
+    Route::post('/performainvoice/{id}/send-whatsapp', [PerformaInvoiceController::class, 'sendWhatsApp'])
+    ->name('sendWhatsApp');
+
+
+})->whereNumber('id')->whereNumber('companyId');
+
+
+
+
+
+Route::prefix('clients/performainvoicedetails')->name('performainvoicedetails.')->middleware('auth:web_employees')->group(function () 
+    {
+        Route::get('/{getId}', [PerformaInvoiceDetailController::class, 'index'])->name('index');
+        Route::get('/create', [PerformaInvoiceDetailController::class, 'createview'])->name('create');
+        Route::post('/create', [PerformaInvoiceDetailController::class, 'create'])->name('create');
+        // Route::get('performainvoicedetails/{Id}', [PerformaInvoiceDetailController::class, 'editview'])->name('edit');
+        Route::get('/{id}/edit',[PerformaInvoiceDetailController::class, 'editview'])->name('edit');
+        Route::post('/performainvoicedetails-update/{Id?}', [PerformaInvoiceDetailController::class, 'update'])->name('update');
+        Route::delete('/performainvoicedetails-delete/{Id}', [PerformaInvoiceDetailController::class, 'delete'])->name('delete');
+        Route::get('/services/lookup', [PerformaInvoiceDetailController::class, 'serviceLookup'])
+        ->name('services.lookup');
+
+        Route::get('/services/{id}', [PerformaInvoiceDetailController::class, 'serviceById'])
+        ->whereNumber('id')
+        ->name('services.byId');
+        Route::post('/{quotationId}/discount', [PerformaInvoiceDetailController::class, 'applyDiscount'])->name('applyDiscount');
+
+        Route::post('/check-duplicate', [PerformaInvoiceDetailController::class, 'checkDuplicate'])
+        ->name('checkDuplicate');
+    });
+    Route::prefix('performainvoicedetails')->name('performainvoicedetails.')->group(function () 
+    {
+        Route::get('/productfetch', [PerformaInvoiceDetailController::class, 'productfetch'])
+        ->name('productfetch');
+    });

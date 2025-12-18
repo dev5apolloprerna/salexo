@@ -3,7 +3,7 @@ namespace App\Http\Controllers\Company;
 
 use App\Http\Controllers\Controller;
 
-use App\Models\InvoiceTemplate;
+use App\Models\PerformaInvoiceTemplate;
 use App\Models\Invoice;
 use App\Models\InvoiceDetail;
 use App\Models\CompanyClient;
@@ -16,7 +16,7 @@ use Illuminate\Support\Str;
 
     use Illuminate\Support\Facades\Blade;
 
-class InvoiceTemplateController extends Controller
+class PerformaInvoiceTemplateController extends Controller
 {
    public function index(Request $request)
     {
@@ -24,23 +24,23 @@ class InvoiceTemplateController extends Controller
         $companyId = auth()->user()->company_id;
 
         // All templates (global list). If you keep per-company templates, filter here instead.
-        $templates = InvoiceTemplate::where(['is_active'=>1])->orderByDesc('id')->get();
+        $templates = PerformaInvoiceTemplate::where(['is_active'=>1])->orderByDesc('id')->get();
 
         // Read this company’s default (we store the template GUID here; switch to 'id' if you prefer)
         $currentDefaultGuid = DB::table('company_client_master')
             ->where('company_id', $companyId)
-            ->value('invoice_template');
+            ->value('performa_invoice_template');
 
-        return view('company_client.invoice_template.designs_index', compact('templates','currentDefaultGuid'));
+        return view('company_client.performa_invoice_template.designs_index', compact('templates','currentDefaultGuid'));
     }
-    public function toggle(InvoiceTemplate $template)
+    public function toggle(PerformaInvoiceTemplate $template)
     {
         $template->is_active = !$template->is_active;
         $template->save();
         return back()->with('success', 'Template status changed.');
     }
 
-    public function setDefault(InvoiceTemplate $template)
+    public function setDefault(PerformaInvoiceTemplate $template)
     {
         $companyId = auth()->user()->company_id;
 
@@ -50,13 +50,13 @@ class InvoiceTemplateController extends Controller
 
         DB::table('company_client_master')
             ->where('company_id', $companyId)
-            ->update(['invoice_template' => $valueToStore]);
+            ->update(['performa_invoice_template' => $valueToStore]);
 
         return back()->with('success', 'Default invoice template set for your company.');
     }
 
 
-    public function destroy(InvoiceTemplate $template)
+    public function destroy(PerformaInvoiceTemplate $template)
     {
         if ($template->file_path) {
             $abs = public_path($template->file_path);
@@ -73,7 +73,7 @@ class InvoiceTemplateController extends Controller
     }
 
     // ✅ Preview specific template
-    public function preview(InvoiceTemplate $template, $InvoiceId)
+    public function preview(PerformaInvoiceTemplate $template, $InvoiceId)
     {
         $Invoice = Invoice::with('party','company')
             ->findOrFail($InvoiceId);
@@ -87,7 +87,7 @@ class InvoiceTemplateController extends Controller
 
             $guid = DB::table('company_client_master')
                 ->where('company_id', $companyId)
-                ->value('companyTemplate');
+                ->value('performa_invoice_template');
 
             abort_if(!$guid, 404, 'No default template set for your company.');
 
@@ -96,7 +96,7 @@ class InvoiceTemplateController extends Controller
         }
 
 
-    protected function renderTemplate(InvoiceTemplate $tpl, array $data)
+    protected function renderTemplate(PerformaInvoiceTemplate $tpl, array $data)
     {
         $full = public_path($tpl->file_path);
         if (!file_exists($full)) abort(422, 'Template file not found.');
@@ -204,7 +204,7 @@ class InvoiceTemplateController extends Controller
         $ext  = strtolower(pathinfo($path, PATHINFO_EXTENSION) ?: 'png');
         $mime = $ext === 'jpg' ? 'image/jpeg' : "image/$ext";
         $companyLogoUrl = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($path));
-       
+        
 
     /* -----------------  Party fields  ----------------- */
    $partyName  = $party->strPartyName ?? 'Party';
