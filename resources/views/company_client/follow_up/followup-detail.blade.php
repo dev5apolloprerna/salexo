@@ -136,9 +136,11 @@
                                             <option value="">Select Status</option>
                                             @foreach ($leadPipeline as $pipeline)
                                             <option value="{{ $pipeline->pipeline_id }}"
-                                                data-followup="{{ $pipeline->followup_needed }}">
-                                                {{ $pipeline->pipeline_name }}
-                                            </option>
+                                                    data-followup="{{ $pipeline->followup_needed }}"
+                                                    data-slug="{{ $pipeline->slugname ?? ''}}">
+                                                    {{ $pipeline->pipeline_name }}
+                                                </option>
+
                                             @endforeach
                                         </select>
                                     </div>
@@ -265,52 +267,52 @@
     });
 </script>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const statusSelect = document.getElementById('pipeline_status');
-        const cancelReasonBox = document.getElementById('cancelReasonBox');
-        const amountBox = document.getElementById('amountBox');
-        const followUpBox = document.getElementById('follow_up_dateBox');
-        const amountSelect = document.getElementById('amount');
-        const followup_datetimeSelect = document.getElementById('followup_datetime');
-        const cancel_reason_idBox = document.getElementById('cancel_reason_id');
+document.addEventListener('DOMContentLoaded', function() {
+    const statusSelect = document.getElementById('pipeline_status');
+    const cancelReasonBox = document.getElementById('cancelReasonBox');
+    const amountBox = document.getElementById('amountBox');
+    const followUpBox = document.getElementById('follow_up_dateBox');
 
+    const amountInput = document.getElementById('amount');
+    const followupDatetimeInput = document.getElementById('followup_datetime');
+    const cancelReasonSelect = document.getElementById('cancel_reason_id');
 
-        function toggleFields() {
-            const selectedValue = statusSelect.value;
-            const selectedOption = statusSelect.options[statusSelect.selectedIndex];
-            const selectedText = selectedOption.text;
-            const followupNeeded = selectedOption.getAttribute('data-followup');
+    function toggleFields() {
+        const selectedOption = statusSelect.options[statusSelect.selectedIndex];
 
-            amountSelect.removeAttribute('required');
-            followup_datetimeSelect.removeAttribute('required');
-            cancel_reason_idBox.removeAttribute('required');
+        // ✅ read slug from option
+        const slug = (selectedOption.getAttribute('data-slug') || '').trim();   // ex: "deal-done"
+        const followupNeeded = (selectedOption.getAttribute('data-followup') || '').trim(); // "yes"/"no"
 
+        // reset required
+        amountInput.removeAttribute('required');
+        followupDatetimeInput.removeAttribute('required');
+        cancelReasonSelect.removeAttribute('required');
 
-            // Dynamic logic for amount (Deal Done) and cancel reason (Deal Cancel)
-            if (selectedText === 'Deal Done') {
-                amountBox.style.display = 'block';
-                amountSelect.setAttribute('required', 'required');
-                cancelReasonBox.style.display = 'none';
-            } else if (selectedText === 'Deal Cancel') {
-                amountBox.style.display = 'none';
-                cancel_reason_idBox.setAttribute('required', 'required');
-                cancelReasonBox.style.display = 'block';
-            } else {
-                amountBox.style.display = 'none';
-                cancelReasonBox.style.display = 'none';
-            }
+        // hide all by default
+        amountBox.style.display = 'none';
+        cancelReasonBox.style.display = 'none';
+        followUpBox.style.display = 'none';
 
-            // Only check followup_needed flag
-            if (selectedText === 'Deal Pending' || followupNeeded === 'yes') {
-                followUpBox.style.display = 'block';
-                followup_datetimeSelect.setAttribute('required', 'required');
-            } else {
-                followUpBox.style.display = 'none';
-            }
+        // ✅ slug based logic
+        if (slug === 'deal-done') {
+            amountBox.style.display = 'block';
+            amountInput.setAttribute('required', 'required');
+        } else if (slug === 'deal-cancel') {
+            cancelReasonBox.style.display = 'block';
+            cancelReasonSelect.setAttribute('required', 'required');
         }
 
-        statusSelect.addEventListener('change', toggleFields);
-        toggleFields(); // Run on page load
-    });
+        // followup condition
+        if (slug === 'deal-pending' || followupNeeded === 'yes') {
+            followUpBox.style.display = 'block';
+            followupDatetimeInput.setAttribute('required', 'required');
+        }
+    }
+
+    statusSelect.addEventListener('change', toggleFields);
+    toggleFields(); // run on load
+});
 </script>
+
 @endsection

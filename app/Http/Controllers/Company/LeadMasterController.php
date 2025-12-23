@@ -142,6 +142,7 @@ class LeadMasterController extends Controller
 
     public function leads_cancel(Request $request)
     {
+        
         try {
             $search = $request->input('search');
             $pipeline_id = $request->input('pipeline_id');
@@ -156,6 +157,7 @@ class LeadMasterController extends Controller
             $query = DealCancel::orderBy('lead_id', 'desc')->select(
                 'deal_cancel.*',
                 'lead_pipeline_master.pipeline_name',
+                'lead_pipeline_master.slugname',
                 'lead_pipeline_master.slugname as pipelineSlug',
                 'service_master.service_name',
                 'lead_cancel_reason.reason as cancel_reason_name'
@@ -489,6 +491,7 @@ class LeadMasterController extends Controller
                 'lead_source_master.lead_source_name',
                 'service_master.service_name',
                 'lead_pipeline_master.pipeline_name',
+                'lead_pipeline_master.slugname',
             )
                 ->where('lead_master.lead_id', $lead_id)
                 ->leftjoin('lead_source_master', 'lead_master.LeadSourceId', '=', 'lead_source_master.lead_source_id')
@@ -503,6 +506,7 @@ class LeadMasterController extends Controller
                 ->select(
                     'lead_history.*',
                     'lead_pipeline_master.pipeline_name',
+                    'lead_pipeline_master.slugname',
                     'lead_cancel_reason.reason'
                 )
                 ->orderBY('iLeadHistoryId', 'desc')

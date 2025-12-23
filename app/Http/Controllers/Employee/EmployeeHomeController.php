@@ -24,7 +24,7 @@ class EmployeeHomeController extends Controller
 
      public function index()
 {
-    try {
+    // try {
 
         $emp = Auth::guard('web_employees')->user();
         $emp_id = $emp->company_id;
@@ -165,9 +165,10 @@ class EmployeeHomeController extends Controller
         */
         $lead_pipeline_done = LeadPipeline::where([
             'company_id'    => $emp_id,
-            'pipeline_name' => "Deal Done"
+            //'pipeline_name' => "Deal Done"
+            'slugname' => 'deal-done'
         ])->first();
-
+        
         $topProducts = DealDone::select(
                 'service_master.service_name',
                 DB::raw('COUNT(deal_done.lead_id) as quantity'),
@@ -263,10 +264,10 @@ class EmployeeHomeController extends Controller
             'employeeLeads'
         ));
 
-    } catch (\Exception $e) {
-        Log::error('Employee Home error: ' . $e->getMessage());
-        return back()->with('error', 'Something went wrong.');
-    }
+    // } catch (\Exception $e) {
+    //     Log::error('Employee Home error: ' . $e->getMessage());
+    //     return back()->with('error', 'Something went wrong.');
+    // }
 }
 
     public function getProfile()

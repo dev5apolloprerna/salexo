@@ -28,11 +28,20 @@ class CompanyClientLoginController extends Controller
 
     public function login(Request $request)
     {
-        try {
-            $request->validate([
-                'mobile' => 'required',
-                'password' => 'required',
+
+        
+              $request->validate([
+                'mobile'   => ['required', 'digits:10'],   // 👈 mobile validation
+                'password' => ['required'],
+                'captcha'  => ['required', 'captcha'],
+            ], [
+                'mobile.required'  => 'Mobile number is required.',
+                'mobile.digits'   => 'Mobile number must be 10 digits.',
+                'captcha.required'=> 'Captcha is required.',
+                'captcha.captcha' => 'Invalid captcha code. Please try again.',
             ]);
+
+            try {
 
             $mobile = $request->mobile;
             $password = $request->password;
