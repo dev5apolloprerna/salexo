@@ -28,6 +28,7 @@ use App\Http\Controllers\Api\CalenderLeadApiController;
 use App\Http\Controllers\Api\InvoiceApiController;
 use App\Http\Controllers\Api\InvoiceDetailApiController;
 use App\Http\Controllers\Api\InvoicePdfController;
+use App\Http\Controllers\Api\InvoiceTemplateApiController;
 
 use App\Http\Controllers\Api\PerformaInvoiceApiController;
 use App\Http\Controllers\Api\PerformaInvoiceDetailApiController;
@@ -216,6 +217,15 @@ Route::prefix('employee')->group(function () {
 
                 Route::post('/invoice/{id}/pdf', [InvoicePdfController::class, 'invoicePdfLink'])->name('api.employee.invoice.pdf.link');
 
+        Route::post('/invoice-templates', [InvoiceTemplateApiController::class, 'index']);  
+        Route::patch('/invoice-templates/{template}/toggle', [InvoiceTemplateApiController::class, 'toggle']);
+        Route::post('/invoice-templates/{template}/set-default', [InvoiceTemplateApiController::class, 'setDefault']);
+        Route::post('/invoice-templates/{template}/delete', [InvoiceTemplateApiController::class, 'destroy']);
+
+        Route::post('/invoice-templates/{template}/preview', [InvoiceTemplateApiController::class, 'preview']);
+        Route::post('/invoice-templates/preview-default', [InvoiceTemplateApiController::class, 'previewDefault']);
+
+
               //performa invoice start
                  Route::prefix('performa-invoice')->group(function () {
                 Route::post('/',              [PerformaInvoiceApiController::class, 'index'])->name('api.performa_invoice.index');
@@ -242,6 +252,15 @@ Route::prefix('employee')->group(function () {
 
                 Route::post('/performa-invoice/{id}/pdf', [PerformaInvoicePdfController::class, 'performainvoicePdfLink'])
                 ->name('api.employee.performa_invoice.pdf.link');
+                
+                
+        Route::post('/performa-invoice-templates', [PerformaInvoiceTemplateApiController::class, 'index']);  
+        Route::patch('/performa-invoice-templates/{template}/toggle', [PerformaInvoiceTemplateApiController::class, 'toggle']);
+        Route::post('/performa-invoice-templates/{template}/set-default', [PerformaInvoiceTemplateApiController::class, 'setDefault']);
+        Route::post('/performa-invoice-templates/{template}/delete', [PerformaInvoiceTemplateApiController::class, 'destroy']);
+
+        Route::post('/performa-invoice-templates/{template}/preview', [PerformaInvoiceTemplateApiController::class, 'preview']);
+        Route::post('/performa-invoice-templates/preview-default', [PerformaInvoiceTemplateApiController::class, 'previewDefault']);
 
                 //performa invoice end
 
