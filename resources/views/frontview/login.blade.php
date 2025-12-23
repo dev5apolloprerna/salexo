@@ -71,6 +71,31 @@
                                 </div>
 
                             </div>
+                            {{-- CAPTCHA --}}
+                            <div class="mb-3">
+                                <label class="form-label">Captcha</label>
+
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <span id="captcha-img">{!! captcha_img() !!}</span>
+
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-secondary"
+                                            id="reload-captcha">
+                                        ↻
+                                    </button>
+                                </div>
+
+                                <input type="text"
+                                       name="captcha"
+                                       class="form-control @error('captcha') is-invalid @enderror"
+                                       placeholder="Enter captcha"
+                                       required>
+
+                                @error('captcha')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
 
                             <div class="d-grid mt-3">
                                 <button type="submit" class="btn btn-primary btn-lg w-50 w-lg-25">Sign In</button>
@@ -104,4 +129,16 @@
 
         })();
     </script>
+<script>
+document.getElementById('reload-captcha').addEventListener('click', function () {
+    fetch('{{ route("reload.captcha") }}')
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('captcha-img').innerHTML = data.captcha;
+        });
+});
+</script>
+
 @endsection
+
+

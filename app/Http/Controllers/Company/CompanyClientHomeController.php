@@ -35,6 +35,7 @@ class CompanyClientHomeController extends Controller
         $pipelineBaseQuery = LeadPipeline::select(
             'lead_pipeline_master.pipeline_id',
             'lead_pipeline_master.pipeline_name',
+            'lead_pipeline_master.slugname',
             'lead_pipeline_master.color',
             'lead_pipeline_master.icon',
             'lead_pipeline_master.created_at',
@@ -54,6 +55,7 @@ class CompanyClientHomeController extends Controller
             ->groupBy(
                 'lead_pipeline_master.pipeline_id',
                 'lead_pipeline_master.pipeline_name',
+                'lead_pipeline_master.slugname',
                 'lead_pipeline_master.color',
                 'lead_pipeline_master.icon',
                 'lead_pipeline_master.created_at',
@@ -72,6 +74,7 @@ class CompanyClientHomeController extends Controller
             ->groupBy(
                 'lead_pipeline_master.pipeline_id',
                 'lead_pipeline_master.pipeline_name',
+                'lead_pipeline_master.slugname',
                 'lead_pipeline_master.color',
                 'lead_pipeline_master.icon',
                 'lead_pipeline_master.created_at',
@@ -89,7 +92,8 @@ class CompanyClientHomeController extends Controller
             ->where('lead_pipeline_master.slugname', 'deal-cancel')
             ->groupBy(
                 'lead_pipeline_master.pipeline_id',
-                'lead_pipeline_master.pipeline_name',
+                'lead_pipeline_master.pipeline_name',            
+                'lead_pipeline_master.slugname',
                 'lead_pipeline_master.color',
                 'lead_pipeline_master.icon',
                 'lead_pipeline_master.created_at',
@@ -98,7 +102,7 @@ class CompanyClientHomeController extends Controller
 
         // Union all pipelines
         $piplines = $pipline->union($piplineDones)->union($piplineCancels)->get();
-
+        
 
         // -------------------------------
         // 2. FOLLOWUP COUNTS
@@ -148,7 +152,8 @@ class CompanyClientHomeController extends Controller
         // -------------------------------
         $lead_pipeline = LeadPipeline::where([
             'company_id' => $emp_id,
-            'pipeline_name' => "Deal Done"
+            //'pipeline_name' => "Deal Done"
+            'slugname' => 'deal-done'
         ])->first();
 
         $topProducts = DealDone::select(
@@ -196,7 +201,8 @@ class CompanyClientHomeController extends Controller
             // Converted Leads
             $lead_pipeline = LeadPipeline::where([
                 'company_id' => $emp_id,
-                'pipeline_name' => "Deal Done"
+                'slugname' => 'deal-done'
+                //'pipeline_name' => "Deal Done"
             ])->first();
 
             $leadsConverted = DealDone::selectRaw('MONTH(created_at) as month, COUNT(*) as total')

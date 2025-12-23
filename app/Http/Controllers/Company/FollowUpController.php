@@ -129,6 +129,7 @@ class FollowUpController extends Controller
 
     public function new_lead(Request $request, $status)
     {
+
         try {
             $user = Auth::user();
             $companyId = $user->company_id;
@@ -139,7 +140,8 @@ class FollowUpController extends Controller
                 return redirect()->back()->with('error', 'Invalid pipeline status provided.');
             }
 
-            $pipelineName = $pipeline->pipeline_name;
+            $pipelineName = $pipeline->slugname;
+
             $search = request('search');
 
             if ($status === 'deal-done') {
@@ -154,7 +156,7 @@ class FollowUpController extends Controller
                         $query->select('pipeline_id')
                             ->from('lead_pipeline_master')
                             ->where('company_id', $companyId)
-                            ->where('pipeline_name', 'like', $pipelineName);
+                            ->where('slugname', 'like', $pipelineName);
                     })
                     ->leftJoin('service_master', 'deal_done.product_service_id', '=', 'service_master.service_id')
                     ->leftJoin('lead_source_master', 'deal_done.LeadSourceId', '=', 'lead_source_master.lead_source_id')
@@ -169,7 +171,9 @@ class FollowUpController extends Controller
                         });
                     })
                     ->orderBy('lead_id','asc')->paginate(config('app.per_page'));
+
             } elseif ($status === 'deal-cancel') {
+
                 // Get leads from `deal_cancel` table
                 $leads = DB::table('deal_cancel')
                     ->where([
@@ -181,7 +185,7 @@ class FollowUpController extends Controller
                         $query->select('pipeline_id')
                             ->from('lead_pipeline_master')
                             ->where('company_id', $companyId)
-                            ->where('pipeline_name', 'like', $pipelineName);
+                            ->where('slugname', 'like', $pipelineName);
                     })
                     ->leftJoin('service_master', 'deal_cancel.product_service_id', '=', 'service_master.service_id')
                     ->leftJoin('lead_source_master', 'deal_cancel.LeadSourceId', '=', 'lead_source_master.lead_source_id')
@@ -207,7 +211,7 @@ class FollowUpController extends Controller
                         $query->select('pipeline_id')
                             ->from('lead_pipeline_master')
                             ->where('company_id', $companyId)
-                            ->where('pipeline_name', 'like', $pipelineName);
+                            ->where('slugname', 'like', $pipelineName);
                     })
                     ->leftJoin('service_master', 'lead_master.product_service_id', '=', 'service_master.service_id')
                     ->leftJoin('lead_source_master', 'lead_master.LeadSourceId', '=', 'lead_source_master.lead_source_id')
@@ -240,6 +244,7 @@ class FollowUpController extends Controller
 
     public function followup_detail($status, $id)
     {
+     
         $user = Auth::user();
         $lead = LeadMaster::select(
             'lead_master.*',
@@ -284,6 +289,7 @@ class FollowUpController extends Controller
             ->select(
                 'lead_history.*',
                 'lead_pipeline_master.pipeline_name',
+                'lead_pipeline_master.slugname',
                 'lead_cancel_reason.reason',
                 // 'service_master.service_name',
                 // 'lead_source_master.lead_source_name'
