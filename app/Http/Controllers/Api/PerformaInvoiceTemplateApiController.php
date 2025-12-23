@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\InvoiceTemplate;
-use App\Models\Invoice;
-use App\Models\InvoiceDetail;
+use App\Models\PerformaInvoiceTemplate;
+use App\Models\PerformaInvoice;
+use App\Models\PerformaInvoiceDetail;
 use App\Models\CompanyClient;
 use App\Models\Party;
 use Illuminate\Http\Request;
@@ -17,10 +17,10 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Validation\ValidationException;
  
-class InvoiceTemplateApiController extends Controller
+class PerformaInvoiceTemplateApiController extends Controller
 {
     /**
-     * GET /api/Invoice-templates
+     * GET /api/PerformaInvoice-templates
      * List active templates + the company’s current default (guid)
      */
     public function index(Request $request)
@@ -32,13 +32,13 @@ class InvoiceTemplateApiController extends Controller
 
         $companyId = $user->company_id;
 
-        $templates = InvoiceTemplate::where('is_active', 1)
+        $templates = PerformaInvoiceTemplate::where('is_active', 1)
             ->orderByDesc('id')
             ->get(['id','guid','name','file_path','is_active','created_at']);
 
         $currentDefaultGuid = DB::table('company_client_master')
             ->where('company_id', $companyId)
-            ->value('invoice_template');
+            ->value('companyTemplate');
 
 
         return response()->json([
@@ -51,7 +51,7 @@ class InvoiceTemplateApiController extends Controller
     }
 
     
-    public function toggle(InvoiceTemplate $template)
+    public function toggle(PerformaInvoiceTemplate $template)
     {
         $user = Auth::guard('employee_api')->user();
         if (!$user) return response()->json(['message'=>'Unauthorized'], 401);
@@ -66,7 +66,7 @@ class InvoiceTemplateApiController extends Controller
         ]);
     }
 
-    public function setDefault(InvoiceTemplate $template)
+    public function setDefault(PerformaInvoiceTemplate $template)
     {
         $user = Auth::guard('employee_api')->user();
         if (!$user) return response()->json(['message'=>'Unauthorized'], 401);
@@ -85,7 +85,7 @@ class InvoiceTemplateApiController extends Controller
         ]);
     }
 
-    public function destroy(InvoiceTemplate $template)
+    public function destroy(PerformaInvoiceTemplate $template)
     {
         $user = Auth::guard('employee_api')->user();
         if (!$user) return response()->json(['message'=>'Unauthorized'], 401);
@@ -107,17 +107,17 @@ class InvoiceTemplateApiController extends Controller
     }
 
     /**
-     * GET /api/Invoice-templates/{id}/preview?Invoice_id=123&as=json|html
+     * GET /api/PerformaInvoice-templates/{id}/preview?PerformaInvoice_id=123&as=json|html
      * Returns rendered HTML (default) or JSON { html: "<...>" }
      */
-    public function preview(InvoiceTemplate $template, Request $request)
+    public function preview(PerformaInvoiceTemplate $template, Request $request)
 {
     try {
-        $Invoice = Invoice::with(['company','party'])
-            ->where(['iStatus'=>1,'isDelete'=>0])->orderByDesc('InvoiceId')
+        $PerformaInvoice = PerformaInvoice::with(['company','party'])
+            ->where(['iStatus'=>1,'isDelete'=>0])->orderByDesc('PerformaInvoiceId')
             ->first();
 
-            $InvoiceId=$Invoice->InvoiceId;
+            $PerformaInvoiceId=$PerformaInvoice->PerformaInvoiceId;
 
         if (!file_exists(public_path($template->file_path))) {
             return response()->json([
@@ -127,7 +127,7 @@ class InvoiceTemplateApiController extends Controller
         }
 
         // ✅ Build data → HTML
-        $data = $this->previewData($Invoice);
+        $data = $this->previewData($PerformaInvoice);
         $html = $this->renderTemplateToHtml($template, $data);
 
         // ✅ Generate PDF
@@ -138,19 +138,19 @@ class InvoiceTemplateApiController extends Controller
             ->loadHTML($html)
             ->setPaper('a4');
 
-        // ✅ Save under public_html/uploads/invoice_pdf/
-        $root = base_path('../public_html/uploads/invoice_pdf/');
+        // ✅ Save under public_html/uploads/performa_invoice_pdf/
+        $root = base_path('../public_html/uploads/performa_invoice_pdf/');
         if (!File::isDirectory($root)) {
             File::makeDirectory($root, 0775, true);
         }
 
-        $fileName = 'preview_'.$InvoiceId.'_'.time().'.pdf';
+        $fileName = 'preview_'.$PerformaInvoiceId.'_'.time().'.pdf';
         $absPath  = $root.$fileName;
 
         file_put_contents($absPath, $pdf->output());
 
         // ✅ Public URL
-        $url = url('uploads/invoice_pdf/'.$fileName);
+        $url = url('uploads/performa_invoice_pdf/'.$fileName);
 
         return response()->json([
             'success'=>true,
@@ -169,25 +169,25 @@ class InvoiceTemplateApiController extends Controller
 
 
     /**
-     * GET /api/Invoice-templates/preview-default?Invoice_id=123&as=json|html
+     * GET /api/PerformaInvoice-templates/preview-default?PerformaInvoice_id=123&as=json|html
      */
    public function previewDefault(Request $request)
 {
     try {
-        $InvoiceId = $request->Invoice_id;
-        if (!$InvoiceId) {
+        $PerformaInvoiceId = $request->PerformaInvoice_id;
+        if (!$PerformaInvoiceId) {
             return response()->json([
                 'success'=>false,
-                'message'=>'Invoice_id is required'
+                'message'=>'PerformaInvoice_id is required'
             ],422);
         }
 
-        $Invoice = Invoice::where(['iStatus'=>1,'isDelete'=>0,'InvoiceId'=>$InvoiceId])
+        $PerformaInvoice = PerformaInvoice::where(['iStatus'=>1,'isDelete'=>0,'PerformaInvoiceId'=>$PerformaInvoiceId])
             ->firstOrFail();
 
         $guid = DB::table('company_client_master')
-            ->where('company_id',$Invoice->iCompanyId)
-            ->value('companyTemplate');
+            ->where('company_id',$PerformaInvoice->iCompanyId)
+            ->value('performa_invoice_template');
 
         if (!$guid) {
             return response()->json([
@@ -196,7 +196,7 @@ class InvoiceTemplateApiController extends Controller
             ],404);
         }
 
-        $template = InvoiceTemplate::where('guid',$guid)->first();
+        $template = PerformaInvoiceTemplate::where('guid',$guid)->first();
         if (!$template || !file_exists(public_path($template->file_path))) {
             return response()->json([
                 'success'=>false,
@@ -204,7 +204,7 @@ class InvoiceTemplateApiController extends Controller
             ],404);
         }
 
-        $data = $this->previewData($Invoice);
+        $data = $this->previewData($PerformaInvoice);
         $html = $this->renderTemplateToHtml($template, $data);
 
         $pdf = \PDF::setOptions([
@@ -214,16 +214,16 @@ class InvoiceTemplateApiController extends Controller
             ->loadHTML($html)
             ->setPaper('a4');
 
-        $root = base_path('../public_html/uploads/invoice_pdf/');
+        $root = base_path('../public_html/uploads/performa_invoice_pdf/');
         if (!File::isDirectory($root)) {
             File::makeDirectory($root, 0775, true);
         }
 
-        $fileName = 'default_preview_'.$InvoiceId.'_'.time().'.pdf';
+        $fileName = 'default_preview_'.$PerformaInvoiceId.'_'.time().'.pdf';
         $absPath  = $root.$fileName;
 
         file_put_contents($absPath, $pdf->output());
-        $url = url('uploads/invoice_pdf/'.$fileName);
+        $url = url('uploads/performa_invoice_pdf/'.$fileName);
 
         return response()->json([
             'success'=>true,
@@ -291,15 +291,15 @@ protected function simpleReplace(string $html, array $data): string
     /**
      * Build the preview data array (same logic you had, trimmed a bit).
      */
-    protected function previewData($Invoice): array
+    protected function previewData($PerformaInvoice): array
     {
-        if (!is_object($Invoice)) {
-            $Invoice = Invoice::findOrFail($Invoice);
+        if (!is_object($PerformaInvoice)) {
+            $PerformaInvoice = PerformaInvoice::findOrFail($PerformaInvoice);
         }
 
-        $qId     = $Invoice->InvoiceId ?? $Invoice->id;
-        $company = CompanyClient::with('state')->where('company_id', $Invoice->iCompanyId)->first();
-        $party   = Party::with('state')->where('partyId', $Invoice->iPartyId)->first();
+        $qId     = $PerformaInvoice->PerformaInvoiceId ?? $PerformaInvoice->id;
+        $company = CompanyClient::with('state')->where('company_id', $PerformaInvoice->iCompanyId)->first();
+        $party   = Party::with('state')->where('partyId', $PerformaInvoice->iPartyId)->first();
 
         $clean = function($v) {
             if (is_null($v)) return null;
@@ -363,8 +363,8 @@ protected function simpleReplace(string $html, array $data): string
         $partyAddr = implode(', ', array_filter([$partyAddr1, $partyCity, $partyStateName], fn($x)=>$x!==null && trim($x)!==''));
 
         // --- Line items
-        $details = InvoiceDetail::with('service')
-            ->where(['InvoiceID'=>$qId,'isDelete'=>0])
+        $details = PerformaInvoiceDetail::with('service')
+            ->where(['PerformaInvoiceID'=>$qId,'isDelete'=>0])
             ->get();
         $items = [];
         foreach ($details as $d) {
@@ -397,19 +397,19 @@ protected function simpleReplace(string $html, array $data): string
             ->values()
             ->all();
 
-        // --- Invoice meta
-        $discount       = (float)($Invoice->discount ?? 0);
-        $gstRate        = (float)($Invoice->gstRate ?? 18);
-        $isInterState   = (bool)($Invoice->isInterState ?? 0);
-        $InvoiceNumber= $clean($Invoice->iInvoiceNo) ?? ('Invoice-'.$qId);
-        $InvoiceDate  = $fmtDate($Invoice->InvoiceDate ?? $Invoice->entryDate, now());
-        $validTill      = $fmtDate($Invoice->valid_till ?? $Invoice->InvoiceValidity, now()->addDays(7));
+        // --- PerformaInvoice meta
+        $discount       = (float)($PerformaInvoice->discount ?? 0);
+        $gstRate        = (float)($PerformaInvoice->gstRate ?? 18);
+        $isInterState   = (bool)($PerformaInvoice->isInterState ?? 0);
+        $PerformaInvoiceNumber= $clean($PerformaInvoice->iPerformaInvoiceNo) ?? ('QTN-'.$qId);
+        $PerformaInvoiceDate  = $fmtDate($PerformaInvoice->PerformaInvoiceDate ?? $PerformaInvoice->entryDate, now());
+        $validTill      = $fmtDate($PerformaInvoice->valid_till ?? $PerformaInvoice->PerformaInvoiceValidity, now()->addDays(7));
 
         // --- Footer
-        $paymentTerms = $clean($Invoice->paymentTerms) ?? '50% advance, balance on delivery';
-        $delivery     = $clean($Invoice->deliveryTerm) ?? 'Within 7–10 business days from PO';
-        $modeOfDespatch = $clean($Invoice->modeOfDespatch) ?? '';
-        $warranty     = $clean($Invoice->warranty) ?? '12 months from invoice date';
+        $paymentTerms = $clean($PerformaInvoice->paymentTerms) ?? '50% advance, balance on delivery';
+        $delivery     = $clean($PerformaInvoice->deliveryTerm) ?? 'Within 7–10 business days from PO';
+        $modeOfDespatch = $clean($PerformaInvoice->modeOfDespatch) ?? '';
+        $warranty     = $clean($PerformaInvoice->warranty) ?? '12 months from invoice date';
 
         $bankName   = $get($company, ['bank_account_name','company_name']) ?? $companyName;
         $bankAcc    = $get($company, ['bank_account_no','account_no','acno']);
@@ -425,8 +425,8 @@ protected function simpleReplace(string $html, array $data): string
             'companyEmail'   => $companyEmail,
             'companyState'   => $companyState,
 
-            'InvoiceNumber'=> $InvoiceNumber,
-            'InvoiceDate'  => $InvoiceDate,
+            'PerformaInvoiceNumber'=> $PerformaInvoiceNumber,
+            'PerformaInvoiceDate'  => $PerformaInvoiceDate,
             'validTill'      => $validTill,
 
             'partyName'    => $partyName,
