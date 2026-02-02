@@ -16820,3 +16820,4 @@ Stack level 1.\"><span class=\"sf-dump-ellipsis sf-dump-ellipsis-path\">C:\\wamp
 #47 C:\\wamp64\\www\\salexo\\public\\index.php(108): Illuminate\\Foundation\\Http\\Kernel->handle(Object(Illuminate\\Http\\Request))
 #48 C:\\wamp64\\www\\salexo\\server.php(21): require_once('C:\\\\wamp64\\\\www\\\\s...')
 #49 {main}"} 
+[2026-01-10 14:58:04] local.WARNING: Login attempt failed: Incorrect credentials. {"mobile":"9016970829"} 
