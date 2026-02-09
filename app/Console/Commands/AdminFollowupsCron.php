@@ -26,8 +26,12 @@ class AdminFollowupsCron extends Command
             ->get();
 
         foreach ($employees as $employee) {
+            if ((int)$employee->iStatus !== 1) {
+                continue;
+            }
+            
             // Get all leads assigned to this employee
-            $allLeads = LeadMaster::where('iemployeeId', $employee->emp_id)
+            $allLeads = LeadMaster::where('iCustomerId', $employee->emp_id)
                 ->where(['iStatus' => 1, 'isDelete' => 0])
                 ->get();
 

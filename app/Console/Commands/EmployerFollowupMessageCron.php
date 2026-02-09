@@ -21,12 +21,18 @@ class EmployerFollowupMessageCron extends Command
         // Get all employees
         $employees = Employee::select('employee_master.*', 'company_client_master.company_name')
             ->where('isCompanyAdmin', 0)
+            ->where('employee_master.iStatus', 1)
             ->join('company_client_master', 'company_client_master.company_id', '=', 'employee_master.company_id')
             ->get();
 
         foreach ($employees as $employee) {
+
+             if ((int)$employee->iStatus !== 1) {
+                continue;
+            }
+
             // Get all leads assigned to this employee
-            $allLeads = LeadMaster::where('iemployeeId', $employee->emp_id)
+            $allLeads = LeadMaster::where('employee_id', $employee->emp_id)
                 ->where(['iStatus' => 1, 'isDelete' => 0])
                 ->get();
 
@@ -51,6 +57,7 @@ class EmployerFollowupMessageCron extends Command
                     return false;
                 }
             })->count();
+
 
             $whatsappToken = config('app.whatsapp_token');
             $phoneNumberId = config('app.whatsapp_phone_id');
