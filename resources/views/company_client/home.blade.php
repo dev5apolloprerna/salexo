@@ -66,7 +66,7 @@
                         <div class="col-md-4">
                             {{--  @if ($pipline->pipeline_name == 'New Lead')  --}}
                             @php
-                                $slug = Str::slug($pipline->slugname);
+                                $slug = Str::slug($pipline->pipeline_name);
                             @endphp
                             <a href="{{ route('clients.new_lead', $slug) }}">
                                 {{--  @endif  --}}

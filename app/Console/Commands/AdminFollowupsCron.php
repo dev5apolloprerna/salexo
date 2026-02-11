@@ -22,18 +22,24 @@ class AdminFollowupsCron extends Command
         // Get all employees
         $employees = Employee::select('employee_master.*', 'company_client_master.company_name')
             ->where('isCompanyAdmin', 1)
+            ->where('employee_master.iStatus', 1)
             ->join('company_client_master', 'company_client_master.company_id', '=', 'employee_master.company_id')
             ->get();
 
-        foreach ($employees as $employee) {
-            if ((int)$employee->iStatus !== 1) {
+        foreach ($employees as $employee) 
+        {
+             if ((int)$employee->iStatus !== 1) {
                 continue;
             }
             
             // Get all leads assigned to this employee
-            $allLeads = LeadMaster::where('iCustomerId', $employee->emp_id)
+            /*$allLeads = LeadMaster::where('iemployeeId', $employee->emp_id)
                 ->where(['iStatus' => 1, 'isDelete' => 0])
-                ->get();
+                ->get();*/
+                
+            $allLeads = LeadMaster::where('iCustomerId', $employee->emp_id)
+            ->where(['iStatus' => 1, 'isDelete' => 0])
+            ->get();
 
             // Count today's follow-ups
             $todaysFollowupCount = $allLeads->filter(function ($lead) {
@@ -61,7 +67,7 @@ class AdminFollowupsCron extends Command
             $phoneNumberId = config('app.whatsapp_phone_id');
             $recipient = '+91' . $employee->emp_mobile;
 
-            try {
+            // try {
                 $response = Http::withToken($whatsappToken)->post("https://graph.facebook.com/v19.0/{$phoneNumberId}/messages", [
                     "messaging_product" => "whatsapp",
                     "to" => $recipient,
@@ -100,9 +106,9 @@ class AdminFollowupsCron extends Command
                         'body' => $response->json()
                     ]);
                 }
-            } catch (\Exception $e) {
-                Log::error('WhatsApp Sending Failed: ' . $e->getMessage());
-            }
+            // } catch (\Exception $e) {
+            //     Log::error('WhatsApp Sending Failed: ' . $e->getMessage());
+            // }
         }
 
         Log::info('Employer Followup Cron Completed');

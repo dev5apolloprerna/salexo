@@ -628,9 +628,9 @@ class ReportController extends Controller
             $lead_pipeline = LeadPipeline::where(['pipeline_id' => $pipeline_id])->first();
             
             // Initialize query builder
-            if ($lead_pipeline->slugname === "deal-done") {
+            if ($lead_pipeline->pipeline_name === "Deal Done") {
                 $query = DB::table('deal_done as lm');
-            } elseif ($lead_pipeline->slugname === "deal-cancel") {
+            } elseif ($lead_pipeline->pipeline_name === "Deal Cancel") {
                 $query = DB::table('deal_cancel as lm');
             } else {
                 $query = DB::table('lead_master as lm');

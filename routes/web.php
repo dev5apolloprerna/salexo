@@ -699,6 +699,8 @@ Route::prefix('clients/performainvoicedetails')->name('performainvoicedetails.')
         Route::get('/productfetch', [PerformaInvoiceDetailController::class, 'productfetch'])
         ->name('productfetch');
     });
+
+
 //captcha route 
 
     Route::get('/reload-captcha', function () {

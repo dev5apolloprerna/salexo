@@ -106,76 +106,6 @@
                         </div>
                     </div>
                     
-                    <!--<div class="col-lg-12">-->
-                    <!--    <div class="card">-->
-                    <!--        <div class="card-header">-->
-                    <!--            <h5 class="mb-0">Follow Up for {{ $lead->customer_name }}</h5>-->
-                    <!--        </div>-->
-                    <!--        <div class="card-body">-->
-                    <!--            {{-- Paste pipeline form here (as-is from the original page) --}}-->
-                    <!--            {{-- Ensure form passes hidden field: --}}-->
-                    <!--            <form method="POST" action="{{ route('clients.followup_update') }}" autocomplete="off">-->
-                    <!--                @csrf-->
-                    <!--                <input type="hidden" name="lead_id" value="{{ $id }}">-->
-                    <!--                <div class="row mb-3">-->
-                    <!--                    <div class="col-lg-4 col-md-6 form-group mt-3">-->
-                    <!--                        Status <span class="text-danger">*</span>-->
-                    <!--                        <select class="form-control" name="status" id="pipeline_status" required>-->
-                    <!--                            <option value="">Select Status</option>-->
-                    <!--                            @foreach ($leadPipeline as $pipeline)-->
-                    <!--                                <option value="{{ $pipeline->pipeline_id }}"-->
-                    <!--                                    data-followup="{{ $pipeline->followup_needed }}">-->
-                    <!--                                    {{ $pipeline->pipeline_name }}-->
-                    <!--                                </option>-->
-                    <!--                            @endforeach-->
-                    <!--                        </select>-->
-                    <!--                    </div>-->
-
-                    <!--                    <div class="col-lg-4 col-md-6 form-group mt-3" id="cancelReasonBox"-->
-                    <!--                        style="display: none;">-->
-                    <!--                        Cancel Reason List <span class="text-danger">*</span>-->
-                    <!--                        <select class="form-control" name="cancel_reason_id" id="cancel_reason_id">-->
-                    <!--                            <option value="">Select Cancel Reason List</option>-->
-                    <!--                            @foreach ($leadCancelList as $list)-->
-                    <!--                                <option value="{{ $list->lead_cancel_reason_id }}">-->
-                    <!--                                    {{ $list->reason }}-->
-                    <!--                                </option>-->
-                    <!--                            @endforeach-->
-                    <!--                        </select>-->
-                    <!--                    </div>-->
-
-                    <!--                    <div class="col-lg-4 col-md-6 form-group mt-3" id="follow_up_dateBox"-->
-                    <!--                        style="display: none;">-->
-                    <!--                        Date <span class="text-danger">*</span>-->
-                    <!--                        <input type="text" id="followup_datetime" name="followup_datetime"-->
-                    <!--                            class="form-control" palaceholder="Select Date and Time">-->
-                    <!--                    </div>-->
-
-                    <!--                    <div class="col-lg-4 col-md-6 form-group mt-3" id="amountBox"-->
-                    <!--                        style="display: none;">-->
-                    <!--                        Amount <span class="text-danger">*</span>-->
-                    <!--                        <input type="text" class="form-control" name="amount" id="amount"-->
-                    <!--                            placeholder="Enter Amount" maxlength="100" autocomplete="off" autofocus>-->
-                    <!--                    </div>-->
-
-                    <!--                    <div class="col-lg-4 col-md-6 form-group mt-3">-->
-                    <!--                        Comment <span class="text-danger">*</span>-->
-                    <!--                        <input type="text" class="form-control" name="comment"-->
-                    <!--                            placeholder="Enter Comment" maxlength="100" autocomplete="off" required>-->
-                    <!--                    </div>-->
-                    <!--                </div>-->
-
-                    <!--                <div class="modal-footer">-->
-                    <!--                    <div class="hstack gap-2 justify-content-end">-->
-                    <!--                        <button type="submit" class="btn btn-primary">Submit</button>-->
-                    <!--                        <button type="reset" class="btn btn-secondary">Reset</button>-->
-                    <!--                    </div>-->
-                    <!--                </div>-->
-                    <!--            </form>-->
-                    <!--        </div>-->
-                    <!--    </div>-->
-                    <!--</div>-->
-                    
                     @if ($status != 'deal-done' && $status != 'deal-cancel')
                 <div class="col-lg-6">
                     <div class="card">
@@ -193,8 +123,7 @@
                                             <option value="">Select Status</option>
                                             @foreach ($leadPipeline as $pipeline)
                                             <option value="{{ $pipeline->pipeline_id }}"
-                                                data-followup="{{ $pipeline->followup_needed }}"
-                                                data-slug="{{ $pipeline->slugname ?? ''}}">
+                                                data-followup="{{ $pipeline->followup_needed }}">
                                                 {{ $pipeline->pipeline_name }}
                                             </option>
                                             @endforeach
@@ -386,51 +315,52 @@
         });
     </script>
     <script>
-       document.addEventListener('DOMContentLoaded', function() {
-    const statusSelect = document.getElementById('pipeline_status');
-    const cancelReasonBox = document.getElementById('cancelReasonBox');
-    const amountBox = document.getElementById('amountBox');
-    const followUpBox = document.getElementById('follow_up_dateBox');
+        document.addEventListener('DOMContentLoaded', function() {
+            const statusSelect = document.getElementById('pipeline_status');
+            const cancelReasonBox = document.getElementById('cancelReasonBox');
+            const amountBox = document.getElementById('amountBox');
+            const followUpBox = document.getElementById('follow_up_dateBox');
+            const amountSelect = document.getElementById('amount');
+            const followup_datetimeSelect = document.getElementById('followup_datetime');
+            const cancel_reason_idBox = document.getElementById('cancel_reason_id');
 
-    const amountInput = document.getElementById('amount');
-    const followupDatetimeInput = document.getElementById('followup_datetime');
-    const cancelReasonSelect = document.getElementById('cancel_reason_id');
 
-    function toggleFields() {
-        const selectedOption = statusSelect.options[statusSelect.selectedIndex];
+            function toggleFields() {
+                const selectedValue = statusSelect.value;
+                const selectedOption = statusSelect.options[statusSelect.selectedIndex];
+                const selectedText = selectedOption.text;
+                const followupNeeded = selectedOption.getAttribute('data-followup');
 
-        // ✅ read slug from option
-        const slug = (selectedOption.getAttribute('data-slug') || '').trim();   // ex: "deal-done"
-        const followupNeeded = (selectedOption.getAttribute('data-followup') || '').trim(); // "yes"/"no"
+                amountSelect.removeAttribute('required');
+                followup_datetimeSelect.removeAttribute('required');
+                cancel_reason_idBox.removeAttribute('required');
 
-        // reset required
-        amountInput.removeAttribute('required');
-        followupDatetimeInput.removeAttribute('required');
-        cancelReasonSelect.removeAttribute('required');
 
-        // hide all by default
-        amountBox.style.display = 'none';
-        cancelReasonBox.style.display = 'none';
-        followUpBox.style.display = 'none';
+                // Dynamic logic for amount (Deal Done) and cancel reason (Deal Cancel)
+                if (selectedText === 'Deal Done') {
+                    amountBox.style.display = 'block';
+                    amountSelect.setAttribute('required', 'required');
+                    cancelReasonBox.style.display = 'none';
+                } else if (selectedText === 'Deal Cancel') {
+                    amountBox.style.display = 'none';
+                    cancel_reason_idBox.setAttribute('required', 'required');
+                    cancelReasonBox.style.display = 'block';
+                } else {
+                    amountBox.style.display = 'none';
+                    cancelReasonBox.style.display = 'none';
+                }
 
-        // ✅ slug based logic
-        if (slug === 'deal-done') {
-            amountBox.style.display = 'block';
-            amountInput.setAttribute('required', 'required');
-        } else if (slug === 'deal-cancel') {
-            cancelReasonBox.style.display = 'block';
-            cancelReasonSelect.setAttribute('required', 'required');
-        }
+                // Only check followup_needed flag
+                if (selectedText === 'Deal Pending' || followupNeeded === 'yes') {
+                    followUpBox.style.display = 'block';
+                    followup_datetimeSelect.setAttribute('required', 'required');
+                } else {
+                    followUpBox.style.display = 'none';
+                }
+            }
 
-        // followup condition
-        if (slug === 'deal-pending' || followupNeeded === 'yes') {
-            followUpBox.style.display = 'block';
-            followupDatetimeInput.setAttribute('required', 'required');
-        }
-    }
-
-    statusSelect.addEventListener('change', toggleFields);
-    toggleFields(); // run on load
-});
+            statusSelect.addEventListener('change', toggleFields);
+            toggleFields(); // Run on page load
+        });
     </script>
 @endsection

@@ -71,7 +71,7 @@
                                 </div>
 
                             </div>
-                            {{-- CAPTCHA --}}
+                             {{-- CAPTCHA --}}
                             <div class="mb-3">
                                 <label class="form-label">Captcha</label>
 
@@ -85,7 +85,7 @@
                                     </button>
                                 </div>
 
-                                <input type="text"
+                                <input type="text" maxlength="4" minlength="4"
                                        name="captcha"
                                        class="form-control @error('captcha') is-invalid @enderror"
                                        placeholder="Enter captcha"
@@ -95,7 +95,6 @@
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
-
 
                             <div class="d-grid mt-3">
                                 <button type="submit" class="btn btn-primary btn-lg w-50 w-lg-25">Sign In</button>
@@ -129,7 +128,7 @@
 
         })();
     </script>
-<script>
+    <script>
 document.getElementById('reload-captcha').addEventListener('click', function () {
     fetch('{{ route("reload.captcha") }}')
         .then(res => res.json())
@@ -140,5 +139,3 @@ document.getElementById('reload-captcha').addEventListener('click', function () 
 </script>
 
 @endsection
-
-

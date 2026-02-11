@@ -20,7 +20,7 @@ if (Auth::guard('web')->user()) {
                             <span data-key="t-dashboards">Dashboards</span>
                         </a>
                     </li>
-                    <li class="nav-item">
+                        <li class="nav-item">
                                 <a class="nav-link" href="#sidebarMore" data-bs-toggle="collapse" role="button"
                                     aria-expanded="true" aria-controls="sidebarMore">
                                     <i class="fa fa-list text-white"></i>Master Entry </a>
@@ -67,7 +67,7 @@ if (Auth::guard('web')->user()) {
                             <span data-key="t-dashboards">Joining Requests</span>
                         </a>
                     </li>
-                        <li class="nav-item">
+                    <li class="nav-item">
                                 <a class="nav-link" href="#sidebarMore" data-bs-toggle="collapse" role="button"
                                     aria-expanded="true" aria-controls="sidebarMore">
                                     <i class="fa fa-list text-white"></i>Templates</a>

@@ -26,7 +26,7 @@ class FollowUpController extends Controller
 
             $leadPipeline = LeadPipeline::all();
             $leadCancelList = LeadCancelReason::all();
-            $search = request('search');
+
             $leads = LeadMaster::where([
                 'lead_master.iStatus' => 1,
                 'lead_master.isDelete' => 0,
@@ -39,12 +39,7 @@ class FollowUpController extends Controller
                     'lead_master.*',
                     'service_master.service_name',
                     'lead_source_master.lead_source_name'
-                )->when($search, function ($query, $search) {
-                        return $query->where(function ($q) use ($search) {
-                            $q->where('lead_master.company_name', 'like', '%' . $search . '%')
-                            ->orWhere('lead_master.customer_name', 'like', '%' . $search . '%');
-                        });
-                    })
+                )
                 ->get();
 
             $todaysFollowups = $leads->filter(function ($lead) {
@@ -83,46 +78,75 @@ class FollowUpController extends Controller
     {
 
         try {
-            $search = request('search');
+
             $leads = LeadMaster::where([
+
                 'lead_master.iStatus' => 1,
+
                 'lead_master.isDelete' => 0,
+
                 'lead_master.iCustomerId' => Auth::user()->company_id
 
             ])
+
                 ->leftJoin('service_master', 'lead_master.product_service_id', '=', 'service_master.service_id')
+
                 ->leftJoin('lead_source_master', 'lead_master.LeadSourceId', '=', 'lead_source_master.lead_source_id')
+
                 ->select(
+
                     'lead_master.*',
+
                     'service_master.service_name',
+
                     'lead_source_master.lead_source_name'
-                )->when($search, function ($query, $search) {
-                        return $query->where(function ($q) use ($search) {
-                            $q->where('lead_master.company_name', 'like', '%' . $search . '%')
-                            ->orWhere('lead_master.customer_name', 'like', '%' . $search . '%');
-                        });
-                    })
+
+                )
+
                 ->get();
+
+
+
             $over_due_Followups = $leads->filter(function ($lead) {
+
                 try {
+
                     $date = Carbon::createFromFormat('d-m-Y h:i A', trim($lead->next_followup_date));
+
                     return $date->lt(today());
                 } catch (\Exception $e) {
+
                     return false;
                 }
             });
+
+
+
             // Paginate manually
+
             $page = request('page', 1);
+
             $perPage = config('app.per_page');
+
             $paginated = new \Illuminate\Pagination\LengthAwarePaginator(
+
                 $over_due_Followups->forPage($page, $perPage),
+
                 $over_due_Followups->count(),
+
                 $perPage,
+
                 $page,
+
                 ['path' => request()->url(), 'query' => request()->query()]
+
             );
+
+
+
             return view('company_client.follow_up.over_due_followup', compact('paginated'));
         } catch (\Exception $e) {
+
             return redirect()->back()->with('error', 'An error occurred: ' . $e->getMessage());
         }
     }
@@ -140,7 +164,6 @@ class FollowUpController extends Controller
             }
 
             $pipelineName = $pipeline->pipeline_name;
-            $search = request('search');
 
             if ($status === 'deal-done') {
                 // Get leads from `deal_done` table
@@ -162,13 +185,8 @@ class FollowUpController extends Controller
                         'deal_done.*',
                         'service_master.service_name',
                         'lead_source_master.lead_source_name'
-                    )->when($search, function ($query, $search) {
-                        return $query->where(function ($q) use ($search) {
-                            $q->where('deal_done.company_name', 'like', '%' . $search . '%')
-                            ->orWhere('deal_done.customer_name', 'like', '%' . $search . '%');
-                        });
-                    })
-                    ->orderBy('lead_id','asc')->paginate(config('app.per_page'));
+                    )
+                    ->paginate(config('app.per_page'));
             } elseif ($status === 'deal-cancel') {
                 // Get leads from `deal_cancel` table
                 $leads = DB::table('deal_cancel')
@@ -189,13 +207,8 @@ class FollowUpController extends Controller
                         'deal_cancel.*',
                         'service_master.service_name',
                         'lead_source_master.lead_source_name'
-                    )->when($search, function ($query, $search) {
-                        return $query->where(function ($q) use ($search) {
-                            $q->where('deal_cancel.company_name', 'like', '%' . $search . '%')
-                            ->orWhere('deal_cancel.customer_name', 'like', '%' . $search . '%');
-                        });
-                    })
-                    ->orderBy('lead_id','asc')->paginate(config('app.per_page'));
+                    )
+                    ->paginate(config('app.per_page'));
             } else {
                 // Get leads from `lead_master` table
                 $leads = LeadMaster::where([
@@ -215,13 +228,8 @@ class FollowUpController extends Controller
                         'lead_master.*',
                         'service_master.service_name',
                         'lead_source_master.lead_source_name'
-                    )->when($search, function ($query, $search) {
-                        return $query->where(function ($q) use ($search) {
-                            $q->where('lead_master.company_name', 'like', '%' . $search . '%')
-                            ->orWhere('lead_master.customer_name', 'like', '%' . $search . '%');
-                        });
-                    })
-                    ->orderBy('lead_id','asc')->paginate(config('app.per_page'));
+                    )
+                    ->paginate(config('app.per_page'));
             }
 
             return view('company_client.follow_up.new_leads', compact('leads', 'status'));

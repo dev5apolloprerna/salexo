@@ -54,120 +54,206 @@
         </div>
     </div>
 @endsection
+
+{{--  @section('scripts')
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script>
+        flatpickr("#followup_datetime", {
+            placeholder: "Select Date and Time",
+            enableTime: true,
+            dateFormat: "d-m-Y h:i K", // h = 12-hour, K = AM/PM
+            time_24hr: false
+        });
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const initially_contacted = document.getElementById('initially_contacted');
+            const pipeline_status = document.getElementById('pipeline_statusDiv');
+            const commentDiv = document.getElementById('commentDiv');
+            const followUpBox = document.getElementById('follow_up_dateBox');
+            const statusSelect = document.getElementById('pipeline_status');
+            const commentSelect = document.getElementById('comment');
+            const amountSelect = document.getElementById('Amount');
+            const followup_datetimeSelect = document.getElementById('followup_datetime');
+
+            function initiallyContacted() {
+                const selectedOption = statusSelect.options[statusSelect.selectedIndex];
+                const selectedText = selectedOption.text;
+                const initially_contactedValue = initially_contacted.value;
+
+                if (initially_contactedValue === 'Yes') {
+                    pipeline_status.style.display = 'block';
+                    statusSelect.setAttribute('required', 'required');
+                    commentDiv.style.display = 'block';
+                    commentSelect.setAttribute('required', 'required');
+                } else {
+                    pipeline_status.style.display = 'none';
+                    statusSelect.removeAttribute('required');
+                    commentDiv.style.display = 'none';
+                    commentSelect.removeAttribute('required');
+                }
+
+                if (selectedText === 'Deal Done') {
+                    cancelReasonBox.style.display = 'none';
+                } else if (selectedText === 'Deal Pending') {
+                    followUpBox.style.display = 'block';
+                } else if (selectedText === 'Deal Cancel') {
+                    cancelReasonBox.style.display = 'block';
+                } else {
+                    cancelReasonBox.style.display = 'none';
+                    followUpBox.style.display = 'none';
+                }
+            }
+
+            const cancelReasonBox = document.getElementById('cancelReasonBox');
+            const amountBox = document.getElementById('amountBox');
+            const cancel_reason_idBox = document.getElementById('cancel_reason_id');
+
+            function toggleFields() {
+                const selectedValue = statusSelect.value;
+                const selectedOption = statusSelect.options[statusSelect.selectedIndex];
+                const selectedText = selectedOption.text;
+                const followupNeeded = selectedOption.getAttribute('data-followup');
+
+                // Reset required state for amount
+                amountSelect.removeAttribute('required');
+                amountSelect.removeAttribute('required');
+                followup_datetimeSelect.removeAttribute('required');
+                cancel_reason_idBox.removeAttribute('required');
+
+                // Dynamic logic for amount (Deal Done) and cancel reason (Deal Cancel)
+                if (selectedText === 'Deal Done') {
+                    amountBox.style.display = 'block';
+                    amountSelect.setAttribute('required', 'required');
+                    cancelReasonBox.style.display = 'none';
+                } else if (selectedText === 'Deal Cancel') {
+                    amountBox.style.display = 'none';
+                    cancelReasonBox.style.display = 'block';
+                    cancel_reason_idBox.setAttribute('required', 'required');
+                    cancelReasonBox.setAttribute('required', 'required');
+                } else {
+                    amountBox.style.display = 'none';
+                    cancelReasonBox.style.display = 'none';
+                }
+
+                // Only check followup_needed flag
+                //if (followupNeeded === 'yes') {
+                if (selectedText === 'Deal Pending' || followupNeeded === 'yes') {
+                    followUpBox.style.display = 'block';
+                    followup_datetimeSelect.setAttribute('required', 'required');
+                } else {
+                    followUpBox.style.display = 'none';
+                }
+            }
+
+            initially_contacted.addEventListener('change', initiallyContacted);
+            statusSelect.addEventListener('change', toggleFields);
+            toggleFields(); // Run on page load
+            initiallyContacted(); // Run on page load
+        });
+    </script>
+@endsection  --}}
+
 @section('scripts')
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
-<script>
-  // Flatpickr
-  flatpickr("#followup_datetime", {
-    enableTime: true,
-    dateFormat: "d-m-Y h:i K",
-    time_24hr: false
-  });
-</script>
+    <script>
+        flatpickr("#followup_datetime", {
+            enableTime: true,
+            dateFormat: "d-m-Y h:i K",
+            time_24hr: false
+        });
+    </script>
 
-<script>
-  document.addEventListener('DOMContentLoaded', function () {
-    const initially_contacted = document.getElementById('initially_contacted');
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const initially_contacted = document.getElementById('initially_contacted');
+            const pipeline_status = document.getElementById('pipeline_statusDiv');
+            const commentDiv = document.getElementById('commentDiv');
+            const followUpBox = document.getElementById('follow_up_dateBox');
+            const statusSelect = document.getElementById('pipeline_status');
+            const commentSelect = document.getElementById('comment');
+            const amountSelect = document.getElementById('Amount');
+            const followup_datetimeSelect = document.getElementById('followup_datetime');
+            const cancelReasonBox = document.getElementById('cancelReasonBox');
+            const amountBox = document.getElementById('amountBox');
+            const cancel_reason_idBox = document.getElementById('cancel_reason_id');
 
-    const pipeline_statusDiv = document.getElementById('pipeline_statusDiv');
-    const statusSelect = document.getElementById('pipeline_status');
+            function initiallyContacted() {
+                const initially_contactedValue = initially_contacted.value;
 
-    const commentDiv = document.getElementById('commentDiv');
-    const commentSelect = document.getElementById('comment');
+                if (initially_contactedValue === 'Yes') {
+                    pipeline_status.style.display = 'block';
+                    statusSelect.setAttribute('required', 'required');
+                    commentDiv.style.display = 'block';
+                    commentSelect.setAttribute('required', 'required');
+                } else {
+                    pipeline_status.style.display = 'none';
+                    statusSelect.removeAttribute('required');
+                    commentDiv.style.display = 'none';
+                    commentSelect.removeAttribute('required');
 
-    const followUpBox = document.getElementById('follow_up_dateBox');
-    const followup_datetimeSelect = document.getElementById('followup_datetime');
+                    // Reset dependent fields
+                    cancelReasonBox.style.display = 'none';
+                    followUpBox.style.display = 'none';
+                    amountBox.style.display = 'none';
+                }
+            }
 
-    const cancelReasonBox = document.getElementById('cancelReasonBox');
-    const cancel_reason_idBox = document.getElementById('cancel_reason_id');
+            function toggleFields() {
+                const selectedOption = statusSelect.options[statusSelect.selectedIndex];
+                if (!selectedOption) return;
 
-    const amountBox = document.getElementById('amountBox');
-    const amountSelect = document.getElementById('Amount');
+                const selectedText = selectedOption.text;
+                const followupNeeded = selectedOption.getAttribute('data-followup');
+                const initially_contactedValue = initially_contacted.value;
 
-    function initiallyContacted() {
-      const initiallyVal = (initially_contacted?.value || '').trim();
+                // Reset
+                amountBox.style.display = 'none';
+                cancelReasonBox.style.display = 'none';
+                followUpBox.style.display = 'none';
 
-      if (initiallyVal === 'Yes') {
-        pipeline_statusDiv.style.display = 'block';
-        statusSelect.setAttribute('required', 'required');
+                amountSelect.removeAttribute('required');
+                cancel_reason_idBox.removeAttribute('required');
+                followup_datetimeSelect.removeAttribute('required');
 
-        commentDiv.style.display = 'block';
-        commentSelect.setAttribute('required', 'required');
-      } else {
-        pipeline_statusDiv.style.display = 'none';
-        statusSelect.removeAttribute('required');
-        statusSelect.value = "";
+                if (initially_contactedValue !== 'Yes') {
+                    return; // ⛔ Stop here if 'No'
+                }
 
-        commentDiv.style.display = 'none';
-        commentSelect.removeAttribute('required');
-        commentSelect.value = "";
+                if (selectedText === 'Deal Done') {
+                    amountBox.style.display = 'block';
+                    amountSelect.setAttribute('required', 'required');
+                } else if (selectedText === 'Deal Cancel') {
+                    cancelReasonBox.style.display = 'block';
+                    cancel_reason_idBox.setAttribute('required', 'required');
+                }
 
-        // Reset dependent fields when "No"
-        cancelReasonBox.style.display = 'none';
-        followUpBox.style.display = 'none';
-        amountBox.style.display = 'none';
+                if (selectedText === 'Deal Pending' || followupNeeded === 'yes') {
+                    followUpBox.style.display = 'block';
+                    followup_datetimeSelect.setAttribute('required', 'required');
+                }
+            }
 
-        cancel_reason_idBox.removeAttribute('required');
-        followup_datetimeSelect.removeAttribute('required');
-        amountSelect.removeAttribute('required');
 
-        cancel_reason_idBox.value = "";
-        followup_datetimeSelect.value = "";
-        amountSelect.value = "";
-      }
-    }
+            // Attach listeners
+            initially_contacted.addEventListener('change', function() {
+                initiallyContacted();
+                toggleFields();
+            });
 
-    function toggleFields() {
-      if (!statusSelect) return;
+            statusSelect.addEventListener('change', toggleFields);
 
-      const selectedOption = statusSelect.options[statusSelect.selectedIndex];
-      if (!selectedOption) return;
+            // Run once on load
+            initiallyContacted();
 
-      const initiallyVal = (initially_contacted?.value || '').trim();
-      if (initiallyVal !== 'Yes') return; // stop if Initially Contacted = No
+            // Only run toggleFields if status has a value
+            if (statusSelect.value) {
+                toggleFields();
+            }
+        });
+    </script>
 
-      // ✅ Use slug instead of pipeline name
-      const slug = (selectedOption.getAttribute('data-slug') || '').trim(); // ex: deal-done
-      const followupNeeded = (selectedOption.getAttribute('data-followup') || '').trim(); // yes/no
-
-      // Reset UI + required
-      amountBox.style.display = 'none';
-      cancelReasonBox.style.display = 'none';
-      followUpBox.style.display = 'none';
-
-      amountSelect.removeAttribute('required');
-      cancel_reason_idBox.removeAttribute('required');
-      followup_datetimeSelect.removeAttribute('required');
-
-      // Slug based rules
-      if (slug === 'deal-done') {
-        amountBox.style.display = 'block';
-        amountSelect.setAttribute('required', 'required');
-      } else if (slug === 'deal-cancel') {
-        cancelReasonBox.style.display = 'block';
-        cancel_reason_idBox.setAttribute('required', 'required');
-      }
-
-      // Followup rules
-      if (slug === 'deal-pending' || followupNeeded === 'yes') {
-        followUpBox.style.display = 'block';
-        followup_datetimeSelect.setAttribute('required', 'required');
-      }
-    }
-
-    // Events
-    initially_contacted?.addEventListener('change', function () {
-      initiallyContacted();
-      toggleFields();
-    });
-
-    statusSelect?.addEventListener('change', toggleFields);
-
-    // Init
-    initiallyContacted();
-    if (statusSelect && statusSelect.value) toggleFields();
-  });
-</script>
 @endsection
