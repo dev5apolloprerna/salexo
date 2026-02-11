@@ -35,7 +35,6 @@ class CompanyClientHomeController extends Controller
         $pipelineBaseQuery = LeadPipeline::select(
             'lead_pipeline_master.pipeline_id',
             'lead_pipeline_master.pipeline_name',
-            'lead_pipeline_master.slugname',
             'lead_pipeline_master.color',
             'lead_pipeline_master.icon',
             'lead_pipeline_master.created_at',
@@ -55,7 +54,6 @@ class CompanyClientHomeController extends Controller
             ->groupBy(
                 'lead_pipeline_master.pipeline_id',
                 'lead_pipeline_master.pipeline_name',
-                'lead_pipeline_master.slugname',
                 'lead_pipeline_master.color',
                 'lead_pipeline_master.icon',
                 'lead_pipeline_master.created_at',
@@ -74,7 +72,6 @@ class CompanyClientHomeController extends Controller
             ->groupBy(
                 'lead_pipeline_master.pipeline_id',
                 'lead_pipeline_master.pipeline_name',
-                'lead_pipeline_master.slugname',
                 'lead_pipeline_master.color',
                 'lead_pipeline_master.icon',
                 'lead_pipeline_master.created_at',
@@ -92,8 +89,7 @@ class CompanyClientHomeController extends Controller
             ->where('lead_pipeline_master.slugname', 'deal-cancel')
             ->groupBy(
                 'lead_pipeline_master.pipeline_id',
-                'lead_pipeline_master.pipeline_name',            
-                'lead_pipeline_master.slugname',
+                'lead_pipeline_master.pipeline_name',
                 'lead_pipeline_master.color',
                 'lead_pipeline_master.icon',
                 'lead_pipeline_master.created_at',

@@ -26,15 +26,17 @@ class EmployerFollowupMessageCron extends Command
             ->get();
 
         foreach ($employees as $employee) {
-
              if ((int)$employee->iStatus !== 1) {
                 continue;
             }
-
             // Get all leads assigned to this employee
-            $allLeads = LeadMaster::where('employee_id', $employee->emp_id)
+           /* $allLeads = LeadMaster::where('iemployeeId', $employee->emp_id)
                 ->where(['iStatus' => 1, 'isDelete' => 0])
-                ->get();
+                ->get();*/
+                
+            $allLeads = LeadMaster::where('employee_id', $employee->emp_id)
+            ->where(['iStatus' => 1, 'isDelete' => 0])
+            ->get();
 
             // Count today's follow-ups
             $todaysFollowupCount = $allLeads->filter(function ($lead) {
@@ -57,7 +59,6 @@ class EmployerFollowupMessageCron extends Command
                     return false;
                 }
             })->count();
-
 
             $whatsappToken = config('app.whatsapp_token');
             $phoneNumberId = config('app.whatsapp_phone_id');

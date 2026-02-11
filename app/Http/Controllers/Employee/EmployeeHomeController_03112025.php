@@ -10,7 +10,6 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Employee;
 use App\Models\CompanyClient;
 use App\Models\DealDone;
-use App\Models\DealCancel;
 use App\Models\LeadCancelReason;
 use App\Models\LeadHistory;
 use App\Models\LeadMaster;
@@ -22,22 +21,42 @@ use Illuminate\Support\Facades\Log;
 class EmployeeHomeController extends Controller
 {
 
-     public function index()
-{
-    // try {
+    public function index()
+    {
+        try {
+            $emp = Auth::guard('web_employees')->user();
+            $emp_id = $emp->company_id;
 
-        $emp = Auth::guard('web_employees')->user();
-        $emp_id = $emp->company_id;
-        $empUserId = $emp->emp_id;
+            // $piplines = LeadPipeline::select(
 
-        /*
-        |--------------------------------------------------------------------------
-        | 1. PIPELINES (New, Deal Done, Deal Cancel)
-        |--------------------------------------------------------------------------
-        */
+            //     'lead_pipeline_master.pipeline_id',
+            //     'lead_pipeline_master.pipeline_name',
+            //     'lead_pipeline_master.color',
+            //     'lead_pipeline_master.icon',
+            //     'lead_pipeline_master.created_at',
+            //     'lead_pipeline_master.company_id',
+            //     DB::raw('COUNT(lead_master.lead_id) as status_count')
 
-        // NEW LEAD PIPELINES
-        $pipline = LeadPipeline::select(
+            // )
+            //     ->leftJoin('lead_master', function ($join) use ($emp) {
+            //         $join->on('lead_master.status', '=', 'lead_pipeline_master.pipeline_id')
+            //             ->where('lead_master.iCustomerId', $emp->company_id)
+            //             ->where('lead_master.iEnterBy', $emp->emp_id)
+            //             ->where('lead_master.isDelete', 0);
+            //     })
+            //     ->where('lead_pipeline_master.company_id', $emp->company_id)
+            //     ->groupBy(
+            //         'lead_pipeline_master.pipeline_id',
+            //         'lead_pipeline_master.pipeline_name',
+            //         'lead_pipeline_master.color',
+            //         'lead_pipeline_master.icon',
+            //         'lead_pipeline_master.created_at',
+            //         'lead_pipeline_master.company_id'
+            //     )
+            //     ->get();
+
+            $pipline = LeadPipeline::select(
+
                 'lead_pipeline_master.pipeline_id',
                 'lead_pipeline_master.pipeline_name',
                 'lead_pipeline_master.color',
@@ -45,26 +64,29 @@ class EmployeeHomeController extends Controller
                 'lead_pipeline_master.created_at',
                 'lead_pipeline_master.company_id',
                 DB::raw('COUNT(lead_master.lead_id) as status_count')
-            )
-            ->leftJoin('lead_master', function ($join) use ($emp_id, $empUserId) {
-                $join->on('lead_master.status', '=', 'lead_pipeline_master.pipeline_id')
-                    ->where('lead_master.iCustomerId', $emp_id)
-                    ->where('lead_master.employee_id', $empUserId)
-                    ->where('lead_master.isDelete', 0);
-            })
-            ->where('lead_pipeline_master.company_id', $emp_id)
-            ->whereNotIn('lead_pipeline_master.slugname', ['deal-done', 'deal-cancel'])
-            ->groupBy(
-                'lead_pipeline_master.pipeline_id',
-                'lead_pipeline_master.pipeline_name',
-                'lead_pipeline_master.color',
-                'lead_pipeline_master.icon',
-                'lead_pipeline_master.created_at',
-                'lead_pipeline_master.company_id'
-            );
 
-        // DEAL DONE PIPELINE
-        $piplineDones = LeadPipeline::select(
+            )
+                ->leftJoin('lead_master', function ($join) use ($emp) {
+                    $join->on('lead_master.status', '=', 'lead_pipeline_master.pipeline_id')
+                        ->where('lead_master.iCustomerId', $emp->company_id)
+                        ->where('lead_master.iEnterBy', $emp->emp_id)
+                        ->where('lead_master.isDelete', 0);
+                })
+                ->where('lead_pipeline_master.company_id', $emp->company_id)
+                ->whereNotIn('lead_pipeline_master.slugname', ['deal-done', 'deal-cancel'])
+                ->groupBy(
+
+                    'lead_pipeline_master.pipeline_id',
+                    'lead_pipeline_master.pipeline_name',
+                    'lead_pipeline_master.color',
+                    'lead_pipeline_master.icon',
+                    'lead_pipeline_master.created_at',
+                    'lead_pipeline_master.company_id'
+
+                );
+
+            $piplineDones = LeadPipeline::select(
+
                 'lead_pipeline_master.pipeline_id',
                 'lead_pipeline_master.pipeline_name',
                 'lead_pipeline_master.color',
@@ -72,26 +94,29 @@ class EmployeeHomeController extends Controller
                 'lead_pipeline_master.created_at',
                 'lead_pipeline_master.company_id',
                 DB::raw('COUNT(deal_done.lead_id) as status_count')
-            )
-            ->leftJoin('deal_done', function ($join) use ($emp_id, $empUserId) {
-                $join->on('deal_done.status', '=', 'lead_pipeline_master.pipeline_id')
-                    ->where('deal_done.iCustomerId', $emp_id)
-                    ->where('deal_done.iEnterBy', $empUserId)
-                    ->where('deal_done.isDelete', 0);
-            })
-            ->where('lead_pipeline_master.company_id', $emp_id)
-            ->where('lead_pipeline_master.slugname', 'deal-done')
-            ->groupBy(
-                'lead_pipeline_master.pipeline_id',
-                'lead_pipeline_master.pipeline_name',
-                'lead_pipeline_master.color',
-                'lead_pipeline_master.icon',
-                'lead_pipeline_master.created_at',
-                'lead_pipeline_master.company_id'
-            );
 
-        // DEAL CANCEL PIPELINE
-        $piplineCancels = LeadPipeline::select(
+            )
+                ->leftJoin('deal_done', function ($join) use ($emp) {
+                    $join->on('deal_done.status', '=', 'lead_pipeline_master.pipeline_id')
+                        ->where('deal_done.iCustomerId', $emp->company_id)
+                        ->where('deal_done.iEnterBy', $emp->emp_id)
+                        ->where('deal_done.isDelete', 0);
+                })
+                ->where('lead_pipeline_master.company_id', $emp->company_id)
+                ->whereIn('lead_pipeline_master.slugname', ['deal-done'])
+                ->groupBy(
+
+                    'lead_pipeline_master.pipeline_id',
+                    'lead_pipeline_master.pipeline_name',
+                    'lead_pipeline_master.color',
+                    'lead_pipeline_master.icon',
+                    'lead_pipeline_master.created_at',
+                    'lead_pipeline_master.company_id'
+
+                );
+
+            $piplineCancels = LeadPipeline::select(
+
                 'lead_pipeline_master.pipeline_id',
                 'lead_pipeline_master.pipeline_name',
                 'lead_pipeline_master.color',
@@ -99,176 +124,92 @@ class EmployeeHomeController extends Controller
                 'lead_pipeline_master.created_at',
                 'lead_pipeline_master.company_id',
                 DB::raw('COUNT(deal_cancel.lead_id) as status_count')
+
             )
-            ->leftJoin('deal_cancel', function ($join) use ($emp_id, $empUserId) {
-                $join->on('deal_cancel.status', '=', 'lead_pipeline_master.pipeline_id')
-                    ->where('deal_cancel.iCustomerId', $emp_id)
-                    ->where('deal_cancel.iEnterBy', $empUserId)
-                    ->where('deal_cancel.isDelete', 0);
-            })
-            ->where('lead_pipeline_master.company_id', $emp_id)
-            ->where('lead_pipeline_master.slugname', 'deal-cancel')
-            ->groupBy(
-                'lead_pipeline_master.pipeline_id',
-                'lead_pipeline_master.pipeline_name',
-                'lead_pipeline_master.color',
-                'lead_pipeline_master.icon',
-                'lead_pipeline_master.created_at',
-                'lead_pipeline_master.company_id'
-            );
+                ->leftJoin('deal_cancel', function ($join) use ($emp) {
+                    $join->on('deal_cancel.status', '=', 'lead_pipeline_master.pipeline_id')
+                        ->where('deal_cancel.iCustomerId', $emp->company_id)
+                        ->where('deal_cancel.iEnterBy', $emp->emp_id)
+                        ->where('deal_cancel.isDelete', 0);
+                })
 
-        // UNION ALL PIPELINES
-        $piplines = $pipline->union($piplineDones)->union($piplineCancels)->get();
+                ->where('lead_pipeline_master.company_id', $emp->company_id)
+                ->whereIn('lead_pipeline_master.slugname', ['deal-cancel'])
+                ->groupBy(
 
+                    'lead_pipeline_master.pipeline_id',
+                    'lead_pipeline_master.pipeline_name',
+                    'lead_pipeline_master.color',
+                    'lead_pipeline_master.icon',
+                    'lead_pipeline_master.created_at',
+                    'lead_pipeline_master.company_id'
 
-        /*
-        |--------------------------------------------------------------------------
-        | 2. FOLLOWUP COUNTS
-        |--------------------------------------------------------------------------
-        */
+                );
 
-        $allLeads = LeadMaster::where([
-                'iCustomerId' => $emp_id,
-                'employee_id' => $empUserId,
-                'isDelete'    => 0
+            $piplines = $pipline->union($piplineDones)->union($piplineCancels)->get();
+            // dd($piplines);
+
+            $allLeads = LeadMaster::where([
+                'iemployeeId' => $emp->company_id,
+                'iEnterBy' => $emp->emp_id
             ])
-            ->where('iStatus', 1)
-            ->get();
+                ->where('iStatus', 1)
+                ->where('isDelete', 0)
+                ->get();
 
-        // TODAY FOLLOWUPS
-        $todays_followup_count = $allLeads->filter(function ($lead) {
-            try {
-                if (!$lead->next_followup_date) return false;
-                $date = \Carbon\Carbon::createFromFormat('d-m-Y h:i A', trim($lead->next_followup_date));
-                return $date->isToday();
-            } catch (\Exception $e) {
-                return false;
-            }
-        })->count();
+            $todays_followup_count = $allLeads->filter(function ($lead) {
+                try {
+                    if (!$lead->next_followup_date) return false;
+                    $date = \Carbon\Carbon::createFromFormat('d-m-Y h:i A', trim($lead->next_followup_date));
+                    return $date->isToday();
+                } catch (\Exception $e) {
+                    return false;
+                }
+            })->count();
 
-        // OVERDUE FOLLOWUPS
-        $overdues_followup_count = $allLeads->filter(function ($lead) {
-            try {
-                if (!$lead->next_followup_date) return false;
-                $date = \Carbon\Carbon::createFromFormat('d-m-Y h:i A', trim($lead->next_followup_date));
-                return $date->lt(today());
-            } catch (\Exception $e) {
-                return false;
-            }
-        })->count();
+            $overdues_followup_count = $allLeads->filter(function ($lead) {
+                try {
+                    if (!$lead->next_followup_date) return false;
+                    $date = \Carbon\Carbon::createFromFormat('d-m-Y h:i A', trim($lead->next_followup_date));
+                    return $date->lt(today());
+                } catch (\Exception $e) {
+                    return false;
+                }
+            })->count();
 
+            $employees = Employee::orderBy('emp_name', 'asc')
+                ->where([
+                    'isDelete' => 0,
+                    'isCompanyAdmin' => 0,
+                    'company_id' => Auth::guard('web_employees')->user()->company_id
+                ])
+                ->get();
 
-        /*
-        |--------------------------------------------------------------------------
-        | 3. TOP SELLING PRODUCTS (Your Blade uses it)
-        |--------------------------------------------------------------------------
-        */
-        $lead_pipeline_done = LeadPipeline::where([
-            'company_id'    => $emp_id,
-            //'pipeline_name' => "Deal Done"
-            'slugname' => 'deal-done'
-        ])->first();
-        
-        $topProducts = DealDone::select(
+            $lead_pipeline = LeadPipeline::where([
+                'company_id' => $emp_id,
+                'pipeline_name' => "Deal Done"
+            ])->first();
+
+            $topProducts = DealDone::select(
                 'service_master.service_name',
                 DB::raw('COUNT(deal_done.lead_id) as quantity'),
                 DB::raw('SUM(deal_done.amount) as total_value')
             )
-            ->leftJoin('service_master', 'service_master.service_id', '=', 'deal_done.product_service_id')
-            ->where('deal_done.iCustomerId', $emp_id)
-            ->where('deal_done.status', $lead_pipeline_done->pipeline_id)
-            ->where('deal_done.iEnterBy', $empUserId)
-            ->where('deal_done.isDelete', 0)
-            ->groupBy('deal_done.product_service_id', 'service_master.service_name')
-            ->get();
+                ->leftJoin('service_master', 'service_master.service_id', '=', 'deal_done.product_service_id')
+                ->where([
+                    'deal_done.iCustomerId' => $emp_id,
+                    'deal_done.status' => $lead_pipeline->pipeline_id
+                ])
+                ->where('deal_done.isDelete', 0)
+                ->groupBy('deal_done.product_service_id', 'service_master.service_name')
+                ->get();
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | 4. CHART DATA — EXACTLY AS USED IN YOUR BLADE
-        |--------------------------------------------------------------------------
-        */
-
-        // Leads Generated = lead_master + deal_done
-        $leadsGenerated = DB::table(function ($query) use ($emp_id, $empUserId) {
-                $query
-                    ->select(DB::raw('MONTH(created_at) as month'), DB::raw('COUNT(*) as total'))
-                    ->from('lead_master')
-                    ->whereYear('created_at', now()->year)
-                    ->where('iCustomerId', $emp_id)
-                    ->where('iEnterBy', $empUserId)
-                    ->groupBy(DB::raw('MONTH(created_at)'))
-                    ->unionAll(
-                        DB::table('deal_done')
-                            ->select(DB::raw('MONTH(created_at) as month'), DB::raw('COUNT(*) as total'))
-                            ->whereYear('created_at', now()->year)
-                            ->where('iCustomerId', $emp_id)
-                            ->where('iEnterBy', $empUserId)
-                            ->groupBy(DB::raw('MONTH(created_at)'))
-                    );
-            }, 'combined')
-            ->select('month', DB::raw('SUM(total) as total'))
-            ->groupBy('month')
-            ->pluck('total', 'month')
-            ->toArray();
-
-        // Leads Converted = Only deal_done
-        $leadsConverted = DealDone::select(DB::raw('MONTH(created_at) as month'), DB::raw('COUNT(*) as total'))
-            ->where('status', $lead_pipeline_done->pipeline_id)
-            ->whereYear('created_at', now()->year)
-            ->where('iCustomerId', $emp_id)
-            ->where('iEnterBy', $empUserId)
-            ->groupBy(DB::raw('MONTH(created_at)'))
-            ->pluck('total', 'month')
-            ->toArray();
-
-        // Chart arrays
-        $labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        $generatedData = [];
-        $convertedData = [];
-
-        for ($i = 1; $i <= 12; $i++) {
-            $generatedData[] = $leadsGenerated[$i] ?? 0;
-            $convertedData[] = $leadsConverted[$i] ?? 0;
+            return view('employee.home', compact('emp_id', 'piplines', 'todays_followup_count', 'overdues_followup_count', 'employees', 'topProducts'));
+        } catch (\Exception $e) {
+            Log::error('Error in HomeController@index: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return redirect()->back()->with('error', 'An unexpected error occurred. Please try again later.');
         }
-
-        /*
-        |--------------------------------------------------------------------------
-        | 5. EMPLOYEE LEADS (pie chart data)
-        |--------------------------------------------------------------------------
-        */
-
-        $employeeLeads = LeadMaster::selectRaw('employee_id, COUNT(*) as leads')
-            ->where('iCustomerId', $emp_id)
-            ->where('isDelete', 0)
-            ->groupBy('employee_id')
-            ->pluck('leads', 'employee_id')
-            ->toArray();
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | FINAL RETURN
-        |--------------------------------------------------------------------------
-        */
-
-        return view('employee.home', compact(
-            'emp_id',
-            'piplines',
-            'todays_followup_count',
-            'overdues_followup_count',
-            'topProducts',
-            'labels',
-            'generatedData',
-            'convertedData',
-            'employeeLeads'
-        ));
-
-    // } catch (\Exception $e) {
-    //     Log::error('Employee Home error: ' . $e->getMessage());
-    //     return back()->with('error', 'Something went wrong.');
-    // }
-}
+    }
 
     public function getProfile()
     {
@@ -448,59 +389,80 @@ class EmployeeHomeController extends Controller
 
             $leadPipeline = LeadPipeline::all();
             $leadCancelList = LeadCancelReason::all();
-            $search = request('search');
 
             $leads = LeadMaster::where([
                 'lead_master.iStatus' => 1,
                 'lead_master.isDelete' => 0,
                 'lead_master.iCustomerId' => Auth::user()->company_id,
-                'lead_master.employee_id' => Auth::user()->emp_id
+                'lead_master.iEnterBy' => Auth::user()->emp_id
             ])
+
                 ->leftJoin('service_master', 'lead_master.product_service_id', '=', 'service_master.service_id')
+
                 ->leftJoin('lead_source_master', 'lead_master.LeadSourceId', '=', 'lead_source_master.lead_source_id')
+
                 ->select(
+
                     'lead_master.*',
+
                     'service_master.service_name',
+
                     'lead_source_master.lead_source_name'
-                )->when($search, function ($query, $search) {
-                        return $query->where(function ($q) use ($search) {
-                            $q->where('lead_master.company_name', 'like', '%' . $search . '%')
-                            ->orWhere('lead_master.customer_name', 'like', '%' . $search . '%');
-                        });
-                    })
+
+                )
+
                 ->get();
+
+
+
             $todaysFollowups = $leads->filter(function ($lead) {
+
                 try {
+
                     $date = Carbon::createFromFormat('d-m-Y h:i A', trim($lead->next_followup_date));
+
                     return $date->isToday();
                 } catch (\Exception $e) {
+
                     return false;
                 }
             });
 
-            // Paginate manually (you can skip this if listing all is okay)
-            $page = request('page', 1);
-            $perPage = env('PER_PAGE_COUNT', 10);
-            $paginated = new \Illuminate\Pagination\LengthAwarePaginator(
-                $todaysFollowups->forPage($page, $perPage),
-                $todaysFollowups->count(),
-                $perPage,
-                $page,
-                ['path' => request()->url(), 'query' => request()->query()]
-            );
-            // return view('company_client.follow_up.todays_followup', compact(
-            //     'paginated',
-            //     'leadPipeline',
-            //     'leadCancelList'
 
-            // ));
-            return view('employee.follow_up.todays_followup', compact(
+
+            // Paginate manually (you can skip this if listing all is okay)
+
+            $page = request('page', 1);
+
+            $perPage = env('PER_PAGE_COUNT', 10);
+
+            $paginated = new \Illuminate\Pagination\LengthAwarePaginator(
+
+                $todaysFollowups->forPage($page, $perPage),
+
+                $todaysFollowups->count(),
+
+                $perPage,
+
+                $page,
+
+                ['path' => request()->url(), 'query' => request()->query()]
+
+            );
+
+
+
+            return view('company_client.follow_up.todays_followup', compact(
+
                 'paginated',
+
                 'leadPipeline',
+
                 'leadCancelList'
 
             ));
         } catch (\Exception $e) {
+
             return redirect()->back()->with('error', 'An error occurred: ' . $e->getMessage());
         }
     }
@@ -509,49 +471,76 @@ class EmployeeHomeController extends Controller
     {
 
         try {
-            $search = request('search');
+
             $leads = LeadMaster::where([
+
                 'lead_master.iStatus' => 1,
+
                 'lead_master.isDelete' => 0,
+
                 'lead_master.iCustomerId' => Auth::user()->company_id,
-                'lead_master.employee_id' => Auth::user()->emp_id
+                'lead_master.iEnterBy' => Auth::user()->emp_id
+
             ])
+
                 ->leftJoin('service_master', 'lead_master.product_service_id', '=', 'service_master.service_id')
+
                 ->leftJoin('lead_source_master', 'lead_master.LeadSourceId', '=', 'lead_source_master.lead_source_id')
+
                 ->select(
+
                     'lead_master.*',
+
                     'service_master.service_name',
+
                     'lead_source_master.lead_source_name'
-                )->when($search, function ($query, $search) {
-                        return $query->where(function ($q) use ($search) {
-                            $q->where('lead_master.company_name', 'like', '%' . $search . '%')
-                            ->orWhere('lead_master.customer_name', 'like', '%' . $search . '%');
-                        });
-                    })
+
+                )
+
                 ->get();
+
+
+
             $over_due_Followups = $leads->filter(function ($lead) {
+
                 try {
+
                     $date = Carbon::createFromFormat('d-m-Y h:i A', trim($lead->next_followup_date));
+
                     return $date->lt(today());
                 } catch (\Exception $e) {
+
                     return false;
                 }
             });
 
+
+
             // Paginate manually
+
             $page = request('page', 1);
+
             $perPage = env('PER_PAGE_COUNT', 10);
+
             $paginated = new \Illuminate\Pagination\LengthAwarePaginator(
+
                 $over_due_Followups->forPage($page, $perPage),
+
                 $over_due_Followups->count(),
+
                 $perPage,
+
                 $page,
+
                 ['path' => request()->url(), 'query' => request()->query()]
+
             );
-            //return view('company_client.follow_up.over_due_followup', compact('paginated'));
-            return view('employee.follow_up.over_due_followup', compact('paginated'));
-            
+
+
+
+            return view('company_client.follow_up.over_due_followup', compact('paginated'));
         } catch (\Exception $e) {
+
             return redirect()->back()->with('error', 'An error occurred: ' . $e->getMessage());
         }
     }
@@ -560,12 +549,36 @@ class EmployeeHomeController extends Controller
     {
         try {
             $emp = Auth::guard('web_employees')->user();
+
             $leadPipeline = LeadPipeline::where(['slugname' => $status])->first();
+
             if (!$leadPipeline) {
                 return redirect()->back()->with('error', 'Invalid pipeline status provided.');
             }
+
             $leadPipeline = $leadPipeline->pipeline_name;
-            $search = request('search');
+
+            // $leads = LeadMaster::where([
+            //     'lead_master.iStatus' => 1,
+            //     'lead_master.isDelete' => 0,
+            //     'lead_master.iCustomerId' => $emp->company_id,
+            //     'lead_master.iEnterBy' => $emp->emp_id,
+            // ])
+            //     ->whereIn('lead_master.status', function ($query) use ($emp, $leadPipeline) {
+            //         $query->select('pipeline_id')
+            //             ->from('lead_pipeline_master')
+            //             ->where('company_id', $emp->company_id)
+            //             ->where('pipeline_name', 'like', $leadPipeline);
+            //     })
+            //     ->join('service_master', 'lead_master.product_service_id', '=', 'service_master.service_id')
+            //     ->join('lead_source_master', 'lead_master.LeadSourceId', '=', 'lead_source_master.lead_source_id')
+            //     ->select(
+            //         'lead_master.*',
+            //         'service_master.service_name',
+            //         'lead_source_master.lead_source_name'
+            //     )
+            //     ->paginate(10);
+
             if ($status === 'deal-done') {
                 // Get leads from `deal_done` table
                 $leads = DB::table('deal_done')
@@ -573,7 +586,7 @@ class EmployeeHomeController extends Controller
                         ['deal_done.iStatus', '=', 1],
                         ['deal_done.isDelete', '=', 0],
                         ['deal_done.iCustomerId', '=', $emp->company_id],
-                        ['deal_done.employee_id', '=', $emp->emp_id],
+                        ['deal_done.iEnterBy', '=', $emp->emp_id],
                     ])
                     ->whereIn('deal_done.status', function ($query) use ($emp, $leadPipeline) {
                         $query->select('pipeline_id')
@@ -587,12 +600,7 @@ class EmployeeHomeController extends Controller
                         'deal_done.*',
                         'service_master.service_name',
                         'lead_source_master.lead_source_name'
-                    )->when($search, function ($query, $search) {
-                        return $query->where(function ($q) use ($search) {
-                            $q->where('deal_done.company_name', 'like', '%' . $search . '%')
-                            ->orWhere('deal_done.customer_name', 'like', '%' . $search . '%');
-                        });
-                    })
+                    )
                     ->paginate(env('PER_PAGE_COUNT', 10));
             } elseif ($status === 'deal-cancel') {
                 // Get leads from `deal_cancel` table
@@ -600,8 +608,8 @@ class EmployeeHomeController extends Controller
                     ->where([
                         ['deal_cancel.iStatus', '=', 1],
                         ['deal_cancel.isDelete', '=', 0],
-                        ['deal_cancel.iCustomerId', '=', $emp->company_id],
-                        ['deal_cancel.employee_id', '=', $emp->emp_id],
+                        ['deal_done.iCustomerId', '=', $emp->company_id],
+                        ['deal_done.iEnterBy', '=', $emp->emp_id],
                     ])
                     ->whereIn('deal_cancel.status', function ($query) use ($emp, $leadPipeline) {
                         $query->select('pipeline_id')
@@ -615,12 +623,7 @@ class EmployeeHomeController extends Controller
                         'deal_cancel.*',
                         'service_master.service_name',
                         'lead_source_master.lead_source_name'
-                    )->when($search, function ($query, $search) {
-                        return $query->where(function ($q) use ($search) {
-                            $q->where('deal_cancel.company_name', 'like', '%' . $search . '%')
-                            ->orWhere('deal_cancel.customer_name', 'like', '%' . $search . '%');
-                        });
-                    })
+                    )
                     ->paginate(env('PER_PAGE_COUNT', 10));
             } else {
                 // Get leads from `lead_master` table
@@ -628,7 +631,7 @@ class EmployeeHomeController extends Controller
                     'lead_master.iStatus' => 1,
                     'lead_master.isDelete' => 0,
                     'lead_master.iCustomerId' => $emp->company_id,
-                    'lead_master.employee_id' => $emp->emp_id
+                    'lead_master.iEnterBy' => $emp->emp_id
                 ])
                     ->whereIn('lead_master.status', function ($query) use ($emp, $leadPipeline) {
                         $query->select('pipeline_id')
@@ -642,12 +645,7 @@ class EmployeeHomeController extends Controller
                         'lead_master.*',
                         'service_master.service_name',
                         'lead_source_master.lead_source_name'
-                    )->when($search, function ($query, $search) {
-                        return $query->where(function ($q) use ($search) {
-                            $q->where('lead_master.company_name', 'like', '%' . $search . '%')
-                            ->orWhere('lead_master.customer_name', 'like', '%' . $search . '%');
-                        });
-                    })
+                    )
                     ->paginate(env('PER_PAGE_COUNT', 10));
             }
 
@@ -661,6 +659,7 @@ class EmployeeHomeController extends Controller
     public function followup_detail($status, $id)
     {
         $user = Auth::user();
+        $lead = LeadMaster::findOrFail($id);
         $leadPipeline = LeadPipeline::where(['company_id' => $user->company_id])->get();
         $leadCancelList = LeadCancelReason::where(['company_id' => $user->company_id])->get();
         
@@ -724,7 +723,7 @@ class EmployeeHomeController extends Controller
     {
         // dd($request);
         // try {
-$user = Auth::guard('web_employees')->user();
+
         $request->validate([
             'status' => 'required',
             'cancel_reason_id' => 'nullable|exists:lead_cancel_reason,lead_cancel_reason_id',
@@ -778,9 +777,9 @@ $user = Auth::guard('web_employees')->user();
         }
 
         if ($request->lead_status == 'over-due') {
-            return redirect()->route('employee.over_due_followup')->with('success', 'Follow-up updated successfully.');
+            return redirect()->route('clients.over_due_followup')->with('success', 'Follow-up updated successfully.');
         } else if ($request->lead_status == 'todays-followup') {
-            return redirect()->route('employee.todays_followup')->with('success', 'Follow-up updated successfully.');
+            return redirect()->route('clients.todays_followup')->with('success', 'Follow-up updated successfully.');
         }
 
         // return redirect()->back()->with('success', 'Follow-up updated successfully.');

@@ -152,7 +152,6 @@
                 <option value="">Select Status</option>
                 @foreach ($leadPipeline as $pipeline)
                     <option value="{{ $pipeline->pipeline_id }}" data-followup="{{ $pipeline->followup_needed }}"
-                        data-slug="{{ $pipeline->slugname ?? ''}}"
                         {{ isset($lead) && $lead->status == $pipeline->pipeline_id ? 'selected' : '' }}>
                         {{ $pipeline->pipeline_name }}
                     </option>

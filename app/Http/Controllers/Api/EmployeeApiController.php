@@ -24,17 +24,29 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Illuminate\Support\Facades\File;
-
+use Illuminate\Support\Facades\Validator;
 
 class EmployeeApiController extends Controller
 {
    public function login(Request $request)
 {
     try {
-        $request->validate([
-            'mobileNumber' => 'required',
-            'password'     => 'required',
+         $validator = Validator::make($request->all(), [
+        'mobileNumber' => ['required', 'digits:10'],
+        'password'     => ['required'],
+        ], [
+            'mobileNumber.required' => 'Mobile number is required.',
+            'mobileNumber.digits'   => 'Mobile number must be exactly 10 digits.',
+            'password.required'     => 'Password is required.',
         ]);
+
+if ($validator->fails()) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Validation error',
+            'errors'  => $validator->errors(), // 👈 shows in Postman
+        ], 422);
+    }
 
         $credentials = [
             'emp_mobile' => $request->mobileNumber,

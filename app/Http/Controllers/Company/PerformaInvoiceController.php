@@ -207,7 +207,7 @@ class PerformaInvoiceController extends Controller
             $pic = 'data:CompanyLogo/' . $type . ';base64,' . base64_encode(($data));
 
 
-        $InvoiceDetail = PerformaInvoiceDetail::orderBy('performa_invoicedetailsId', 'ASC')->where(['performa_invoicedetails.iStatus' => 1, 'performa_invoicedetails.isDelete' => 0, 'performa_invoicedetails.performainvoiceId' => $id])->get();
+        $InvoiceDetail = PerformaInvoiceDetail::orderBy('performainvoicedetailsId', 'ASC')->where(['performa_invoicedetails.iStatus' => 1, 'performa_invoicedetails.isDelete' => 0, 'performa_invoicedetails.performainvoiceId' => $id])->get();
         $TermCondition = TermCondition::orderBy('termconditionId', 'ASC')->where(['termcondition.iStatus' => 1, 'termcondition.isDelete' => 0, 'termcondition.companyID'=>$popupInvoice->iCompanyId])
             ->get();
         
@@ -423,7 +423,7 @@ class PerformaInvoiceController extends Controller
         $getId = DB::table('performa_invoice')->insertGetId($Data);
         //dd($getId);
 
-        $InvoiceDetail = PerformaInvoiceDetail::orderBy('performa_invoicedetailsId', 'ASC')->where(['performa_invoicedetails.iStatus' => 1, 'performa_invoicedetails.isDelete' => 0, 'performa_invoicedetails.performainvoiceId' => $Id])->get();
+        $InvoiceDetail = PerformaInvoiceDetail::orderBy('performainvoicedetailsId', 'ASC')->where(['performa_invoicedetails.iStatus' => 1, 'performa_invoicedetails.isDelete' => 0, 'performa_invoicedetails.performainvoiceId' => $Id])->get();
         //dd($InvoiceDetail);
 
         foreach ($InvoiceDetail as $detailcopy) {

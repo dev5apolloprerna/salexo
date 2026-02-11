@@ -108,8 +108,7 @@
                 if (!selectedOption) return;
 
                 const selectedText = selectedOption.text;
-                const followupNeeded = (selectedOption.getAttribute('data-followup') || '').trim();
-                const slug = (selectedOption.getAttribute('data-slug') || '').trim();
+                const followupNeeded = selectedOption.getAttribute('data-followup');
                 const initially_contactedValue = initially_contacted.value;
 
                 // Reset
@@ -125,21 +124,7 @@
                     return; // ⛔ Stop here if 'No'
                 }
 
-                if (slug === 'deal-done') {
-                    amountBox.style.display = 'block';
-                    amountSelect.setAttribute('required', 'required');
-                } else if (slug === 'deal-cancel') {
-                    cancelReasonBox.style.display = 'block';
-                    cancel_reason_idBox.setAttribute('required', 'required');
-                }
-
-                if (slug === 'deal-pending' || followupNeeded === 'yes') {
-                    followUpBox.style.display = 'block';
-                    followup_datetimeSelect.setAttribute('required', 'required');
-                }
-                
-
-                /*if (selectedText === 'Deal Done') {
+                if (selectedText === 'Deal Done') {
                     amountBox.style.display = 'block';
                     amountSelect.setAttribute('required', 'required');
                 } else if (selectedText === 'Deal Cancel') {
@@ -150,7 +135,7 @@
                 if (selectedText === 'Deal Pending' || followupNeeded === 'yes') {
                     followUpBox.style.display = 'block';
                     followup_datetimeSelect.setAttribute('required', 'required');
-                }*/
+                }
             }
 
 
