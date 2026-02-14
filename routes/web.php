@@ -365,7 +365,7 @@ Route::prefix('employee')->name('employee.')->middleware(['auth:web_employees'])
     Route::get('/leads/done', [EmployeeLeadMasterController::class, 'leads_done'])->name('leads.done');
     Route::get('/leads/cancel', [EmployeeLeadMasterController::class, 'leads_cancel'])->name('leads.cancel');
 
-    Route::any('/leads/history/{status?}/{lead_id?}', [EmployeeLeadMasterController::class, 'lead_history'])->name('lead_history');
+    Route::any('/leads/history/{status?}/{lead_id?}', [EmployeeLeadMasterController::class, 'lead_history'])->name('leads.lead_history');
 
     Route::any('/calender/lead/list', [EmployeeCalenderLeadController::class, 'index'])->name('calender.index');
     Route::any('/calender/getLeads', [EmployeeCalenderLeadController::class, 'getLeads'])->name('calender.getLeads');
