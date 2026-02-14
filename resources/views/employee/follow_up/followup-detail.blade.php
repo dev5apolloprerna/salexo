@@ -106,6 +106,7 @@
                         </div>
                     </div>
                     
+                   
                     @if ($status != 'deal-done' && $status != 'deal-cancel')
                 <div class="col-lg-6">
                     <div class="card">

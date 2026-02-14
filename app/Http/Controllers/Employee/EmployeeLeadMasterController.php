@@ -11,6 +11,7 @@ use App\Models\LeadHistory;
 use App\Models\LeadSource;
 use App\Models\Service;
 use App\Models\LeadMaster;
+use App\Models\LeadUdfData;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 use App\Models\LeadPipeline;
@@ -130,6 +131,7 @@ class EmployeeLeadMasterController extends Controller
 
     public function lead_create(Request $request)
     {
+
         $request->validate([
             'customer_name' => 'required|string|max:255',
             'mobile' => 'required',
@@ -140,8 +142,10 @@ class EmployeeLeadMasterController extends Controller
 
             $leadPipeline = LeadPipeline::where([
                 'company_id' => Auth::user()->company_id,
-                'pipeline_name' => "New Lead"
+                'pipeline_id' => $request->status
             ])->first();
+
+
 
             $lead = LeadMaster::create([
                 "iCustomerId" => $request->iCustomerId ?? 0,
@@ -192,6 +196,18 @@ class EmployeeLeadMasterController extends Controller
                 $lead->update([
                     'status' => $leadPipeline->pipeline_id
                 ]);
+            }
+
+            if ($leadPipeline && $leadPipeline->slugname === "deal-done") {
+                $dealDoneData = $lead->toArray();
+                $dealDoneData['deal_done_at'] = now();
+                DealDone::create($dealDoneData);
+                $lead->delete();
+            } else if ($leadPipeline && $leadPipeline->slugname === "deal-cancel") {
+                $dealCancelData = $lead->toArray();
+                $dealCancelData['deal_cancel_at'] = now(); // Set the deal cancel date
+                DealCancel::create($dealCancelData);
+                $lead->delete();
             }
 
             return redirect()->route('employee.leads.index')->with('success', 'Lead created successfully.');
@@ -303,18 +319,36 @@ class EmployeeLeadMasterController extends Controller
     
     public function lead_history(Request $request, $status, $lead_id)
     {
-        try {
-            $lead = LeadMaster::select(
-                'lead_master.*',
-                'lead_source_master.lead_source_name',
-                'service_master.service_name',
-                'lead_pipeline_master.pipeline_name',
-            )
-                ->where('lead_master.lead_id', $lead_id)
-                ->leftjoin('lead_source_master', 'lead_master.LeadSourceId', '=', 'lead_source_master.lead_source_id')
-                ->leftjoin('service_master', 'lead_master.product_service_id', '=', 'service_master.service_id')
-                ->leftjoin('lead_pipeline_master', 'lead_master.status', '=', 'lead_pipeline_master.pipeline_id')
-                ->first();
+         try {
+            if($status == 'lead-cancel')
+                {
+                    $lead = DealCancel::select(
+                            'deal_cancel.*',
+                            'lead_source_master.lead_source_name',
+                            'service_master.service_name',
+                            'lead_pipeline_master.pipeline_name',
+                        )
+                            ->where('deal_cancel.lead_id', $lead_id)
+                            ->leftjoin('lead_source_master', 'deal_cancel.LeadSourceId', '=', 'lead_source_master.lead_source_id')
+                            ->leftjoin('service_master', 'deal_cancel.product_service_id', '=', 'service_master.service_id')
+                            ->leftjoin('lead_pipeline_master', 'deal_cancel.status', '=', 'lead_pipeline_master.pipeline_id')
+                            ->first();
+                        
+                }
+            else{
+                $lead = LeadMaster::select(
+                                'lead_master.*',
+                                'lead_source_master.lead_source_name',
+                                'service_master.service_name',
+                                'lead_pipeline_master.pipeline_name',
+                            )
+                                ->where('lead_master.lead_id', $lead_id)
+                                ->leftjoin('lead_source_master', 'lead_master.LeadSourceId', '=', 'lead_source_master.lead_source_id')
+                                ->leftjoin('service_master', 'lead_master.product_service_id', '=', 'service_master.service_id')
+                                ->leftjoin('lead_pipeline_master', 'lead_master.status', '=', 'lead_pipeline_master.pipeline_id')
+                                ->first();
+                            
+            }
             
             $lead_history = LeadHistory::where([
                 'lead_history.iCustomerId' => Auth::user()->company_id,
@@ -330,7 +364,17 @@ class EmployeeLeadMasterController extends Controller
                 ->leftjoin('lead_cancel_reason', 'lead_history.cancel_reason_id', '=', 'lead_cancel_reason.lead_cancel_reason_id')
                 ->paginate(config('app.per_page'));
 
-            return view('employee.leads.lead_history', compact('lead_history', 'status','lead'));
+                $leadUdfData = LeadUdfData::select(
+                'lead_udf_data.*',
+                'udf_masters.label'
+            )
+                ->leftjoin('udf_masters', 'lead_udf_data.udf_id', '=', 'udf_masters.id')
+                ->where(['lead_udf_data.lead_id' => $lead_id, 'lead_udf_data.isDelete' => 0])
+                ->get();
+
+
+
+            return view('employee.leads.lead_history', compact('lead_history', 'status','lead','leadUdfData'));
         } catch (\Exception $e) {
             Log::error('Error in LeadMasterController@index: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             return redirect()->back()->with('error', 'An error occurred while fetching leads.');
