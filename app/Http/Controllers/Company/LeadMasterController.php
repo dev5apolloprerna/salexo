@@ -234,24 +234,23 @@ class LeadMasterController extends Controller
         ]);
 
 
-        // try {
+        try {
 
             $new_lead = LeadPipeline::where([
                 'company_id' => Auth::user()->company_id,
-                'slugname' => "new-lead"
+                'pipeline_name' => "New Lead"
             ])->first();
 
             $lead_done = LeadPipeline::where([
                 'company_id' => Auth::user()->company_id,
-                'slugname' => "deal-done"
+                'pipeline_name' => "Deal Done"
             ])->first();
 
-           $lead_pipeline = LeadPipeline::where([
+            $lead_pipeline = LeadPipeline::where([
                 'company_id' => Auth::user()->company_id,
                 'pipeline_id' => $request->status
             ])->first();
-
-
+            
             $data = $request->all();
 
             if ($request->input('product_service_id') === 'other') {
@@ -340,8 +339,7 @@ class LeadMasterController extends Controller
                     'deal_done_at' => now()
                 ]);
             }
-
-
+            
             if ($lead_pipeline && $lead_pipeline->slugname === "deal-done") {
                 $dealDoneData = $lead->toArray();
                 $dealDoneData['deal_done_at'] = now();
@@ -354,13 +352,11 @@ class LeadMasterController extends Controller
                 $lead->delete();
             }
 
-
-
             return redirect()->route('leads.index')->with('success', 'Lead created successfully.');
-        /*} catch (\Exception $e) {
+        } catch (\Exception $e) {
             Log::error('Error in LeadMasterController@store: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             return redirect()->back()->with('error', 'An error occurred while creating the lead.');
-        }*/
+        }
     }
 
     public function edit($id)
@@ -519,7 +515,7 @@ class LeadMasterController extends Controller
                             ->first();
                         
                 }
-               else if($status == 'lead-done')
+                 else if($status == 'lead-done')
                 {
                     $lead = DealDone::select(
                             'deal_done.*',

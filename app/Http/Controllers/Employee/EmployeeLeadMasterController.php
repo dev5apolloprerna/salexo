@@ -11,7 +11,6 @@ use App\Models\LeadHistory;
 use App\Models\LeadSource;
 use App\Models\Service;
 use App\Models\LeadMaster;
-use App\Models\LeadUdfData;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 use App\Models\LeadPipeline;
@@ -131,20 +130,18 @@ class EmployeeLeadMasterController extends Controller
 
     public function lead_create(Request $request)
     {
-
         $request->validate([
             'customer_name' => 'required|string|max:255',
             'mobile' => 'required',
             'LeadSourceId' => 'required|exists:lead_source_master,lead_source_id',
         ]);
 
-        try {
+     try {
 
-            $leadPipeline = LeadPipeline::where([
+             $leadPipeline = LeadPipeline::where([
                 'company_id' => Auth::user()->company_id,
                 'pipeline_id' => $request->status
             ])->first();
-
 
 
             $lead = LeadMaster::create([
@@ -192,12 +189,18 @@ class EmployeeLeadMasterController extends Controller
                     'lead_history_id' => $leadHistory->id
                 ]);
             } else {
+                
+            $leadPipeline1 = LeadPipeline::where([
+                'company_id' => Auth::user()->company_id,
+                 'slugname' => 'new-lead',
+            ])->first();
+
 
                 $lead->update([
-                    'status' => $leadPipeline->pipeline_id
+                    'status' => $leadPipeline1->pipeline_id
                 ]);
             }
-
+            
             if ($leadPipeline && $leadPipeline->slugname === "deal-done") {
                 $dealDoneData = $lead->toArray();
                 $dealDoneData['deal_done_at'] = now();
