@@ -93,6 +93,13 @@
                             <span>User Master</span>
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link menu-link @if (request()->routeIs('task.management')) active @endif"
+                            href="{{ route('task.management') }}">
+                            <i class="fa fa-tasks"></i>
+                            <span>Task Management</span>
+                        </a>
+                    </li>
 
                     <!-- Lead Master Menu -->
                     <li class="nav-item">
@@ -354,6 +361,7 @@
                             <span>Dashboards</span>
                         </a>
                     </li>
+
                     <li class="nav-item">
                         <a class="nav-link menu-link @if (request()->routeIs(['employee.leads.index', 'employee.leads.cancel', 'employee.leads.done'])) active @endif"
                             href="{{ route('employee.leads.index') }}">
@@ -373,6 +381,13 @@
                             href="{{ route('employee.calender.index') }}">
                             <i class="fa fa-calendar-alt"></i>
                             <span>Calender</span>
+                        </a>
+                    </li>
+                     <li class="nav-item">
+                        <a class="nav-link menu-link @if (request()->routeIs('task.management')) active @endif"
+                            href="{{ route('task.management') }}">
+                            <i class="fa fa-tasks"></i>
+                            <span>Task Management</span>
                         </a>
                     </li>
                 @endif

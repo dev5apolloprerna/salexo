@@ -59,7 +59,7 @@ use App\Http\Controllers\Company\InvoiceTemplateController;
 use App\Http\Controllers\Company\PerformaInvoiceController;
 use App\Http\Controllers\Company\PerformaInvoiceDetailController;
 use App\Http\Controllers\Company\PerformaInvoiceTemplateController;
-
+use App\Http\Controllers\TaskManagementController;
 
 
 /*
@@ -207,6 +207,15 @@ Route::middleware(['auth:web_employees'])->group(function () {
     Route::resource('clients/employee', EmployeeController::class);
     Route::post('/clients/employee/password-update/{Id?}', [EmployeeController::class, 'passwordupdate'])->name('employee.passwordupdate');
 });
+
+
+Route::prefix('clients')->middleware(['auth:web_employees'])->group(function () {
+    Route::get('/task-management', [TaskManagementController::class, 'index'])->name('task.management');
+    Route::post('/task-management', [TaskManagementController::class, 'store'])->name('tasks.store');
+    Route::patch('/task-management/{task}/status', [TaskManagementController::class, 'updateStatus'])->name('tasks.toggle');
+    Route::delete('/task-management/{task}', [TaskManagementController::class, 'destroy'])->name('tasks.delete');
+});
+
 
 Route::prefix('clients')->name('lead-source.')->middleware(['auth:web_employees'])->group(function () {
     Route::any('lead-source', [LeadSourceController::class, 'index'])->name('index');
