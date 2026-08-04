@@ -160,6 +160,9 @@
                                                                         <th width="2%">Lead Source</th>
                                                                         <th width="2%">Service / Product</th>
                                                                         <th width="2%">Status</th>
+                                                                        <th width="2%">Added By</th>
+                                                                        <th width="2%">Assigned To</th>
+                                                                        <th width="2%">Followup Date</th>
                                                                         <th width="2%">Remarks</th>
                                                                         <th width="1%">Actions</th>
                                                                     </tr>
@@ -191,6 +194,9 @@
                                                                             </td>
                                                                             <td>{{ $lead->pipeline_name ?? '-' }}
                                                                             </td>
+                                                                             <td>{{ $lead->added_by_name ?? 'Company Admin' }}</td>
+                                                                            <td>{{ $lead->assigned_to_name ?? 'Unassigned' }}</td>
+                                                                            <td>{{ $lead->next_followup_date ?? '-' }}</td>                           
                                                                             <td>
                                                                                 {{ $lead->remarks ?? '-' }}
                                                                             </td>
@@ -222,7 +228,7 @@
                                                                         </tr>
                                                                     @empty
                                                                         <tr>
-                                                                            <td colspan="5" class="text-center">No
+                                                                            <td colspan="12" class="text-center">No
                                                                                 Leads
                                                                                 Found.</td>
                                                                         </tr>

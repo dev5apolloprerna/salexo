@@ -46,11 +46,15 @@ class LeadMasterController extends Controller
                 'lead_master.*',
                 'lead_pipeline_master.pipeline_name',
                 'lead_pipeline_master.slugname as pipelineSlug',
-                'service_master.service_name'
+                'service_master.service_name',
+                'created_by.emp_name as added_by_name',
+                'assigned_to.emp_name as assigned_to_name'
             )
-                ->orderBy('lead_id', 'desc')
+                ->orderBy('lead_master.lead_id', 'desc')
                 ->leftjoin('lead_pipeline_master', 'lead_master.status', '=', 'lead_pipeline_master.pipeline_id')
                 ->leftjoin('service_master', 'lead_master.product_service_id', '=', 'service_master.service_id')
+                ->leftJoin('employee_master as created_by', 'lead_master.iEnterBy', '=', 'created_by.emp_id')
+                ->leftJoin('employee_master as assigned_to', 'lead_master.employee_id', '=', 'assigned_to.emp_id')
                 ->where([
                     'lead_master.isDelete' => 0,
                     'lead_master.iCustomerId' => Auth::user()->company_id
@@ -64,7 +68,7 @@ class LeadMasterController extends Controller
             }
 
             if ($emp_id) {
-                $query->where('iemployeeId', '=', $emp_id);
+                $query->where('lead_master.employee_id', '=', $emp_id);
             }
 
             if ($pipeline_id) {
@@ -77,8 +81,9 @@ class LeadMasterController extends Controller
 
             $leads = $query->paginate(config('app.per_page'));
             // dd($leads);
+            $leadCounts = $this->leadCounts($user->company_id);
 
-            return view('company_client.leads.index', compact('leads', 'search', 'leadPipeline', 'pipeline_id', 'services', 'service_id', 'employees', 'emp_id'));
+            return view('company_client.leads.index', compact('leads', 'search', 'leadPipeline', 'pipeline_id', 'services', 'service_id', 'employees', 'emp_id', 'leadCounts'));
         } catch (\Exception $e) {
             Log::error('Error in LeadMasterController@index: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             return redirect()->back()->with('error', 'An error occurred while fetching leads.');
@@ -128,12 +133,12 @@ class LeadMasterController extends Controller
             }
 
             if ($emp_id) {
-                $query->where('iemployeeId', '=', $emp_id);
+                $query->where('deal_done.employee_id', '=', $emp_id);
             }
 
             $leads = $query->paginate(config('app.per_page'));
 
-            return view('company_client.leads.deal_done', compact('leads', 'search', 'leadPipeline', 'pipeline_id', 'services', 'service_id', 'employees', 'emp_id'));
+            return view('company_client.leads.deal_done', compact('leads', 'search', 'leadPipeline', 'pipeline_id', 'services', 'service_id', 'employees', 'emp_id', 'leadCounts'));
         } catch (\Exception $e) {
             Log::error('Error in LeadMasterController@index: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             return redirect()->back()->with('error', 'An error occurred while fetching leads.');
@@ -184,16 +189,25 @@ class LeadMasterController extends Controller
             }
 
             if ($emp_id) {
-                $query->where('iemployeeId', '=', $emp_id);
+                $query->where('deal_cancel.employee_id', '=', $emp_id);
             }
 
             $leads = $query->paginate(config('app.per_page'));
+            $leadCounts = $this->leadCounts($user->company_id);
 
-            return view('company_client.leads.deal_cancel', compact('leads', 'search', 'leadPipeline', 'pipeline_id', 'services', 'service_id', 'employees', 'emp_id'));
+            return view('company_client.leads.deal_cancel', compact('leads', 'search', 'leadPipeline', 'pipeline_id', 'services', 'service_id', 'employees', 'emp_id', 'leadCounts'));
         } catch (\Exception $e) {
             Log::error('Error in LeadMasterController@index: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             return redirect()->back()->with('error', 'An error occurred while fetching leads.');
         }
+    }
+    private function leadCounts($companyId): array
+    {
+        return [
+            'active' => LeadMaster::where('iCustomerId', $companyId)->where('isDelete', 0)->count(),
+            'done' => DealDone::where('iCustomerId', $companyId)->where('isDelete', 0)->count(),
+            'cancelled' => DealCancel::where('iCustomerId', $companyId)->where('isDelete', 0)->count(),
+        ];
     }
 
     public function create()

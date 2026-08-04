@@ -23,20 +23,24 @@ class CalenderLeadApiController extends Controller
                 ], 401);
             }
 
-            $employeeId = $request->employee_id;
+            $employeeId = $employee->isCompanyAdmin
+                ? $request->input('employee_id')
+                : $employee->emp_id;
             $companyId = $employee->company_id;
 
             $query = LeadMaster::query()
                 ->where(['lead_master.iStatus' => 1, 'lead_master.isDelete' => 0])
                 ->where('lead_master.iCustomerId', $companyId)
-                ->join('employee_master', 'employee_master.emp_id', '=', 'lead_master.iemployeeId');
+                ->whereNotNull('lead_master.next_followup_date')
+                ->leftJoin('employee_master', 'employee_master.emp_id', '=', 'lead_master.employee_id');
 
             if (!empty($employeeId)) {
-                $query->where('lead_master.iemployeeId', $employeeId);
+                $query->where('lead_master.employee_id', $employeeId);
             }
 
             $leads = $query->get([
                 'lead_master.next_followup_date',
+                'lead_master.lead_id',
                 'lead_master.customer_name',
                 'employee_master.emp_name'
             ]);
@@ -48,6 +52,9 @@ class CalenderLeadApiController extends Controller
 
                     return [
                         "date" => $carbonDate->format('m-d-Y'), // Required format
+                        "meeting_time" => $carbonDate->format('h:i A'),
+                        "meeting_datetime" => $carbonDate->toIso8601String(),
+                        "lead_id" => $lead->lead_id,
                         "lead" => 'Lead: ' . $lead->customer_name . ' with ' . $lead->emp_name,
                     ];
                 } catch (\Exception $e) {
