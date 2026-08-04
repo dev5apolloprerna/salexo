@@ -467,7 +467,7 @@ if ($validator->fails()) {
 
                 // ✅ Add this if not admin
                 if ($employee->isCompanyAdmin == 0) {
-                    $querys->where('deal_done.iEnterBy', $employee->emp_id);
+                    $querys->where('deal_done.employee_id', $employee->emp_id);
                 };
 
                 $leads =  $querys->leftJoin('service_master', 'deal_done.product_service_id', '=', 'service_master.service_id')
@@ -499,7 +499,7 @@ if ($validator->fails()) {
 
                 // ✅ Add this if not admin
                 if ($employee->isCompanyAdmin == 0) {
-                    $querys->where('deal_cancel.iEnterBy', $employee->emp_id);
+                    $querys->where('deal_cancel.employee_id', $employee->emp_id);
                 };
 
                 $leads =  $querys->leftJoin('service_master', 'deal_cancel.product_service_id', '=', 'service_master.service_id')
@@ -536,13 +536,15 @@ if ($validator->fails()) {
                 $leads = $querys->leftJoin('service_master', 'lead_master.product_service_id', '=', 'service_master.service_id')
                     ->leftJoin('lead_source_master', 'lead_master.LeadSourceId', '=', 'lead_source_master.lead_source_id')
                     ->leftJoin('lead_cancel_reason', 'lead_master.cancel_reason_id', '=', 'lead_cancel_reason.lead_cancel_reason_id')
-                    ->leftJoin('employee_master', 'lead_master.iemployeeId', '=', 'employee_master.emp_id')
+                    ->leftJoin('employee_master as lead_creator', 'lead_master.iEnterBy', '=', 'lead_creator.emp_id')
+                    ->leftJoin('employee_master as lead_assignee', 'lead_master.employee_id', '=', 'lead_assignee.emp_id')
                     ->select(
                         'lead_master.*',
                         'service_master.service_name',
                         'lead_cancel_reason.reason',
                         'lead_source_master.lead_source_name',
-                        'employee_master.emp_name',
+                        'lead_creator.emp_name as added_by_name',
+                        'lead_assignee.emp_name as assigned_to_name',
                     )
                     ->get();
             }
@@ -553,10 +555,18 @@ if ($validator->fails()) {
             //     ->orderBy('lead_id', 'desc')
             //     ->get();
 
+            $cancelledDealsCount = DealCancel::where('iCustomerId', $companyId)
+                ->where('isDelete', 0)
+                ->when($employee->isCompanyAdmin == 0, function ($query) use ($employee) {
+                    $query->where('employee_id', $employee->emp_id);
+                })
+                ->count();
+
             return response()->json([
                 'success' => true,
                 'message' => 'leads list fetched successfully',
                 'data' => $leads,
+                'cancelled_deals_count' => $cancelledDealsCount,
             ]);
         } catch (\Throwable $th) {
             return response()->json([

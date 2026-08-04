@@ -160,6 +160,9 @@
                                                                         <th width="2%">Lead Source</th>
                                                                         <th width="2%">Service / Product</th>
                                                                         <th width="2%">Status</th>
+                                                                        <th width="2%">Added By</th>
+                                                                        <th width="2%">Assigned To</th>
+                                                                        <th width="2%">Followup Date</th>
                                                                         <th width="2%">Remarks</th>
                                                                         <th width="1%">Actions</th>
                                                                     </tr>
@@ -189,8 +192,9 @@
                                                                                 {{ $lead->service_name ? $lead->service_name : $lead->product_service_other }}
                                                                                 <!--{{ optional($lead->service)->service_name ?? ($lead->product_service_other ?? '-') }}-->
                                                                             </td>
-                                                                            <td>{{ $lead->pipeline_name ?? '-' }}
-                                                                            </td>
+                                                                               <td>{{ $lead->added_by_name ?? '-' }}</td>
+                                                                                <td>{{ $lead->assigned_to_name ?? '-' }}</td>
+                                                                                <td>{{ $lead->next_followup_date ? date('d-m-Y h:i A', strtotime($lead->next_followup_date)) : '-' }}</td>                           
                                                                             <td>
                                                                                 {{ $lead->remarks ?? '-' }}
                                                                             </td>
@@ -222,7 +226,7 @@
                                                                         </tr>
                                                                     @empty
                                                                         <tr>
-                                                                            <td colspan="5" class="text-center">No
+                                                                            <td colspan="12" class="text-center">No
                                                                                 Leads
                                                                                 Found.</td>
                                                                         </tr>
