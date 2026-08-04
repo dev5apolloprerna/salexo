@@ -33,10 +33,8 @@ class EmployeeCalenderLeadController extends Controller
                     'lead_master.iStatus' => 1,
                     'lead_master.isDelete' => 0,
                     'lead_master.iCustomerId' => $emp->company_id,
-                    'lead_master.iEnterBy' => $emp->emp_id,
-                    // 'lead_master.iemployeeId' => $emp->emp_id
-                ])
-                ->join('employee_master', 'employee_master.emp_id', '=', 'lead_master.iemployeeId');
+                    'lead_master.employee_id' => $emp->emp_id,])
+                ->join('employee_master', 'employee_master.emp_id', '=', 'lead_master.employee_id');
 
 
             $leads = $query->get([

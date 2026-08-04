@@ -32,11 +32,15 @@ class EmployeeLeadMasterController extends Controller
                 'lead_master.*',
                 'lead_pipeline_master.pipeline_name',
                 'lead_pipeline_master.slugname as pipelineSlug',
-                'service_master.service_name'
+                'service_master.service_name',
+                'lead_creator.emp_name as added_by_name',
+                'lead_assignee.emp_name as assigned_to_name'
             )
                 ->orderBy('lead_id','desc')
                 ->leftjoin('lead_pipeline_master', 'lead_master.status', '=', 'lead_pipeline_master.pipeline_id')
                 ->leftjoin('service_master', 'lead_master.product_service_id', '=', 'service_master.service_id')
+                ->leftJoin('employee_master as lead_creator', 'lead_master.iEnterBy', '=', 'lead_creator.emp_id')
+                ->leftJoin('employee_master as lead_assignee', 'lead_master.employee_id', '=', 'lead_assignee.emp_id')
                 ->where([
                     'lead_master.isDelete' => 0,
                     'lead_master.iCustomerId' => Auth::user()->company_id,
@@ -68,7 +72,7 @@ class EmployeeLeadMasterController extends Controller
             $query = DealDone::where([
                 'isDelete' => 0,
                 'iCustomerId' => Auth::user()->company_id,
-                'iEnterBy' => Auth::user()->emp_id,
+                'employee_id' => Auth::user()->emp_id,
             ]);
 
             if (!empty($search)) {
@@ -94,7 +98,7 @@ class EmployeeLeadMasterController extends Controller
             $query = DealCancel::where([
                 'isDelete' => 0,
                 'iCustomerId' => Auth::user()->company_id,
-                'iEnterBy' => Auth::user()->emp_id,
+                'employee_id' => Auth::user()->emp_id,
             ]);
             if (!empty($search)) {
                 $query->where(function ($q) use ($search) {

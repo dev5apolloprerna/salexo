@@ -31,10 +31,14 @@ class CalenderLeadApiController extends Controller
             $query = LeadMaster::query()
                 ->where(['lead_master.iStatus' => 1, 'lead_master.isDelete' => 0])
                 ->where('lead_master.iCustomerId', $companyId)
-                ->whereNotNull('lead_master.next_followup_date')
-                ->leftJoin('employee_master', 'employee_master.emp_id', '=', 'lead_master.employee_id');
+                ->join('employee_master', 'employee_master.emp_id', '=', 'lead_master.employee_id');
 
             if (!empty($employeeId)) {
+            if ($employee->isCompanyAdmin == 0) {
+                $query->where('lead_master.employee_id', $employee->emp_id);
+            }
+
+            if (!empty($employeeId) && $employee->isCompanyAdmin == 1) {
                 $query->where('lead_master.employee_id', $employeeId);
             }
 

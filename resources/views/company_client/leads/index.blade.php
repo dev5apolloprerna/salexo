@@ -192,11 +192,9 @@
                                                                                 {{ $lead->service_name ? $lead->service_name : $lead->product_service_other }}
                                                                                 <!--{{ optional($lead->service)->service_name ?? ($lead->product_service_other ?? '-') }}-->
                                                                             </td>
-                                                                            <td>{{ $lead->pipeline_name ?? '-' }}
-                                                                            </td>
-                                                                             <td>{{ $lead->added_by_name ?? 'Company Admin' }}</td>
-                                                                            <td>{{ $lead->assigned_to_name ?? 'Unassigned' }}</td>
-                                                                            <td>{{ $lead->next_followup_date ?? '-' }}</td>                           
+                                                                               <td>{{ $lead->added_by_name ?? '-' }}</td>
+                                                                                <td>{{ $lead->assigned_to_name ?? '-' }}</td>
+                                                                                <td>{{ $lead->next_followup_date ? date('d-m-Y h:i A', strtotime($lead->next_followup_date)) : '-' }}</td>                           
                                                                             <td>
                                                                                 {{ $lead->remarks ?? '-' }}
                                                                             </td>

@@ -2,19 +2,19 @@
     <li class="nav-item ">
         <a class="nav-link @if (request()->routeIs('leads.index')) {{ 'active' }} @endif" href="{{ route('leads.index') }}"
             role="tab"><i class="fas fa-fire" title="Active Lead"></i>
-            Active Lead <span class="badge bg-danger rounded-pill">{{ $leadCounts['active'] ?? 0 }}</span>
+            Active Lead <span class="badge bg-danger rounded-circle">{{ App\Models\LeadMaster::where('iCustomerId', Auth::user()->company_id)->where('isDelete', 0)->count() }}</span>
         </a>
     </li>
     <li class="nav-item ">
         <a class="nav-link @if (request()->routeIs('leads.done')) {{ 'active' }} @endif" href="{{ route('leads.done') }}"
             role="tab"> <i class="far fa-thumbs-up"></i>
-            Lead Done <span class="badge bg-danger rounded-pill">{{ $leadCounts['done'] ?? 0 }}</span>
+            Lead Done <span class="badge bg-danger rounded-circle">{{ App\Models\DealDone::where('iCustomerId', Auth::user()->company_id)->where('isDelete', 0)->count() }}</span>
         </a>
     </li>
     <li class="nav-item ">
         <a class="nav-link @if (request()->routeIs('leads.cancel')) {{ 'active' }} @endif"
             href="{{ route('leads.cancel') }}" role="tab"> <i class="fas fa-ban " title="Lead Rejected"></i>
-            Lead Cancel <span class="badge bg-danger rounded-pill">{{ $leadCounts['cancelled'] ?? 0 }}</span>
+            Lead Cancel <span class="badge bg-danger rounded-circle">{{ App\Models\DealCancel::where('iCustomerId', Auth::user()->company_id)->where('isDelete', 0)->count() }}</span>
         </a>
     </li>
 

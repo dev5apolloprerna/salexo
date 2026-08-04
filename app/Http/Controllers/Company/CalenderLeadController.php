@@ -42,10 +42,10 @@ class CalenderLeadController extends Controller
             $query = LeadMaster::query()
                 ->where(['lead_master.iStatus' => 1, 'lead_master.isDelete' => 0])
                 ->where('lead_master.iCustomerId', $companyId)
-                ->join('employee_master', 'employee_master.emp_id', '=', 'lead_master.iemployeeId');
+                ->join('employee_master', 'employee_master.emp_id', '=', 'lead_master.employee_id');
 
             if (!empty($employeeId)) {
-                $query->where('lead_master.iemployeeId', $employeeId);
+                $query->where('lead_master.employee_id', $employeeId);
             }
             $leads = $query->get([
                 'lead_master.next_followup_date',

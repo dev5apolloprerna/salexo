@@ -47,14 +47,14 @@ class LeadMasterController extends Controller
                 'lead_pipeline_master.pipeline_name',
                 'lead_pipeline_master.slugname as pipelineSlug',
                 'service_master.service_name',
-                'created_by.emp_name as added_by_name',
-                'assigned_to.emp_name as assigned_to_name'
+                'lead_creator.emp_name as added_by_name',
+                'lead_assignee.emp_name as assigned_to_name'
             )
                 ->orderBy('lead_master.lead_id', 'desc')
                 ->leftjoin('lead_pipeline_master', 'lead_master.status', '=', 'lead_pipeline_master.pipeline_id')
                 ->leftjoin('service_master', 'lead_master.product_service_id', '=', 'service_master.service_id')
-                ->leftJoin('employee_master as created_by', 'lead_master.iEnterBy', '=', 'created_by.emp_id')
-                ->leftJoin('employee_master as assigned_to', 'lead_master.employee_id', '=', 'assigned_to.emp_id')
+                ->leftJoin('employee_master as lead_creator', 'lead_master.iEnterBy', '=', 'lead_creator.emp_id')
+                ->leftJoin('employee_master as lead_assignee', 'lead_master.employee_id', '=', 'lead_assignee.emp_id')
                 ->where([
                     'lead_master.isDelete' => 0,
                     'lead_master.iCustomerId' => Auth::user()->company_id
