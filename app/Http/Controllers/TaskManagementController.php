@@ -40,7 +40,7 @@ class TaskManagementController extends Controller
     {
         $user = Auth::guard('web_employees')->user();
         abort_unless((int) $user->role_id === 2, 403);
-        
+
         $data = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -66,13 +66,22 @@ class TaskManagementController extends Controller
     public function updateStatus(Task $task)
     {
         $user = Auth::guard('web_employees')->user();
+
+        $isCompanyAdmin = (int) $user->role_id === 2;
+        $isAssignedEmployee = $task->assigned_employee_id == $user->emp_id;
+
         abort_unless(
-            (int) $user->role_id === 2 && $task->company_id == $user->company_id,
+            $task->company_id == $user->company_id
+                && ($isCompanyAdmin || ($isAssignedEmployee && $task->status === 'pending')),
             403
         );
 
 
-        $task->status = $task->status === 'pending' ? 'completed' : 'pending';
+// Employees may complete their own pending tasks. Only company admins can
+        // move a completed task back to pending.
+        $task->status = $isCompanyAdmin && $task->status === 'completed'
+            ? 'pending'
+            : 'completed';
         $task->save();
 
         return redirect()->route('task.management')->with('success', 'Task status updated.');
