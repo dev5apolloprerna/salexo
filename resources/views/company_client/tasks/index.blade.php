@@ -61,12 +61,12 @@
                                     @if ($task->description)
                                         <small>Description: {{ $task->description }}</small>
                                     @endif
-                                    @if ($isCompanyAdmin)
                                     <div class="mt-2 d-flex gap-2">
                                         <form method="POST" action="{{ route('tasks.toggle', $task->id) }}">@csrf @method('PATCH')<button class="btn btn-success btn-sm">Mark Completed</button></form>
+                                    @if ($isCompanyAdmin)
                                         <form method="POST" action="{{ route('tasks.delete', $task->id) }}">@csrf @method('DELETE')<button class="btn btn-danger btn-sm">Delete</button></form>
+                                    @endif
                                     </div>
-                                                                        @endif
                                 </div>
                             @empty
                                 <p>No pending tasks.</p>
