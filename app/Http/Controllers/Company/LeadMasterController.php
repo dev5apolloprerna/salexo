@@ -137,10 +137,11 @@ class LeadMasterController extends Controller
             }
 
             $leads = $query->paginate(config('app.per_page'));
+            $leadCounts = $this->leadCounts($user->company_id);
 
             return view('company_client.leads.deal_done', compact('leads', 'search', 'leadPipeline', 'pipeline_id', 'services', 'service_id', 'employees', 'emp_id', 'leadCounts'));
         } catch (\Exception $e) {
-            Log::error('Error in LeadMasterController@index: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            Log::error('Error in LeadMasterController@leads_done: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             return redirect()->back()->with('error', 'An error occurred while fetching leads.');
         }
     }

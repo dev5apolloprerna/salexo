@@ -35,10 +35,16 @@ class FollowUpController extends Controller
 
                 ->leftJoin('service_master', 'lead_master.product_service_id', '=', 'service_master.service_id')
                 ->leftJoin('lead_source_master', 'lead_master.LeadSourceId', '=', 'lead_source_master.lead_source_id')
+                ->leftJoin('lead_pipeline_master', 'lead_master.status', '=', 'lead_pipeline_master.pipeline_id')
+                ->leftJoin('employee_master as lead_creator', 'lead_master.iEnterBy', '=', 'lead_creator.emp_id')
+                ->leftJoin('employee_master as lead_assignee', 'lead_master.employee_id', '=', 'lead_assignee.emp_id')
                 ->select(
                     'lead_master.*',
                     'service_master.service_name',
-                    'lead_source_master.lead_source_name'
+                    'lead_source_master.lead_source_name',
+                    'lead_pipeline_master.pipeline_name as status_name',
+                    'lead_creator.emp_name as added_by_name',
+                    'lead_assignee.emp_name as assigned_to_name'
                 )->when($search, function ($query, $search) {
                         return $query->where(function ($q) use ($search) {
                             $q->where('lead_master.company_name', 'like', '%' . $search . '%')
@@ -92,10 +98,16 @@ class FollowUpController extends Controller
             ])
                 ->leftJoin('service_master', 'lead_master.product_service_id', '=', 'service_master.service_id')
                 ->leftJoin('lead_source_master', 'lead_master.LeadSourceId', '=', 'lead_source_master.lead_source_id')
+                ->leftJoin('lead_pipeline_master', 'lead_master.status', '=', 'lead_pipeline_master.pipeline_id')
+                ->leftJoin('employee_master as lead_creator', 'lead_master.iEnterBy', '=', 'lead_creator.emp_id')
+                ->leftJoin('employee_master as lead_assignee', 'lead_master.employee_id', '=', 'lead_assignee.emp_id')
                 ->select(
                     'lead_master.*',
                     'service_master.service_name',
-                    'lead_source_master.lead_source_name'
+                    'lead_source_master.lead_source_name',
+                    'lead_pipeline_master.pipeline_name as status_name',
+                    'lead_creator.emp_name as added_by_name',
+                    'lead_assignee.emp_name as assigned_to_name'
                 )->when($search, function ($query, $search) {
                         return $query->where(function ($q) use ($search) {
                             $q->where('lead_master.company_name', 'like', '%' . $search . '%')
@@ -158,10 +170,16 @@ class FollowUpController extends Controller
                     })
                     ->leftJoin('service_master', 'deal_done.product_service_id', '=', 'service_master.service_id')
                     ->leftJoin('lead_source_master', 'deal_done.LeadSourceId', '=', 'lead_source_master.lead_source_id')
+                    ->leftJoin('lead_pipeline_master', 'deal_done.status', '=', 'lead_pipeline_master.pipeline_id')
+                    ->leftJoin('employee_master as lead_creator', 'deal_done.iEnterBy', '=', 'lead_creator.emp_id')
+                    ->leftJoin('employee_master as lead_assignee', 'deal_done.employee_id', '=', 'lead_assignee.emp_id')
                     ->select(
                         'deal_done.*',
                         'service_master.service_name',
-                        'lead_source_master.lead_source_name'
+                        'lead_source_master.lead_source_name',
+                        'lead_pipeline_master.pipeline_name as status_name',
+                        'lead_creator.emp_name as added_by_name',
+                        'lead_assignee.emp_name as assigned_to_name'
                     )->when($search, function ($query, $search) {
                         return $query->where(function ($q) use ($search) {
                             $q->where('deal_done.company_name', 'like', '%' . $search . '%')
@@ -185,10 +203,16 @@ class FollowUpController extends Controller
                     })
                     ->leftJoin('service_master', 'deal_cancel.product_service_id', '=', 'service_master.service_id')
                     ->leftJoin('lead_source_master', 'deal_cancel.LeadSourceId', '=', 'lead_source_master.lead_source_id')
+                    ->leftJoin('lead_pipeline_master', 'deal_cancel.status', '=', 'lead_pipeline_master.pipeline_id')
+                    ->leftJoin('employee_master as lead_creator', 'deal_cancel.iEnterBy', '=', 'lead_creator.emp_id')
+                    ->leftJoin('employee_master as lead_assignee', 'deal_cancel.employee_id', '=', 'lead_assignee.emp_id')
                     ->select(
                         'deal_cancel.*',
                         'service_master.service_name',
-                        'lead_source_master.lead_source_name'
+                        'lead_source_master.lead_source_name',
+                        'lead_pipeline_master.pipeline_name as status_name',
+                        'lead_creator.emp_name as added_by_name',
+                        'lead_assignee.emp_name as assigned_to_name'
                     )->when($search, function ($query, $search) {
                         return $query->where(function ($q) use ($search) {
                             $q->where('deal_cancel.company_name', 'like', '%' . $search . '%')
@@ -211,10 +235,16 @@ class FollowUpController extends Controller
                     })
                     ->leftJoin('service_master', 'lead_master.product_service_id', '=', 'service_master.service_id')
                     ->leftJoin('lead_source_master', 'lead_master.LeadSourceId', '=', 'lead_source_master.lead_source_id')
+                    ->leftJoin('lead_pipeline_master', 'lead_master.status', '=', 'lead_pipeline_master.pipeline_id')
+                    ->leftJoin('employee_master as lead_creator', 'lead_master.iEnterBy', '=', 'lead_creator.emp_id')
+                    ->leftJoin('employee_master as lead_assignee', 'lead_master.employee_id', '=', 'lead_assignee.emp_id')
                     ->select(
                         'lead_master.*',
                         'service_master.service_name',
-                        'lead_source_master.lead_source_name'
+                        'lead_source_master.lead_source_name',
+                        'lead_pipeline_master.pipeline_name as status_name',
+                        'lead_creator.emp_name as added_by_name',
+                        'lead_assignee.emp_name as assigned_to_name'
                     )->when($search, function ($query, $search) {
                         return $query->where(function ($q) use ($search) {
                             $q->where('lead_master.company_name', 'like', '%' . $search . '%')
