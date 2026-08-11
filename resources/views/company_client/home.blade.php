@@ -16,6 +16,33 @@
                 
                 @include('common.alert')
 
+                <div class="row mb-3">
+                    <!-- <div class="col-md-12"> -->
+                        <!-- <div class="card p-3"> -->
+                            <form action="{{ route('userhome') }}" method="GET" class="row g-3 align-items-end">
+                                <div class="col-md-4">
+                                    <label for="dashboard_emp_id" class="form-label">Search by Employee</label>
+                                    <select name="emp_id" id="dashboard_emp_id" class="form-control" onchange="this.form.submit()">
+                                        <option value="">----- All Employees -----</option>
+                                        @foreach ($employees as $employee)
+                                            <option value="{{ $employee->emp_id }}"
+                                                {{ (string)($filterEmpId ?? '') === (string)$employee->emp_id ? 'selected' : '' }}>
+                                                {{ $employee->emp_name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="d-flex gap-2">
+                                        <button type="submit" class="btn btn-primary">Search</button>
+                                        <a href="{{ route('userhome') }}" class="btn btn-secondary">Reset</a>
+                                    </div>
+                                </div>
+                            </form>
+                        <!-- </div> -->
+                    <!-- </div> -->
+                </div>
+
                 <div class="row g-3 mb-4 text-white">
                     <div class="col-md-4">
                         <a href="{{ route('clients.todays_followup') }}">

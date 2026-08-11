@@ -22,6 +22,9 @@ class LeadPipelineApiController extends Controller
                 return response()->json(['success' => false, 'message' => 'Unauthorized access'], 401);
             }
 
+            // Optional: search/filter dashboard counts by a specific employee (e.g. admin picking a team member)
+            $filterEmpId = $request->input('emp_id');
+
             $pipline = LeadPipeline::select(
 
                 'lead_pipeline_master.pipeline_id',
@@ -37,7 +40,7 @@ class LeadPipelineApiController extends Controller
                 DB::raw('COUNT(lead_master.lead_id) as status_count')
 
             )
-                ->leftJoin('lead_master', function ($join) use ($employee) {
+                ->leftJoin('lead_master', function ($join) use ($employee, $filterEmpId) {
                     $join->on('lead_master.status', '=', 'lead_pipeline_master.pipeline_id')
                         ->where('lead_master.iCustomerId', $employee->company_id)
                         ->where('lead_master.isDelete', 0);
@@ -45,6 +48,8 @@ class LeadPipelineApiController extends Controller
                     // ✅ Add this if not admin
                     if ($employee->isCompanyAdmin == 0) {
                         $join->where('lead_master.employee_id', $employee->emp_id);
+                    } elseif ($filterEmpId) {
+                        $join->where('lead_master.employee_id', $filterEmpId);
                     }
                 })
                 ->where('lead_pipeline_master.company_id', $employee->company_id)
@@ -79,14 +84,16 @@ class LeadPipelineApiController extends Controller
                 DB::raw('COUNT(deal_done.lead_id) as status_count')
 
             )
-                ->leftJoin('deal_done', function ($join) use ($employee) {
+                ->leftJoin('deal_done', function ($join) use ($employee, $filterEmpId) {
                     $join->on('deal_done.status', '=', 'lead_pipeline_master.pipeline_id')
                         ->where('deal_done.iCustomerId', $employee->company_id)
                         ->where('deal_done.isDelete', 0);
 
                     // ✅ Add this if not admin
                     if ($employee->isCompanyAdmin == 0) {
-                        $join->where('deal_done.iEnterBy', $employee->emp_id);
+                        $join->where('deal_done.employee_id', $employee->emp_id);
+                    } elseif ($filterEmpId) {
+                        $join->where('deal_done.employee_id', $filterEmpId);
                     }
                 })
                 ->where('lead_pipeline_master.company_id', $employee->company_id)
@@ -121,14 +128,16 @@ class LeadPipelineApiController extends Controller
                 DB::raw('COUNT(deal_cancel.lead_id) as status_count')
 
             )
-                ->leftJoin('deal_cancel', function ($join) use ($employee) {
+                ->leftJoin('deal_cancel', function ($join) use ($employee, $filterEmpId) {
                     $join->on('deal_cancel.status', '=', 'lead_pipeline_master.pipeline_id')
                         ->where('deal_cancel.iCustomerId', $employee->company_id)
                         ->where('deal_cancel.isDelete', 0);
 
                     // ✅ Add this if not admin
                     if ($employee->isCompanyAdmin == 0) {
-                        $join->where('deal_cancel.iEnterBy', $employee->emp_id);
+                        $join->where('deal_cancel.employee_id', $employee->emp_id);
+                    } elseif ($filterEmpId) {
+                        $join->where('deal_cancel.employee_id', $filterEmpId);
                     }
                 })
                 ->where('lead_pipeline_master.company_id', $employee->company_id)
@@ -148,11 +157,21 @@ class LeadPipelineApiController extends Controller
 
                 );
 
-            $pipeline = $pipline->union($piplineDones)->union($piplineCancels)->get();
+            $pipeline = $pipline->union($piplineDones)
+                ->union($piplineCancels)
+                ->orderBy('created_at', 'desc')
+                ->get();
     
             
             //Today and Overdua Followup
-              if($employee->role_id == '3')
+              if ($filterEmpId) {
+                    $allLeads = LeadMaster::where([
+                        'lead_master.iCustomerId' => $employee->company_id,
+                        'lead_master.employee_id' => $filterEmpId,
+                    ])
+                        ->where(['iStatus' => 1, 'isDelete' => 0])
+                        ->get();
+              } elseif($employee->role_id == '3')
                 {
                     //Today and Overdua Followup
                     $allLeads = LeadMaster::where([

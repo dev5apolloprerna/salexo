@@ -473,14 +473,19 @@ if ($validator->fails()) {
                 $leads =  $querys->leftJoin('service_master', 'deal_done.product_service_id', '=', 'service_master.service_id')
                     ->leftJoin('lead_source_master', 'deal_done.LeadSourceId', '=', 'lead_source_master.lead_source_id')
                     ->leftJoin('lead_cancel_reason', 'deal_done.cancel_reason_id', '=', 'lead_cancel_reason.lead_cancel_reason_id')
-                    ->leftJoin('employee_master', 'deal_done.iemployeeId', '=', 'employee_master.emp_id')
+                    ->leftJoin('lead_pipeline_master', 'deal_done.status', '=', 'lead_pipeline_master.pipeline_id')
+                    ->leftJoin('employee_master as lead_creator', 'deal_done.iEnterBy', '=', 'lead_creator.emp_id')
+                    ->leftJoin('employee_master as lead_assignee', 'deal_done.employee_id', '=', 'lead_assignee.emp_id')
                     ->select(
                         'deal_done.*',
                         'service_master.service_name',
                         'lead_cancel_reason.reason',
                         'lead_source_master.lead_source_name',
-                        'employee_master.emp_name',
+                        'lead_pipeline_master.pipeline_name as status_name',
+                        'lead_creator.emp_name as added_by_name',
+                        'lead_assignee.emp_name as assigned_to_name',
                     )
+                    ->orderBy('deal_done.created_at', 'desc')
                     ->get();
             } elseif ($status === 'deal-cancel') {
                 // Get leads from `deal_cancel` table
@@ -505,14 +510,19 @@ if ($validator->fails()) {
                 $leads =  $querys->leftJoin('service_master', 'deal_cancel.product_service_id', '=', 'service_master.service_id')
                     ->leftJoin('lead_source_master', 'deal_cancel.LeadSourceId', '=', 'lead_source_master.lead_source_id')
                     ->leftJoin('lead_cancel_reason', 'deal_cancel.cancel_reason_id', '=', 'lead_cancel_reason.lead_cancel_reason_id')
-                    ->leftJoin('employee_master', 'deal_cancel.iemployeeId', '=', 'employee_master.emp_id')
+                    ->leftJoin('lead_pipeline_master', 'deal_cancel.status', '=', 'lead_pipeline_master.pipeline_id')
+                    ->leftJoin('employee_master as lead_creator', 'deal_cancel.iEnterBy', '=', 'lead_creator.emp_id')
+                    ->leftJoin('employee_master as lead_assignee', 'deal_cancel.employee_id', '=', 'lead_assignee.emp_id')
                     ->select(
                         'deal_cancel.*',
                         'service_master.service_name',
                         'lead_cancel_reason.reason',
                         'lead_source_master.lead_source_name',
-                        'employee_master.emp_name',
+                        'lead_pipeline_master.pipeline_name as status_name',
+                        'lead_creator.emp_name as added_by_name',
+                        'lead_assignee.emp_name as assigned_to_name',
                     )
+                    ->orderBy('deal_cancel.created_at', 'desc')
                     ->get();
             } else {
                 // Get leads from `lead_master` table
@@ -536,6 +546,7 @@ if ($validator->fails()) {
                 $leads = $querys->leftJoin('service_master', 'lead_master.product_service_id', '=', 'service_master.service_id')
                     ->leftJoin('lead_source_master', 'lead_master.LeadSourceId', '=', 'lead_source_master.lead_source_id')
                     ->leftJoin('lead_cancel_reason', 'lead_master.cancel_reason_id', '=', 'lead_cancel_reason.lead_cancel_reason_id')
+                    ->leftJoin('lead_pipeline_master', 'lead_master.status', '=', 'lead_pipeline_master.pipeline_id')
                     ->leftJoin('employee_master as lead_creator', 'lead_master.iEnterBy', '=', 'lead_creator.emp_id')
                     ->leftJoin('employee_master as lead_assignee', 'lead_master.employee_id', '=', 'lead_assignee.emp_id')
                     ->select(
@@ -543,9 +554,11 @@ if ($validator->fails()) {
                         'service_master.service_name',
                         'lead_cancel_reason.reason',
                         'lead_source_master.lead_source_name',
+                        'lead_pipeline_master.pipeline_name as status_name',
                         'lead_creator.emp_name as added_by_name',
                         'lead_assignee.emp_name as assigned_to_name',
                     )
+                    ->orderBy('lead_master.created_at', 'desc')
                     ->get();
             }
 
@@ -597,11 +610,15 @@ if ($validator->fails()) {
                 'lead_master.*',
                 'lead_cancel_reason.reason',
                 'service_master.service_name',
-                'employee_master.emp_name',
+                'lead_pipeline_master.pipeline_name as status_name',
+                'lead_creator.emp_name as added_by_name',
+                'lead_assignee.emp_name as assigned_to_name',
             )
                 ->leftJoin('lead_cancel_reason', 'lead_master.cancel_reason_id', '=', 'lead_cancel_reason.lead_cancel_reason_id')
                 ->leftJoin('service_master', 'lead_master.product_service_id', '=', 'service_master.service_id')
-                ->leftJoin('employee_master', 'lead_master.iemployeeId', '=', 'employee_master.emp_id')
+                ->leftJoin('lead_pipeline_master', 'lead_master.status', '=', 'lead_pipeline_master.pipeline_id')
+                ->leftJoin('employee_master as lead_creator', 'lead_master.iEnterBy', '=', 'lead_creator.emp_id')
+                ->leftJoin('employee_master as lead_assignee', 'lead_master.employee_id', '=', 'lead_assignee.emp_id')
                 ->where('lead_master.iCustomerId', $employee->company_id)
                 ->where('lead_master.lead_id', $request->lead_id)
                 ->when($employee->isCompanyAdmin == 0, function ($query) use ($employee) {
@@ -614,15 +631,19 @@ if ($validator->fails()) {
                     'deal_done.*',
                     'lead_cancel_reason.reason',
                     'service_master.service_name',
-                    'employee_master.emp_name',
+                    'lead_pipeline_master.pipeline_name as status_name',
+                    'lead_creator.emp_name as added_by_name',
+                    'lead_assignee.emp_name as assigned_to_name',
                 )
                     ->leftJoin('lead_cancel_reason', 'deal_done.cancel_reason_id', '=', 'lead_cancel_reason.lead_cancel_reason_id')
                     ->leftJoin('service_master', 'deal_done.product_service_id', '=', 'service_master.service_id')
-                    ->leftJoin('employee_master', 'deal_done.iemployeeId', '=', 'employee_master.emp_id')
+                    ->leftJoin('lead_pipeline_master', 'deal_done.status', '=', 'lead_pipeline_master.pipeline_id')
+                    ->leftJoin('employee_master as lead_creator', 'deal_done.iEnterBy', '=', 'lead_creator.emp_id')
+                    ->leftJoin('employee_master as lead_assignee', 'deal_done.employee_id', '=', 'lead_assignee.emp_id')
                     ->where('deal_done.iCustomerId', $employee->company_id)
                     ->where('deal_done.lead_id', $request->lead_id)
                     ->when($employee->isCompanyAdmin == 0, function ($query) use ($employee) {
-                        $query->where('deal_done.iEnterBy', $employee->emp_id);
+                        $query->where('deal_done.employee_id', $employee->emp_id);
                     })
                     ->first();
             }
@@ -632,15 +653,19 @@ if ($validator->fails()) {
                     'deal_cancel.*',
                     'lead_cancel_reason.reason',
                     'service_master.service_name',
-                    'employee_master.emp_name',
+                    'lead_pipeline_master.pipeline_name as status_name',
+                    'lead_creator.emp_name as added_by_name',
+                    'lead_assignee.emp_name as assigned_to_name',
                 )
                     ->leftJoin('lead_cancel_reason', 'deal_cancel.cancel_reason_id', '=', 'lead_cancel_reason.lead_cancel_reason_id')
                     ->leftJoin('service_master', 'deal_cancel.product_service_id', '=', 'service_master.service_id')
-                    ->leftJoin('employee_master', 'deal_cancel.iemployeeId', '=', 'employee_master.emp_id')
+                    ->leftJoin('lead_pipeline_master', 'deal_cancel.status', '=', 'lead_pipeline_master.pipeline_id')
+                    ->leftJoin('employee_master as lead_creator', 'deal_cancel.iEnterBy', '=', 'lead_creator.emp_id')
+                    ->leftJoin('employee_master as lead_assignee', 'deal_cancel.employee_id', '=', 'lead_assignee.emp_id')
                     ->where('deal_cancel.iCustomerId', $employee->company_id)
                     ->where('deal_cancel.lead_id', $request->lead_id)
                     ->when($employee->isCompanyAdmin == 0, function ($query) use ($employee) {
-                        $query->where('deal_cancel.iEnterBy', $employee->emp_id);
+                        $query->where('deal_cancel.employee_id', $employee->emp_id);
                     })
                     ->first();
             }
@@ -1305,12 +1330,16 @@ if ($validator->fails()) {
 
             $leads =  $query->leftjoin('service_master', 'lead_master.product_service_id', '=', 'service_master.service_id')
                 ->leftjoin('lead_source_master', 'lead_master.LeadSourceId', '=', 'lead_source_master.lead_source_id')
-                ->leftjoin('employee_master', 'lead_master.iemployeeId', '=', 'employee_master.emp_id')
+                ->leftjoin('lead_pipeline_master', 'lead_master.status', '=', 'lead_pipeline_master.pipeline_id')
+                ->leftjoin('employee_master as lead_creator', 'lead_master.iEnterBy', '=', 'lead_creator.emp_id')
+                ->leftjoin('employee_master as lead_assignee', 'lead_master.employee_id', '=', 'lead_assignee.emp_id')
                 ->select(
                     'lead_master.*',
                     'service_master.service_name',
                     'lead_source_master.lead_source_name',
-                    'employee_master.emp_name',
+                    'lead_pipeline_master.pipeline_name as status_name',
+                    'lead_creator.emp_name as added_by_name',
+                    'lead_assignee.emp_name as assigned_to_name',
                 )
                 ->get();
             // dd($leads);
@@ -1368,12 +1397,16 @@ if ($validator->fails()) {
 
             $leads = $query->leftjoin('service_master', 'lead_master.product_service_id', '=', 'service_master.service_id')
                 ->leftjoin('lead_source_master', 'lead_master.LeadSourceId', '=', 'lead_source_master.lead_source_id')
-                ->leftjoin('employee_master', 'lead_master.iemployeeId', '=', 'employee_master.emp_id')
+                ->leftjoin('lead_pipeline_master', 'lead_master.status', '=', 'lead_pipeline_master.pipeline_id')
+                ->leftjoin('employee_master as lead_creator', 'lead_master.iEnterBy', '=', 'lead_creator.emp_id')
+                ->leftjoin('employee_master as lead_assignee', 'lead_master.employee_id', '=', 'lead_assignee.emp_id')
                 ->select(
                     'lead_master.*',
                     'service_master.service_name',
                     'lead_source_master.lead_source_name',
-                    'employee_master.emp_name',
+                    'lead_pipeline_master.pipeline_name as status_name',
+                    'lead_creator.emp_name as added_by_name',
+                    'lead_assignee.emp_name as assigned_to_name',
                 )
                 ->get();
 
@@ -1422,10 +1455,14 @@ if ($validator->fails()) {
                 'service_master.service_name',
                 'lead_source_master.lead_source_name',
                 'lead_cancel_reason.reason',
+                'lead_assignee.emp_name as assigned_to_name',
+                'lead_creator.emp_name as added_by_name',
             )
                 ->leftjoin('lead_cancel_reason', 'lead_master.cancel_reason_id', '=', 'lead_cancel_reason.lead_cancel_reason_id')
                 ->leftjoin('lead_source_master', 'lead_master.LeadSourceId', '=', 'lead_source_master.lead_source_id')
                 ->leftjoin('service_master', 'lead_master.product_service_id', '=', 'service_master.service_id')
+                ->leftjoin('employee_master as lead_assignee', 'lead_master.employee_id', '=', 'lead_assignee.emp_id')
+                ->leftjoin('employee_master as lead_creator', 'lead_master.iEnterBy', '=', 'lead_creator.emp_id')
                 ->where([
                     'lead_master.isDelete' => 0,
                     'lead_master.iCustomerId' => $employee->company_id
@@ -1443,7 +1480,7 @@ if ($validator->fails()) {
                 $query->whereDate('created_at', '<=', $request->to_date);
             }
 
-            $leads = $query->get();
+            $leads = $query->orderBy('lead_master.created_at', 'desc')->get();
 
             return response()->json([
                 'success' => true,
@@ -1466,18 +1503,37 @@ if ($validator->fails()) {
             $fromDate = $request->input('from_date');
             $toDate = $request->input('to_date');
 
-            $fromDateFormatted = $fromDate ? Carbon::createFromFormat('d-m-Y', $fromDate)->startOfDay() : null;
-            $toDateFormatted = $toDate ? Carbon::createFromFormat('d-m-Y', $toDate)->endOfDay() : null;
+            $fromDateFormatted = null;
+            if ($fromDate) {
+                try {
+                    $fromDateFormatted = Carbon::parse($fromDate)->startOfDay();
+                } catch (\Exception $e) {
+                    $fromDateFormatted = null;
+                }
+            }
+
+            $toDateFormatted = null;
+            if ($toDate) {
+                try {
+                    $toDateFormatted = Carbon::parse($toDate)->endOfDay();
+                } catch (\Exception $e) {
+                    $toDateFormatted = null;
+                }
+            }
 
             $query = DealDone::select(
                 'deal_done.*',
                 'service_master.service_name',
                 'lead_source_master.lead_source_name',
                 'lead_cancel_reason.reason',
+                'lead_assignee.emp_name as assigned_to_name',
+                'lead_creator.emp_name as added_by_name',
             )
                 ->leftjoin('lead_cancel_reason', 'deal_done.cancel_reason_id', '=', 'lead_cancel_reason.lead_cancel_reason_id')
                 ->leftjoin('lead_source_master', 'deal_done.LeadSourceId', '=', 'lead_source_master.lead_source_id')
                 ->leftjoin('service_master', 'deal_done.product_service_id', '=', 'service_master.service_id')
+                ->leftjoin('employee_master as lead_assignee', 'deal_done.employee_id', '=', 'lead_assignee.emp_id')
+                ->leftjoin('employee_master as lead_creator', 'deal_done.iEnterBy', '=', 'lead_creator.emp_id')
                 ->where([
                     'deal_done.isDelete' => 0,
                     'deal_done.iCustomerId' => $employee->company_id
@@ -1496,7 +1552,7 @@ if ($validator->fails()) {
                 $query->where('deal_done.created_at', '<=', $toDateFormatted);
             }
 
-            $leads = $query->get();
+            $leads = $query->orderBy('deal_done.created_at', 'desc')->get();
 
             return response()->json([
                 'success' => true,
@@ -1519,18 +1575,37 @@ if ($validator->fails()) {
             $fromDate = $request->input('from_date');
             $toDate = $request->input('to_date');
 
-            $fromDateFormatted = $fromDate ? Carbon::createFromFormat('d-m-Y', $fromDate)->startOfDay() : null;
-            $toDateFormatted = $toDate ? Carbon::createFromFormat('d-m-Y', $toDate)->endOfDay() : null;
+            $fromDateFormatted = null;
+            if ($fromDate) {
+                try {
+                    $fromDateFormatted = Carbon::parse($fromDate)->startOfDay();
+                } catch (\Exception $e) {
+                    $fromDateFormatted = null;
+                }
+            }
+
+            $toDateFormatted = null;
+            if ($toDate) {
+                try {
+                    $toDateFormatted = Carbon::parse($toDate)->endOfDay();
+                } catch (\Exception $e) {
+                    $toDateFormatted = null;
+                }
+            }
 
             $query = DealCancel::select(
                 'deal_cancel.*',
                 'service_master.service_name',
                 'lead_source_master.lead_source_name',
                 'lead_cancel_reason.reason',
+                'lead_assignee.emp_name as assigned_to_name',
+                'lead_creator.emp_name as added_by_name',
             )
                 ->leftjoin('lead_cancel_reason', 'deal_cancel.cancel_reason_id', '=', 'lead_cancel_reason.lead_cancel_reason_id')
                 ->leftjoin('lead_source_master', 'deal_cancel.LeadSourceId', '=', 'lead_source_master.lead_source_id')
                 ->leftjoin('service_master', 'deal_cancel.product_service_id', '=', 'service_master.service_id')
+                ->leftjoin('employee_master as lead_assignee', 'deal_cancel.employee_id', '=', 'lead_assignee.emp_id')
+                ->leftjoin('employee_master as lead_creator', 'deal_cancel.iEnterBy', '=', 'lead_creator.emp_id')
                 ->where([
                     'deal_cancel.isDelete' => 0,
                     'deal_cancel.iCustomerId' => $employee->company_id
@@ -1549,7 +1624,7 @@ if ($validator->fails()) {
                 $query->where('deal_cancel.created_at', '<=', $toDateFormatted);
             }
 
-            $leads = $query->get();
+            $leads = $query->orderBy('deal_cancel.created_at', 'desc')->get();
 
             return response()->json([
                 'success' => true,

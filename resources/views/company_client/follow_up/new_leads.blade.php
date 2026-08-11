@@ -69,6 +69,9 @@
                                                             <th>Lead Cancel Date</th>
                                                         @endif
                                                         <th>Entry Date</th>
+                                                        <th>Status</th>
+                                                        <th>Created By</th>
+                                                        <th>Assigned To</th>
                                                         <th>Action</th>
                                                     </tr>
                                                 </thead>
@@ -103,6 +106,9 @@
                                                                 <td>
                                                                     {{ date('d-m-Y h:i A',strtotime($lead->created_at)) }}
                                                                 </td>
+                                                                <td>{{ $lead->status_name ?? '-' }}</td>
+                                                                <td>{{ $lead->added_by_name ?? '-' }}</td>
+                                                                <td>{{ $lead->assigned_to_name ?? '-' }}</td>
                                                             @if ($profileId === 'new-lead')
                                                                 <td>
                                                                     <a href="{{ route('clients.followup_detail', [$status, $lead->lead_id]) }}"
@@ -125,7 +131,7 @@
                                                         <?php $i++; ?>
                                                     @empty
                                                         <tr>
-                                                            <td colspan="5" class="text-center">No Follow Up Found.</td>
+                                                            <td colspan="13" class="text-center">No Follow Up Found.</td>
                                                         </tr>
                                                     @endforelse
                                                 </tbody>
