@@ -93,10 +93,18 @@ class LeadMasterController extends Controller
     public function leads_done(Request $request)
     {
         try {
+
+                $request->validate([
+                    'from_date' => ['nullable', 'date_format:Y-m-d'],
+                    'to_date' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from_date'],
+                ]);
+
             $search = $request->input('search');
             $pipeline_id = $request->input('pipeline_id');
             $service_id = $request->input('service_id');
             $emp_id = $request->input('emp_id');
+            $from_date = $request->input('from_date');
+            $to_date = $request->input('to_date');
             $user = Auth::user();
 
             $leadPipeline = LeadPipeline::where(['company_id' => $user->company_id])->get();
@@ -136,10 +144,18 @@ class LeadMasterController extends Controller
                 $query->where('deal_done.employee_id', '=', $emp_id);
             }
 
-            $leads = $query->paginate(config('app.per_page'));
+            if ($from_date) {
+                $query->whereDate('deal_done.deal_done_at', '>=', $from_date);
+            }
+
+            if ($to_date) {
+                $query->whereDate('deal_done.deal_done_at', '<=', $to_date);
+            }
+
+            $leads = $query->paginate(config('app.per_page'))->withQueryString();
             $leadCounts = $this->leadCounts($user->company_id);
 
-            return view('company_client.leads.deal_done', compact('leads', 'search', 'leadPipeline', 'pipeline_id', 'services', 'service_id', 'employees', 'emp_id', 'leadCounts'));
+            return view('company_client.leads.deal_done', compact('leads', 'search', 'leadPipeline', 'pipeline_id', 'services', 'service_id', 'employees', 'emp_id', 'from_date', 'to_date', 'leadCounts'));
         } catch (\Exception $e) {
             Log::error('Error in LeadMasterController@leads_done: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             return redirect()->back()->with('error', 'An error occurred while fetching leads.');
