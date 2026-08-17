@@ -50,13 +50,31 @@
                                                             id="myForm">
                                                             @csrf
                                                             <div class="row">
-                                                                <div class="col-md-5">
+                                                                <div class="col-md-4">
                                                                     <div class="form-group">
                                                                         <label for="name">Search By Company Name /
                                                                             Contact Person </label>
                                                                         <input type="text" name="search" id="search"
                                                                             class="form-control" value="{{ $search ?? '' }}"
                                                                             autocomplete="off">
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="col-md-3">
+                                                                    <div class="form-group">
+                                                                        <label for="from_date">Lead Done From</label>
+                                                                        <input type="date" name="from_date" id="from_date"
+                                                                            class="form-control"
+                                                                            value="{{ $from_date ?? '' }}">
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="col-md-3">
+                                                                    <div class="form-group">
+                                                                        <label for="to_date">Lead Done To</label>
+                                                                        <input type="date" name="to_date" id="to_date"
+                                                                            class="form-control"
+                                                                            value="{{ $to_date ?? '' }}">
                                                                     </div>
                                                                 </div>
 

@@ -130,6 +130,22 @@
                                                         </div>
 
                                                         <div class="col-md-3 pt-3">
+                                                            <div class="form-group">
+                                                                <label for="from_date">Lead Done From</label>
+                                                                <input type="date" name="from_date" id="from_date"
+                                                                    class="form-control" value="{{ $from_date ?? '' }}">
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="col-md-3 pt-3">
+                                                            <div class="form-group">
+                                                                <label for="to_date">Lead Done To</label>
+                                                                <input type="date" name="to_date" id="to_date"
+                                                                    class="form-control" value="{{ $to_date ?? '' }}">
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="col-md-3 pt-3">
                                                             <div class="form-group" style="margin-top:12px">
                                                                 <input class="btn btn-primary" type="submit"
                                                                     value="Search">

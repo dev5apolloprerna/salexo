@@ -1500,25 +1500,18 @@ if ($validator->fails()) {
                 return response()->json(['success' => false, 'message' => 'Unauthorized access'], 401);
             }
 
-            $fromDate = $request->input('from_date');
-            $toDate = $request->input('to_date');
+            $validator = Validator::make($request->all(), [
+                'from_date' => ['nullable', 'date_format:Y-m-d'],
+                'to_date' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from_date'],
+            ]);
 
-            $fromDateFormatted = null;
-            if ($fromDate) {
-                try {
-                    $fromDateFormatted = Carbon::parse($fromDate)->startOfDay();
-                } catch (\Exception $e) {
-                    $fromDateFormatted = null;
-                }
-            }
 
-            $toDateFormatted = null;
-            if ($toDate) {
-                try {
-                    $toDateFormatted = Carbon::parse($toDate)->endOfDay();
-                } catch (\Exception $e) {
-                    $toDateFormatted = null;
-                }
+               if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid date range.',
+                    'errors' => $validator->errors(),
+                ], 422);
             }
 
             $query = DealDone::select(
@@ -1544,15 +1537,15 @@ if ($validator->fails()) {
                 $query->where('deal_done.iEnterBy', $employee->emp_id);
             }
 
-            if ($fromDateFormatted) {
-                $query->where('deal_done.created_at', '>=', $fromDateFormatted);
+            if ($request->filled('from_date')) {
+                $query->whereDate('deal_done.deal_done_at', '>=', $request->input('from_date'));
             }
 
-            if ($toDateFormatted) {
-                $query->where('deal_done.created_at', '<=', $toDateFormatted);
+            if ($request->filled('to_date')) {
+                $query->whereDate('deal_done.deal_done_at', '<=', $request->input('to_date'));
             }
 
-            $leads = $query->orderBy('deal_done.created_at', 'desc')->get();
+            $leads = $query->orderBy('deal_done.deal_done_at', 'desc')->get();
 
             return response()->json([
                 'success' => true,

@@ -68,7 +68,15 @@ class EmployeeLeadMasterController extends Controller
     public function leads_done(Request $request)
     {
         try {
+             $request->validate([
+                'from_date' => ['nullable', 'date_format:Y-m-d'],
+                'to_date' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from_date'],
+            ]);
+
             $search = $request->input('search');
+            $from_date = $request->input('from_date');
+            $to_date = $request->input('to_date');
+
             $query = DealDone::where([
                 'isDelete' => 0,
                 'iCustomerId' => Auth::user()->company_id,
@@ -84,7 +92,17 @@ class EmployeeLeadMasterController extends Controller
 
             $leads = $query->paginate(config('app.per_page'));
 
-            return view('employee.leads.deal_done', compact('leads', 'search'));
+            if ($from_date) {
+                $query->whereDate('deal_done_at', '>=', $from_date);
+            }
+
+            if ($to_date) {
+                $query->whereDate('deal_done_at', '<=', $to_date);
+            }
+
+            $leads = $query->paginate(config('app.per_page'))->withQueryString();
+
+            return view('employee.leads.deal_done', compact('leads', 'search', 'from_date', 'to_date'));
         } catch (\Exception $e) {
             Log::error('Error in LeadMasterController@index: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             return redirect()->back()->with('error', 'An error occurred while fetching leads.');
