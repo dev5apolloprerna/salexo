@@ -2569,3 +2569,4 @@ Did you mean this?
 [2026-08-10 17:50:24] local.ERROR: Date parsing error in over_due_followup: Not enough data available to satisfy format {"lead_id":8} 
 [2026-08-10 17:50:24] local.ERROR: Date parsing error in over_due_followup: Not enough data available to satisfy format {"lead_id":6} 
 [2026-08-10 17:50:24] local.ERROR: Date parsing error in over_due_followup: Not enough data available to satisfy format {"lead_id":1863} 
+[2026-08-17 18:26:42] local.ERROR: HomeController Error: Attempt to read property "company_id" on null  
