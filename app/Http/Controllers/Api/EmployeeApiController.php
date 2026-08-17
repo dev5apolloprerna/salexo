@@ -1503,6 +1503,10 @@ if ($validator->fails()) {
             $validator = Validator::make($request->all(), [
                 'from_date' => ['nullable', 'date_format:Y-m-d'],
                 'to_date' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from_date'],
+                'search' => ['nullable', 'string', 'max:255'],
+                'company_name' => ['nullable', 'string', 'max:255'],
+                'assigned_employee_name' => ['nullable', 'string', 'max:255'],
+                'employee_name' => ['nullable', 'string', 'max:255'],
             ]);
 
 
@@ -1525,7 +1529,10 @@ if ($validator->fails()) {
                 ->leftjoin('lead_cancel_reason', 'deal_done.cancel_reason_id', '=', 'lead_cancel_reason.lead_cancel_reason_id')
                 ->leftjoin('lead_source_master', 'deal_done.LeadSourceId', '=', 'lead_source_master.lead_source_id')
                 ->leftjoin('service_master', 'deal_done.product_service_id', '=', 'service_master.service_id')
-                ->leftjoin('employee_master as lead_assignee', 'deal_done.employee_id', '=', 'lead_assignee.emp_id')
+                ->leftJoin('employee_master as lead_assignee', function ($join) use ($employee) {
+                    $join->on('deal_done.employee_id', '=', 'lead_assignee.emp_id')
+                        ->where('lead_assignee.company_id', '=', $employee->company_id);
+                })
                 ->leftjoin('employee_master as lead_creator', 'deal_done.iEnterBy', '=', 'lead_creator.emp_id')
                 ->where([
                     'deal_done.isDelete' => 0,
@@ -1543,6 +1550,23 @@ if ($validator->fails()) {
 
             if ($request->filled('to_date')) {
                 $query->whereDate('deal_done.deal_done_at', '<=', $request->input('to_date'));
+            }
+
+            if ($request->filled('company_name')) {
+                $query->where('deal_done.company_name', 'like', '%' . $request->input('company_name') . '%');
+            }
+
+            $assignedEmployeeName = $request->input('assigned_employee_name', $request->input('employee_name'));
+            if ($assignedEmployeeName !== null && $assignedEmployeeName !== '') {
+                $query->where('lead_assignee.emp_name', 'like', '%' . $assignedEmployeeName . '%');
+            }
+
+            if ($request->filled('search')) {
+                $search = $request->input('search');
+                $query->where(function ($searchQuery) use ($search) {
+                    $searchQuery->where('deal_done.company_name', 'like', '%' . $search . '%')
+                        ->orWhere('lead_assignee.emp_name', 'like', '%' . $search . '%');
+                });
             }
 
             $leads = $query->orderBy('deal_done.deal_done_at', 'desc')->get();

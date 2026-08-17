@@ -25,12 +25,35 @@ class CompanyClientHomeController extends Controller
 
     public function index(Request $request)
     {
+        $request->validate([
+            'emp_id' => ['nullable', 'integer'],
+            'from_date' => ['nullable', 'date'],
+            'to_date' => ['nullable', 'date', 'after_or_equal:from_date'],
+        ]);
+
     try {
         $employee = Auth::guard('web_employees')->user();
         $emp_id = $employee->company_id;
 
         // Optional: filter all dashboard counts by a specific employee (search by employee name)
         $filterEmpId = $request->input('emp_id');
+
+         $fromDate = $request->input('from_date');
+        $toDate = $request->input('to_date');
+
+        $applyDashboardFilters = function ($query, $employeeColumn = 'employee_id', $dateColumn = 'created_at') use ($filterEmpId, $fromDate, $toDate) {
+            return $query
+                ->when($filterEmpId, function ($query) use ($employeeColumn, $filterEmpId) {
+                    $query->where($employeeColumn, $filterEmpId);
+                })
+                ->when($fromDate, function ($query) use ($dateColumn, $fromDate) {
+                    $query->whereDate($dateColumn, '>=', $fromDate);
+                })
+                ->when($toDate, function ($query) use ($dateColumn, $toDate) {
+                    $query->whereDate($dateColumn, '<=', $toDate);
+                });
+        };
+
 
         // -------------------------------
         // 1. PIPELINE COUNTS (New, Deal Done, Deal Cancel)
@@ -48,13 +71,20 @@ class CompanyClientHomeController extends Controller
         // New Lead Pipelines
         $pipline = (clone $pipelineBaseQuery)
             ->addSelect(DB::raw('COUNT(lead_master.lead_id) as status_count'))
-            ->leftJoin('lead_master', function ($join) use ($emp_id, $filterEmpId) {
+            ->leftJoin('lead_master', function ($join) use ($emp_id, $filterEmpId, $fromDate, $toDate) {
                 $join->on('lead_master.status', '=', 'lead_pipeline_master.pipeline_id')
                     ->where('lead_master.iCustomerId', $emp_id)
                     ->where('lead_master.isDelete', 0);
                 if ($filterEmpId) {
                     $join->where('lead_master.employee_id', $filterEmpId);
                 }
+                if ($fromDate) {
+                    $join->whereDate('lead_master.created_at', '>=', $fromDate);
+                }
+                if ($toDate) {
+                    $join->whereDate('lead_master.created_at', '<=', $toDate);
+                }
+
             })
             ->whereNotIn('lead_pipeline_master.slugname', ['deal-done', 'deal-cancel'])
             ->groupBy(
@@ -69,12 +99,18 @@ class CompanyClientHomeController extends Controller
         // Deal Done Pipeline
         $piplineDones = (clone $pipelineBaseQuery)
             ->addSelect(DB::raw('COUNT(deal_done.lead_id) as status_count'))
-            ->leftJoin('deal_done', function ($join) use ($emp_id, $filterEmpId) {
+            ->leftJoin('deal_done', function ($join) use ($emp_id, $filterEmpId, $fromDate, $toDate) {
                 $join->on('deal_done.status', '=', 'lead_pipeline_master.pipeline_id')
                     ->where('deal_done.iCustomerId', $emp_id)
                     ->where('deal_done.isDelete', 0);
                 if ($filterEmpId) {
                     $join->where('deal_done.employee_id', $filterEmpId);
+                }
+                 if ($fromDate) {
+                    $join->whereDate('deal_done.created_at', '>=', $fromDate);
+                }
+                if ($toDate) {
+                    $join->whereDate('deal_done.created_at', '<=', $toDate);
                 }
             })
             ->where('lead_pipeline_master.slugname', 'deal-done')
@@ -90,12 +126,18 @@ class CompanyClientHomeController extends Controller
         // Deal Cancel Pipeline
         $piplineCancels = (clone $pipelineBaseQuery)
             ->addSelect(DB::raw('COUNT(deal_cancel.lead_id) as status_count'))
-            ->leftJoin('deal_cancel', function ($join) use ($emp_id, $filterEmpId) {
+            ->leftJoin('deal_cancel', function ($join) use ($emp_id, $filterEmpId, $fromDate, $toDate) {
                 $join->on('deal_cancel.status', '=', 'lead_pipeline_master.pipeline_id')
                     ->where('deal_cancel.iCustomerId', $emp_id)
                     ->where('deal_cancel.isDelete', 0);
                 if ($filterEmpId) {
                     $join->where('deal_cancel.employee_id', $filterEmpId);
+                }
+                 if ($fromDate) {
+                    $join->whereDate('deal_cancel.created_at', '>=', $fromDate);
+                }
+                if ($toDate) {
+                    $join->whereDate('deal_cancel.created_at', '<=', $toDate);
                 }
             })
             ->where('lead_pipeline_master.slugname', 'deal-cancel')
@@ -156,6 +198,49 @@ class CompanyClientHomeController extends Controller
             ])
             ->orderBy('emp_name', 'asc')
             ->get();
+
+// Employee-wise lead status report. Leads move out of lead_master when they
+        // are completed or cancelled, so all three lead tables are included.
+        $statusQueries = collect([
+            ['table' => 'lead_master'],
+            ['table' => 'deal_done'],
+            ['table' => 'deal_cancel'],
+        ])->map(function ($source) use ($emp_id, $applyDashboardFilters) {
+            $query = DB::table($source['table'])
+                ->select('employee_id', 'status', DB::raw('COUNT(*) as total'))
+                ->where('iCustomerId', $emp_id)
+                ->where('isDelete', 0);
+
+            $applyDashboardFilters($query);
+
+            return $query->groupBy('employee_id', 'status');
+        });
+
+        $combinedStatusQuery = $statusQueries->shift();
+        $statusQueries->each(function ($query) use ($combinedStatusQuery) {
+            $combinedStatusQuery->unionAll($query);
+        });
+
+        $leadStatusCounts = DB::query()
+            ->fromSub($combinedStatusQuery, 'employee_statuses')
+            ->select('employee_id', 'status', DB::raw('SUM(total) as total'))
+            ->groupBy('employee_id', 'status')
+            ->get()
+            ->groupBy('employee_id')
+            ->map(function ($statuses) {
+                return $statuses->pluck('total', 'status');
+            });
+
+        $reportEmployees = $employees
+            ->when($filterEmpId, function ($employees) use ($filterEmpId) {
+                return $employees->where('emp_id', $filterEmpId);
+            })
+            ->values();
+        $reportPipelines = LeadPipeline::where('company_id', $emp_id)
+            ->orderBy('pipeline_id')
+            ->get();
+
+
 
 
         // -------------------------------
@@ -262,7 +347,12 @@ class CompanyClientHomeController extends Controller
         'generatedData',
         'convertedData',
         'employeeLeads',
-        'filterEmpId'
+        'filterEmpId',
+        'fromDate',
+        'toDate',
+        'reportEmployees',
+        'reportPipelines',
+        'leadStatusCounts'
     ));
 
 
