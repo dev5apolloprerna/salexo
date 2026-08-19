@@ -16,22 +16,33 @@ class TaskManagementApiController extends Controller
         $employee = Auth::guard('employee_api')->user();
         $filters = $request->validate(['status' => 'nullable|in:pending,completed']);
 
-        $tasks = Task::with(['assignedEmployee:emp_id,emp_name', 'createdBy:emp_id,emp_name'])
-            ->where('company_id', $employee->company_id)
-            ->when(!$this->isCompanyAdmin($employee), function ($query) use ($employee) {
-                return $query->where('assigned_employee_id', $employee->emp_id);
-            })
-            ->when(isset($filters['status']), function ($query) use ($filters) {
-                return $query->where('status', $filters['status']);
-            })
-            ->orderByRaw('due_date IS NULL, due_date ASC')
-            ->latest('id')
-            ->get();
-
+        
         return response()->json([
             'success' => true,
             'message' => 'Task list fetched successfully',
-            'data' => $tasks,
+'data' => $this->tasksFor($employee, $filters['status'] ?? null),
+        ]);
+    }
+
+    public function pending()
+    {
+        $employee = Auth::guard('employee_api')->user();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Pending task list fetched successfully',
+            'data' => $this->tasksFor($employee, 'pending'),
+        ]);
+    }
+
+    public function completed()
+    {
+        $employee = Auth::guard('employee_api')->user();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Completed task list fetched successfully',
+            'data' => $this->tasksFor($employee, 'completed'),
         ]);
     }
 
@@ -128,5 +139,19 @@ class TaskManagementApiController extends Controller
     private function isCompanyAdmin(Employee $employee): bool
     {
         return (int) $employee->role_id === 2 || (int) $employee->isCompanyAdmin === 1;
+    }
+     private function tasksFor(Employee $employee, ?string $status = null)
+    {
+        return Task::with(['assignedEmployee:emp_id,emp_name', 'createdBy:emp_id,emp_name'])
+            ->where('company_id', $employee->company_id)
+            ->when(!$this->isCompanyAdmin($employee), function ($query) use ($employee) {
+                return $query->where('assigned_employee_id', $employee->emp_id);
+            })
+            ->when($status, function ($query) use ($status) {
+                return $query->where('status', $status);
+            })
+            ->orderByRaw('due_date IS NULL, due_date ASC')
+            ->latest('id')
+            ->get();
     }
 }

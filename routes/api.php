@@ -121,6 +121,8 @@ Route::prefix('employee')->group(function () {
 
         Route::prefix('task')->group(function () {
             Route::post('list', [TaskManagementApiController::class, 'index']);
+            Route::post('pending/list', [TaskManagementApiController::class, 'pending']);
+            Route::post('completed/list', [TaskManagementApiController::class, 'completed']);
             Route::post('create', [TaskManagementApiController::class, 'store']);
             Route::post('{task}/update', [TaskManagementApiController::class, 'update']);
             Route::post('{task}/status', [TaskManagementApiController::class, 'updateStatus']);
