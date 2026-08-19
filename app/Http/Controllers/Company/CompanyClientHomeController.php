@@ -13,6 +13,7 @@ use App\Models\CompanyClient;
 use App\Models\DealDone;
 use App\Models\LeadMaster;
 use App\Models\LeadPipeline;
+use App\Models\LeadSource;
 use App\Models\Role;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
@@ -240,7 +241,42 @@ class CompanyClientHomeController extends Controller
             ->orderBy('pipeline_id')
             ->get();
 
+          // Lead-source-wise status report. Unlike the employee report, this
+        // intentionally includes leads entered through the company login
+        // (super admin) as well as leads assigned to employees.
+        $sourceStatusQueries = collect([
+            'lead_master',
+            'deal_done',
+            'deal_cancel',
+        ])->map(function ($table) use ($emp_id, $applyDashboardFilters) {
+            $query = DB::table($table)
+                ->select('LeadSourceId', 'status', DB::raw('COUNT(*) as total'))
+                ->where('iCustomerId', $emp_id)
+                ->where('isDelete', 0);
 
+            $applyDashboardFilters($query);
+
+            return $query->groupBy('LeadSourceId', 'status');
+        });
+
+        $combinedSourceStatusQuery = $sourceStatusQueries->shift();
+        $sourceStatusQueries->each(function ($query) use ($combinedSourceStatusQuery) {
+            $combinedSourceStatusQuery->unionAll($query);
+        });
+
+        $leadSourceStatusCounts = DB::query()
+            ->fromSub($combinedSourceStatusQuery, 'source_statuses')
+            ->select('LeadSourceId', 'status', DB::raw('SUM(total) as total'))
+            ->groupBy('LeadSourceId', 'status')
+            ->get()
+            ->groupBy('LeadSourceId')
+            ->map(function ($statuses) {
+                return $statuses->pluck('total', 'status');
+            });
+
+        $reportLeadSources = LeadSource::where('company_id', $emp_id)
+            ->orderBy('lead_source_name')
+            ->get();
 
 
         // -------------------------------
@@ -352,7 +388,9 @@ class CompanyClientHomeController extends Controller
         'toDate',
         'reportEmployees',
         'reportPipelines',
-        'leadStatusCounts'
+        'leadStatusCounts',
+        'reportLeadSources',
+        'leadSourceStatusCounts'
     ));
 
 

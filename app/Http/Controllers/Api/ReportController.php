@@ -13,6 +13,7 @@ use App\Models\Employee;
 use App\Models\LeadMaster;
 use App\Models\LeadPipeline;
 use App\Models\LeadSource;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -22,6 +23,230 @@ use Carbon\Carbon;
 
 class ReportController extends Controller
 {
+        /**
+     * Return the dashboard lead-status report for the company-admin app login.
+     */
+    public function employee_lead_status(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'emp_id' => ['nullable', 'integer'],
+            'from_date' => ['nullable', 'date_format:d-m-Y'],
+            'to_date' => ['nullable', 'date_format:d-m-Y', 'after_or_equal:from_date'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        try {
+            $companyAdmin = Auth::guard('employee_api')->user();
+
+            if (!$companyAdmin || !$companyAdmin->isCompanyAdmin) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This report is available only to the company admin login.',
+                ], 403);
+            }
+
+            $companyId = $companyAdmin->company_id;
+            $employeeId = $request->input('emp_id');
+            $fromDate = $request->filled('from_date')
+                ? Carbon::createFromFormat('d-m-Y', $request->input('from_date'))->startOfDay()
+                : null;
+            $toDate = $request->filled('to_date')
+                ? Carbon::createFromFormat('d-m-Y', $request->input('to_date'))->endOfDay()
+                : null;
+
+            $employees = Employee::where('company_id', $companyId)
+                ->where('isDelete', 0)
+                ->when($employeeId, function ($query) use ($employeeId) {
+                    $query->where('emp_id', $employeeId);
+                })
+                ->orderByDesc('isCompanyAdmin')
+                ->orderBy('emp_name')
+                ->get();
+
+            if ($employeeId && $employees->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'The selected employee was not found in this company.',
+                ], 404);
+            }
+
+            // The company-login row represents the whole company, matching the
+            // dashboard cards. A regular employee row remains assignment-based.
+            $selectedEmployeeId = $employeeId && !$employees->first()->isCompanyAdmin
+                ? $employeeId
+                : null;
+
+            $pipelines = LeadPipeline::where('company_id', $companyId)
+                ->orderBy('pipeline_id')
+                ->get(['pipeline_id', 'pipeline_name', 'slugname', 'color']);
+            $dealDonePipelineId = $pipelines->firstWhere('slugname', 'deal-done')->pipeline_id ?? 0;
+            $dealCancelPipelineId = $pipelines->firstWhere('slugname', 'deal-cancel')->pipeline_id ?? 0;
+
+            // Rows in the archive tables are authoritative. Some older rows retain
+            // a stale status value after being moved, so normalize them to their
+            // canonical Deal Done/Deal Cancel pipeline instead of losing the count.
+            $statusQueries = collect([
+                ['table' => 'lead_master', 'pipeline_id' => null],
+                ['table' => 'deal_done', 'pipeline_id' => $dealDonePipelineId],
+                ['table' => 'deal_cancel', 'pipeline_id' => $dealCancelPipelineId],
+            ])->map(function ($source) use ($companyId, $selectedEmployeeId, $fromDate, $toDate, $dealDonePipelineId, $dealCancelPipelineId) {
+                    $statusSelection = $source['pipeline_id']
+                        ? (int) $source['pipeline_id'] . ' as status'
+                        : 'status';
+
+                    $query = DB::table($source['table'])
+                        ->select('employee_id', DB::raw($statusSelection), DB::raw('COUNT(*) as total'))
+                        ->where('iCustomerId', $companyId)
+                        ->where('isDelete', 0)
+                        ->when($source['table'] === 'lead_master', function ($query) use ($dealDonePipelineId, $dealCancelPipelineId) {
+                            $query->whereNotIn('status', array_filter([$dealDonePipelineId, $dealCancelPipelineId]));
+                        })
+                        ->when($selectedEmployeeId, function ($query) use ($selectedEmployeeId) {
+                            $query->where('employee_id', $selectedEmployeeId);
+                        })
+                        ->when($fromDate, function ($query) use ($fromDate) {
+                            $query->where('created_at', '>=', $fromDate);
+                        })
+                        ->when($toDate, function ($query) use ($toDate) {
+                            $query->where('created_at', '<=', $toDate);
+                        });
+
+                    return $source['pipeline_id']
+                        ? $query->groupBy('employee_id')
+                        : $query->groupBy('employee_id', 'status');
+                });
+
+            $combinedStatusQuery = $statusQueries->shift();
+            $statusQueries->each(function ($query) use ($combinedStatusQuery) {
+                $combinedStatusQuery->unionAll($query);
+            });
+
+            $statusCounts = DB::query()
+                ->fromSub($combinedStatusQuery, 'employee_statuses')
+                ->select('employee_id', 'status', DB::raw('SUM(total) as total'))
+                ->groupBy('employee_id', 'status')
+                ->get()
+                ->groupBy('employee_id')
+                ->map(function ($statuses) {
+                    return $statuses->pluck('total', 'status');
+                });
+
+            $companyStatusCounts = $statusCounts->reduce(function ($companyCounts, $employeeCounts) {
+                $employeeCounts->each(function ($count, $status) use ($companyCounts) {
+                    $companyCounts->put($status, $companyCounts->get($status, 0) + $count);
+                });
+
+                return $companyCounts;
+            }, collect());
+
+            $report = $employees->map(function ($employee) use ($statusCounts, $companyStatusCounts, $pipelines) {
+                $employeeCounts = $employee->isCompanyAdmin
+                    ? $companyStatusCounts
+                    : $statusCounts->get($employee->emp_id, collect());
+
+                return [
+                    'emp_id' => $employee->emp_id,
+                    'emp_name' => $employee->emp_name,
+                    'is_company_login' => (bool) $employee->isCompanyAdmin,
+                    'total_leads' => (int) $employeeCounts->sum(),
+                    'statuses' => $pipelines->map(function ($pipeline) use ($employeeCounts) {
+                        return [
+                            'pipeline_id' => $pipeline->pipeline_id,
+                            'pipeline_name' => $pipeline->pipeline_name,
+                            'slugname' => $pipeline->slugname,
+                            'color' => $pipeline->color,
+                            'lead_count' => (int) $employeeCounts->get($pipeline->pipeline_id, 0),
+                        ];
+                    })->values(),
+                ];
+            })->values();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Company and employee lead status report.',
+                'filters' => [
+                    'emp_id' => $employeeId ? (int) $employeeId : null,
+                    'from_date' => $request->input('from_date'),
+                    'to_date' => $request->input('to_date'),
+                ],
+                'data' => $report,
+            ]);
+        } catch (\Throwable $exception) {
+            Log::error('API Employee Lead Status Report Error: ' . $exception->getMessage(), [
+                'trace' => $exception->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Unable to load the lead status report.',
+            ], 500);
+        }
+    }
+
+    public function lead_source_report(Request $request)
+    {
+        $data = $request->validate([
+            'from_date' => 'nullable|date_format:d-m-Y',
+            'to_date' => 'nullable|date_format:d-m-Y|after_or_equal:from_date',
+        ]);
+
+        $employee = Auth::guard('employee_api')->user();
+        $from = isset($data['from_date']) ? Carbon::createFromFormat('d-m-Y', $data['from_date'])->startOfDay() : null;
+        $to = isset($data['to_date']) ? Carbon::createFromFormat('d-m-Y', $data['to_date'])->endOfDay() : null;
+        $isCompanyAdmin = (int) $employee->role_id === 2 || (int) $employee->isCompanyAdmin === 1;
+
+        $countsFor = function (string $table) use ($employee, $from, $to, $isCompanyAdmin) {
+            return DB::table($table)
+                ->select('LeadSourceId', DB::raw('COUNT(*) as lead_count'), DB::raw('COALESCE(SUM(amount), 0) as total_amount'))
+                ->where('iCustomerId', $employee->company_id)
+                ->where('isDelete', 0)
+                ->when(!$isCompanyAdmin, fn ($query) => $query->where('iemployeeId', $employee->emp_id))
+                ->when($from, fn ($query) => $query->where('created_at', '>=', $from))
+                ->when($to, fn ($query) => $query->where('created_at', '<=', $to))
+                ->groupBy('LeadSourceId')
+                ->get()
+                ->keyBy('LeadSourceId');
+        };
+
+        $active = $countsFor('lead_master');
+        $converted = $countsFor('deal_done');
+        $cancelled = $countsFor('deal_cancel');
+
+        $report = LeadSource::where('company_id', $employee->company_id)
+            ->orderBy('lead_source_name')
+            ->get()
+            ->map(function ($source) use ($active, $converted, $cancelled) {
+                $activeCount = (int) optional($active->get($source->lead_source_id))->lead_count;
+                $convertedRow = $converted->get($source->lead_source_id);
+                $convertedCount = (int) optional($convertedRow)->lead_count;
+                $cancelledCount = (int) optional($cancelled->get($source->lead_source_id))->lead_count;
+
+                return [
+                    'lead_source_id' => $source->lead_source_id,
+                    'lead_source_name' => $source->lead_source_name,
+                    'total_received' => $activeCount + $convertedCount + $cancelledCount,
+                    'active_leads' => $activeCount,
+                    'converted_leads' => $convertedCount,
+                    'cancelled_leads' => $cancelledCount,
+                    'converted_amount' => round((float) optional($convertedRow)->total_amount, 2),
+                ];
+            })
+            ->values();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Lead source report fetched successfully',
+            'data' => $report,
+        ]);
+    }
+    
     public function roi_report(Request $request)
     {
         try {
