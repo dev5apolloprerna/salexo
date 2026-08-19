@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\WebHookController;
 use App\Http\Controllers\Api\MetaWebhookController;
 use App\Http\Controllers\Api\UDFMasterApiController;
+use App\Http\Controllers\Api\TaskManagementApiController;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 
@@ -115,6 +116,16 @@ Route::prefix('employee')->group(function () {
         Route::post('/report/performance', [ReportController::class, 'emp_performance']);
         Route::post('/report/lead/analysis', [ReportController::class, 'emp_lead_analysis']);
         Route::post('/report/lead/cancel/analysis', [ReportController::class, 'emp_lead_cancel_analysis']);
+        Route::post('/report/lead/source', [ReportController::class, 'lead_source_report']);
+        Route::post('/report/lead/status', [ReportController::class, 'employee_lead_status']);
+
+        Route::prefix('task')->group(function () {
+            Route::post('list', [TaskManagementApiController::class, 'index']);
+            Route::post('create', [TaskManagementApiController::class, 'store']);
+            Route::post('{task}/update', [TaskManagementApiController::class, 'update']);
+            Route::post('{task}/status', [TaskManagementApiController::class, 'updateStatus']);
+            Route::post('{task}/delete', [TaskManagementApiController::class, 'destroy']);
+        });
 
 
         Route::post('/lead/found/detail', [ReportController::class, 'lead_found_detail']);
