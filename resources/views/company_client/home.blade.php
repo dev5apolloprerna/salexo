@@ -233,7 +233,11 @@
 
                     <!-- Overdue Followup -->
                     <div class="col-md-4">
-                        <a href="{{ route('clients.over_due_followup') }}">
+                        <a href="{{ route('clients.over_due_followup', array_filter([
+                            'emp_id' => $filterEmpId,
+                            'from_date' => $fromDate,
+                            'to_date' => $toDate,
+                        ], fn ($value) => filled($value))) }}">
                             <div class="card  text-center p-3 text-white" style="background:#ed7e7e;">
                                 <div class="card-title">
                                     <h5>Overdue's Followup</h5>
@@ -260,7 +264,12 @@
                             @php
                                 $slug = Str::slug($pipline->pipeline_name);
                             @endphp
-                            <a href="{{ route('clients.new_lead', $slug) }}">
+<a href="{{ route('clients.new_lead', array_filter([
+                                'status' => $slug,
+                                'emp_id' => $filterEmpId,
+                                'from_date' => $fromDate,
+                                'to_date' => $toDate,
+                            ], fn ($value) => filled($value))) }}">
                                 {{--  @endif  --}}
                                 <div class="card  text-center p-3 text-white"
                                     style="background:{{ $pipline->color ?? '#000000' }};">

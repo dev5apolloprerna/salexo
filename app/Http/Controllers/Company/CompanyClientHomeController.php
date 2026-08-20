@@ -164,6 +164,12 @@ class CompanyClientHomeController extends Controller
             ->when($filterEmpId, function ($query) use ($filterEmpId) {
                 $query->where('employee_id', $filterEmpId);
             })
+            ->when($fromDate, function ($query) use ($fromDate) {
+                $query->whereDate('created_at', '>=', $fromDate);
+            })
+            ->when($toDate, function ($query) use ($toDate) {
+                $query->whereDate('created_at', '<=', $toDate);
+            })
             ->get();
 
         $todays_followup_count = $allLeads->filter(function ($lead) {

@@ -29,8 +29,16 @@
                                 </h5>
                             </div>
                             <div class="card-body border-bottom">
-                                <form action="{{ route('clients.new_lead', $profileId) }}" method="POST" class="row g-3 align-items-end">
-                                    @csrf
+<form action="{{ route('clients.new_lead', $profileId) }}" method="GET" class="row g-3 align-items-end">
+                                    @if ($filterEmpId)
+                                        <input type="hidden" name="emp_id" value="{{ $filterEmpId }}">
+                                    @endif
+                                    @if ($fromDate)
+                                        <input type="hidden" name="from_date" value="{{ $fromDate }}">
+                                    @endif
+                                    @if ($toDate)
+                                        <input type="hidden" name="to_date" value="{{ $toDate }}">
+                                    @endif
                                     <div class="col-md-4">
                                         <label for="search" class="form-label">Search by Company Name or Contact Person Name</label>
                                         <input type="text" class="form-control" id="search" name="search" 
@@ -40,11 +48,30 @@
                                     <div class="col-md-4">
                                         <div class="d-flex gap-2">
                                             <button type="submit" class="btn btn-primary">Search</button>
-                                            <a href="{{ route('clients.new_lead', $profileId) }}" class="btn btn-secondary">Reset</a>
+                                            <a href="{{ route('clients.new_lead', array_filter([
+                                                'status' => $profileId,
+                                                'emp_id' => $filterEmpId,
+                                                'from_date' => $fromDate,
+                                                'to_date' => $toDate,
+                                            ], fn ($value) => filled($value))) }}" class="btn btn-secondary">Reset Search</a>
                                         </div>
                                     </div>
                                 </form>
                             </div>
+                            @if ($filterEmpId || $fromDate || $toDate)
+                                <div class="alert alert-info mx-3 mt-3 mb-0">
+                                    Showing leads matching the dashboard filters
+                                    @if ($fromDate || $toDate)
+                                        ({{ $fromDate ? \Carbon\Carbon::parse($fromDate)->format('d M Y') : 'Beginning' }}
+                                        to {{ $toDate ? \Carbon\Carbon::parse($toDate)->format('d M Y') : 'Today' }})
+                                    @endif.
+                                    <a href="{{ route('userhome', array_filter([
+                                        'emp_id' => $filterEmpId,
+                                        'from_date' => $fromDate,
+                                        'to_date' => $toDate,
+                                    ], fn ($value) => filled($value))) }}" class="alert-link">Back to dashboard</a>
+                                </div>
+                            @endif
                             <div class="row">
                                 <div class="col-lg-12">
                                     <div class="">

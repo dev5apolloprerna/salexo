@@ -89,13 +89,39 @@ class FollowUpController extends Controller
     {
 
         try {
-            $search = request('search');
+            
+            $validated = $request->validate([
+                'search' => ['nullable', 'string', 'max:255'],
+                'emp_id' => ['nullable', 'integer'],
+                'from_date' => ['nullable', 'date'],
+                'to_date' => ['nullable', 'date', 'after_or_equal:from_date'],
+            ]);
+
+            $companyId = Auth::user()->company_id;
+            $search = $validated['search'] ?? null;
+            $filterEmpId = $validated['emp_id'] ?? null;
+            $fromDate = $validated['from_date'] ?? null;
+            $toDate = $validated['to_date'] ?? null;
+
+            if ($filterEmpId && ! Employee::where('company_id', $companyId)->where('emp_id', $filterEmpId)->exists()) {
+                return redirect()->back()->with('error', 'Invalid employee selected.');
+            }
+
             $leads = LeadMaster::where([
                 'lead_master.iStatus' => 1,
                 'lead_master.isDelete' => 0,
-                'lead_master.iCustomerId' => Auth::user()->company_id
+                'lead_master.iCustomerId' => $companyId
 
             ])
+                ->when($filterEmpId, function ($query) use ($filterEmpId) {
+                    $query->where('lead_master.employee_id', $filterEmpId);
+                })
+                ->when($fromDate, function ($query) use ($fromDate) {
+                    $query->whereDate('lead_master.created_at', '>=', $fromDate);
+                })
+                ->when($toDate, function ($query) use ($toDate) {
+                    $query->whereDate('lead_master.created_at', '<=', $toDate);
+                })
                 ->leftJoin('service_master', 'lead_master.product_service_id', '=', 'service_master.service_id')
                 ->leftJoin('lead_source_master', 'lead_master.LeadSourceId', '=', 'lead_source_master.lead_source_id')
                 ->leftJoin('lead_pipeline_master', 'lead_master.status', '=', 'lead_pipeline_master.pipeline_id')
@@ -133,7 +159,12 @@ class FollowUpController extends Controller
                 $page,
                 ['path' => request()->url(), 'query' => request()->query()]
             );
-            return view('company_client.follow_up.over_due_followup', compact('paginated'));
+             return view('company_client.follow_up.over_due_followup', compact(
+                'paginated',
+                'filterEmpId',
+                'fromDate',
+                'toDate'
+            ));
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'An error occurred: ' . $e->getMessage());
         }
@@ -145,18 +176,48 @@ class FollowUpController extends Controller
             $user = Auth::user();
             $companyId = $user->company_id;
 
-            $pipeline = LeadPipeline::where('slugname', $status)->first();
+            $validated = $request->validate([
+                'search' => ['nullable', 'string', 'max:255'],
+                'emp_id' => ['nullable', 'integer'],
+                'from_date' => ['nullable', 'date'],
+                'to_date' => ['nullable', 'date', 'after_or_equal:from_date'],
+            ]);
+
+            $pipeline = LeadPipeline::where('company_id', $companyId)
+                ->where('slugname', $status)
+                ->first();
 
             if (!$pipeline) {
                 return redirect()->back()->with('error', 'Invalid pipeline status provided.');
             }
 
             $pipelineName = $pipeline->pipeline_name;
-            $search = request('search');
+            $search = $validated['search'] ?? null;
+            $filterEmpId = $validated['emp_id'] ?? null;
+            $fromDate = $validated['from_date'] ?? null;
+            $toDate = $validated['to_date'] ?? null;
+
+            if ($filterEmpId && ! Employee::where('company_id', $companyId)->where('emp_id', $filterEmpId)->exists()) {
+                return redirect()->back()->with('error', 'Invalid employee selected.');
+            }
+
+            $applyDashboardFilters = function ($query, string $table) use ($filterEmpId, $fromDate, $toDate) {
+                return $query
+                    ->when($filterEmpId, function ($query) use ($table, $filterEmpId) {
+                        $query->where($table . '.employee_id', $filterEmpId);
+                    })
+                    ->when($fromDate, function ($query) use ($table, $fromDate) {
+                        $query->whereDate($table . '.created_at', '>=', $fromDate);
+                    })
+                    ->when($toDate, function ($query) use ($table, $toDate) {
+                        $query->whereDate($table . '.created_at', '<=', $toDate);
+                    });
+            };
+
 
             if ($status === 'deal-done') {
                 // Get leads from `deal_done` table
-                $leads = DB::table('deal_done')
+                $leadsQuery = DB::table('deal_done')
                     ->where([
                         ['deal_done.iStatus', '=', 1],
                         ['deal_done.isDelete', '=', 0],
@@ -186,10 +247,14 @@ class FollowUpController extends Controller
                             ->orWhere('deal_done.customer_name', 'like', '%' . $search . '%');
                         });
                     })
-                    ->orderBy('lead_id','asc')->paginate(config('app.per_page'));
+                    ->orderBy('deal_done.lead_id', 'asc');
+
+                $leads = $applyDashboardFilters($leadsQuery, 'deal_done')
+                    ->paginate(config('app.per_page'))
+                    ->withQueryString();
             } elseif ($status === 'deal-cancel') {
                 // Get leads from `deal_cancel` table
-                $leads = DB::table('deal_cancel')
+                $leadsQuery = DB::table('deal_cancel')
                     ->where([
                         ['deal_cancel.iStatus', '=', 1],
                         ['deal_cancel.isDelete', '=', 0],
@@ -219,10 +284,14 @@ class FollowUpController extends Controller
                             ->orWhere('deal_cancel.customer_name', 'like', '%' . $search . '%');
                         });
                     })
-                    ->orderBy('lead_id','asc')->paginate(config('app.per_page'));
+                    ->orderBy('deal_cancel.lead_id', 'asc');
+
+                $leads = $applyDashboardFilters($leadsQuery, 'deal_cancel')
+                    ->paginate(config('app.per_page'))
+                    ->withQueryString();
             } else {
                 // Get leads from `lead_master` table
-                $leads = LeadMaster::where([
+                $leadsQuery = LeadMaster::where([
                     'lead_master.iStatus' => 1,
                     'lead_master.isDelete' => 0,
                     'lead_master.iCustomerId' => $companyId
@@ -251,10 +320,20 @@ class FollowUpController extends Controller
                             ->orWhere('lead_master.customer_name', 'like', '%' . $search . '%');
                         });
                     })
-                    ->orderBy('lead_id','asc')->paginate(config('app.per_page'));
+                    ->orderBy('lead_master.lead_id', 'asc');
+
+                $leads = $applyDashboardFilters($leadsQuery, 'lead_master')
+                    ->paginate(config('app.per_page'))
+                    ->withQueryString();
             }
 
-            return view('company_client.follow_up.new_leads', compact('leads', 'status'));
+                return view('company_client.follow_up.new_leads', compact(
+                'leads',
+                'status',
+                'filterEmpId',
+                'fromDate',
+                'toDate'
+            ));
         } catch (\Exception $e) {
             Log::error('Error in new_lead function', [
                 'message' => $e->getMessage(),
