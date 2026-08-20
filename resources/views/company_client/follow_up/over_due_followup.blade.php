@@ -24,8 +24,16 @@
                                 </h5>
                             </div>
                             <div class="card-body border-bottom">
-                                <form action="{{ route('clients.over_due_followup') }}" method="POST" class="row g-3 align-items-end">
-                                    @csrf
+                                    <form action="{{ route('clients.over_due_followup') }}" method="GET" class="row g-3 align-items-end">
+                                    @if ($filterEmpId)
+                                        <input type="hidden" name="emp_id" value="{{ $filterEmpId }}">
+                                    @endif
+                                    @if ($fromDate)
+                                        <input type="hidden" name="from_date" value="{{ $fromDate }}">
+                                    @endif
+                                    @if ($toDate)
+                                        <input type="hidden" name="to_date" value="{{ $toDate }}">
+                                    @endif
                                     <div class="col-md-4">
                                         <label for="search" class="form-label">Search by Company Name or Contact Person Name</label>
                                         <input type="text" class="form-control" id="search" name="search" 
@@ -35,11 +43,25 @@
                                     <div class="col-md-4">
                                         <div class="d-flex gap-2">
                                             <button type="submit" class="btn btn-primary">Search</button>
-                                            <a href="{{ route('clients.over_due_followup') }}" class="btn btn-secondary">Reset</a>
+                                            <a href="{{ route('clients.over_due_followup', array_filter([
+                                                'emp_id' => $filterEmpId,
+                                                'from_date' => $fromDate,
+                                                'to_date' => $toDate,
+                                            ], fn ($value) => filled($value))) }}" class="btn btn-secondary">Reset Search</a>
                                         </div>
                                     </div>
                                 </form>
                             </div>
+                             @if ($filterEmpId || $fromDate || $toDate)
+                                <div class="alert alert-info mx-3 mt-3 mb-0">
+                                    Showing overdue follow-ups matching the dashboard employee and lead entry date filters.
+                                    <a href="{{ route('userhome', array_filter([
+                                        'emp_id' => $filterEmpId,
+                                        'from_date' => $fromDate,
+                                        'to_date' => $toDate,
+                                    ], fn ($value) => filled($value))) }}" class="alert-link">Back to dashboard</a>
+                                </div>
+                            @endif
                             <div class="row">
                                 <div class="col-lg-12">
                                     <div class="">
@@ -63,10 +85,9 @@
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    <?php $i = 1; ?>
-                                                    @forelse($paginated as $lead)
+                                                    @forelse($paginated as $index => $lead)
                                                         <tr class="text-center">
-                                                            <td>{{ $i }}
+                                                            <td>{{ $paginated->firstItem() + $index }}
                                                             </td>
                                                             <td>{{ $lead->company_name ?? '-' }}</td>
                                                             <td>{{ $lead->customer_name ?? '-' }}</td>
@@ -89,7 +110,6 @@
                                                             </td>
 
                                                         </tr>
-                                                        <?php $i++; ?>
                                                     @empty
                                                         <tr>
                                                             <td colspan="13" class="text-center">No Follow Up Found.</td>
