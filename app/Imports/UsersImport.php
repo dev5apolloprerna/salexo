@@ -7,6 +7,8 @@ use App\Models\LeadSource;
 use App\Models\Employee;
 use App\Models\LeadPipeline;
 use App\Models\Service;
+use App\Models\LeadUdfData;
+use App\Models\UdfMaster;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -14,6 +16,7 @@ use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Str;
 
 class UsersImport implements ToCollection, WithHeadingRow, WithValidation
 {
@@ -31,9 +34,29 @@ class UsersImport implements ToCollection, WithHeadingRow, WithValidation
         "employee"
     ];
 
+    protected $companyId;
+    protected $udfs;
+
+    public function __construct($companyId)
+    {
+        $this->companyId = $companyId;
+        $this->udfs = UdfMaster::where('company_id', $companyId)
+            ->where('isDelete', 0)
+            ->where('iStatus', 1)
+            ->orderBy('id')
+            ->get();
+
+        $this->expectedHeadings = array_merge(
+            $this->expectedHeadings,
+            $this->udfs->map(function ($udf) {
+                return Str::slug($udf->label, '_');
+            })->all()
+        );
+    }
+
     public function rules(): array
     {
-        return [
+        $rules = [
             'contact_person_name' => 'required|string|max:255',
             'mobile' => 'required|digits:10',
             'remarks' => 'required|string|max:255',
@@ -41,6 +64,14 @@ class UsersImport implements ToCollection, WithHeadingRow, WithValidation
             'lead_source' => 'required|string|max:255',
             'employee' => 'required|string|max:255',
         ];
+
+        foreach ($this->udfs as $udf) {
+            $rules[Str::slug($udf->label, '_')] = $udf->required === 'Yes'
+                ? 'required|string|max:255'
+                : 'nullable|string|max:255';
+        }
+
+        return $rules;
     }
 
     public function collection(Collection $rows)
@@ -68,7 +99,8 @@ class UsersImport implements ToCollection, WithHeadingRow, WithValidation
         try {
             // Validate employee exists
             foreach ($rows as $index => $row) {
-                $employee = Employee::where('emp_name', trim($row['employee']))->first();
+                $employee = Employee::where('company_id', $this->companyId)
+                    ->where('emp_name', trim($row['employee']))->first();
                 if (!$employee) {
                     $errors[] = "Row " . ($index + 2) . ": Employee '{$row['employee']}' does not exist.";
                 }
@@ -83,14 +115,15 @@ class UsersImport implements ToCollection, WithHeadingRow, WithValidation
             foreach ($rows as $row) {
 
                 // ✅ Employee must exist first
-                $employee = Employee::where('emp_name', trim($row['employee']))->first();
+                $employee = Employee::where('company_id', $this->companyId)
+                    ->where('emp_name', trim($row['employee']))->first();
                 if (!$employee) {
                     throw ValidationException::withMessages([
                         'employee' => "Employee '{$row['employee']}' does not exist in the system."
                     ]);
                 }
 
-                $companyId = Auth::user()->company_id;
+                $companyId = $this->companyId;
 
                 $serviceName = trim(ucwords(strtolower($row['service_product'])));
                 $service = Service::firstOrCreate(
@@ -107,13 +140,14 @@ class UsersImport implements ToCollection, WithHeadingRow, WithValidation
                 );
                 $sourceId = $source->lead_source_id;
 
-                $employee = Employee::where('emp_name', trim($row['employee']))->first();
+                $employee = Employee::where('company_id', $companyId)
+                    ->where('emp_name', trim($row['employee']))->first();
                 $new_lead = LeadPipeline::where([
                     'company_id' => Auth::user()->company_id,
                     'pipeline_name' => "New Lead"
                 ])->first();
 
-                LeadMaster::create([
+                $lead = LeadMaster::create([
                     'iCustomerId' => $companyId ?? 0,
                     'iemployeeId' => Auth::user()->emp_id ?? '0',
                     'company_name' => $row['company_name'] ?? '',
@@ -136,6 +170,20 @@ class UsersImport implements ToCollection, WithHeadingRow, WithValidation
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
+
+                 foreach ($this->udfs as $udf) {
+                    $heading = Str::slug($udf->label, '_');
+                    $value = $row[$heading] ?? null;
+
+                    if ($value !== null && $value !== '') {
+                        LeadUdfData::create([
+                            'lead_id' => $lead->lead_id,
+                            'udf_id' => $udf->id,
+                            'value' => $value,
+                            'created_at' => now(),
+                        ]);
+                    }
+                }
             }
 
             DB::commit();

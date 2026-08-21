@@ -303,8 +303,44 @@ class CompanyClientHomeController extends Controller
         ->where('deal_done.iCustomerId', $emp_id)
         ->where('deal_done.status', $lead_pipeline->pipeline_id)
         ->where('deal_done.isDelete', 0)
+        ->when($filterEmpId, function ($query) use ($filterEmpId) {
+            $query->where('deal_done.employee_id', $filterEmpId);
+        })
+        ->when($fromDate, function ($query) use ($fromDate) {
+            $query->whereDate('deal_done.created_at', '>=', $fromDate);
+        })
+        ->when($toDate, function ($query) use ($toDate) {
+            $query->whereDate('deal_done.created_at', '<=', $toDate);
+        })
         ->groupBy('deal_done.product_service_id', 'service_master.service_name')
+        ->orderByDesc('total_value')
+        ->limit(10)
         ->get();
+
+        $topPerformers = DealDone::select(
+            'employee_master.emp_id',
+            'employee_master.emp_name',
+            DB::raw('COUNT(deal_done.lead_id) as deals_closed'),
+            DB::raw('SUM(deal_done.amount) as total_value')
+        )
+            ->join('employee_master', 'employee_master.emp_id', '=', 'deal_done.employee_id')
+            ->where('deal_done.iCustomerId', $emp_id)
+            ->where('deal_done.status', $lead_pipeline->pipeline_id)
+            ->where('deal_done.isDelete', 0)
+            ->where('employee_master.isDelete', 0)
+            ->when($filterEmpId, function ($query) use ($filterEmpId) {
+                $query->where('deal_done.employee_id', $filterEmpId);
+            })
+            ->when($fromDate, function ($query) use ($fromDate) {
+                $query->whereDate('deal_done.created_at', '>=', $fromDate);
+            })
+            ->when($toDate, function ($query) use ($toDate) {
+                $query->whereDate('deal_done.created_at', '<=', $toDate);
+            })
+            ->groupBy('employee_master.emp_id', 'employee_master.emp_name')
+            ->orderByDesc('total_value')
+            ->limit(10)
+            ->get();
 
 
     $leadsGenerated = DB::table(function ($query) use ($emp_id) {
@@ -385,6 +421,7 @@ class CompanyClientHomeController extends Controller
         'overdues_followup_count',
         'employees',
         'topProducts',
+        'topPerformers',
         'labels',
         'generatedData',
         'convertedData',

@@ -2,16 +2,21 @@
 
 namespace App\Exports;
 
-use App\Models\User;
-use App\Models\DummyExcel;
-use Maatwebsite\Excel\Concerns\FromCollection;
+use App\Models\UdfMaster;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 
 class UsersExport implements WithHeadings
 {
+     private $companyId;
+
+    public function __construct($companyId)
+    {
+        $this->companyId = $companyId;
+    }
+
     public function headings(): array
     {
-        return [
+        $headings = [
             "Company Name",
             "GST",
             "Contact Person Name",
@@ -24,5 +29,13 @@ class UsersExport implements WithHeadings
             "Lead Source",
             "Employee"
         ];
+        $udfHeadings = UdfMaster::where('company_id', $this->companyId)
+            ->where('isDelete', 0)
+            ->where('iStatus', 1)
+            ->orderBy('id')
+            ->pluck('label')
+            ->all();
+
+        return array_merge($headings, $udfHeadings);
     }
 }
