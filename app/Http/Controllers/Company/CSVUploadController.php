@@ -16,11 +16,11 @@ class CSVUploadController extends Controller
     }
     public function dummyexcel(Request $request)
     {
-        return Excel::download(new UsersExport, 'DummyExcel.xlsx');
+        return Excel::download(new UsersExport(auth()->user()->company_id), 'DummyExcel.xlsx');
     }
     public function create(Request $request)
     {
-        Excel::import(new UsersImport, request()->file('csvfile'));
+        Excel::import(new UsersImport(auth()->user()->company_id), request()->file('csvfile'));
         return back()->with('success', 'CSV Uploaded Successfully');
     }
 }

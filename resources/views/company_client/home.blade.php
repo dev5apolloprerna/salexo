@@ -297,7 +297,7 @@
                 </div>
 
                 <div class="row g-3 mb-4">
-                    <div class="col-md-6">
+                    <div class="col-12">
                         <div class="card p-4">
                             <h6><i class="fa-solid fa-chart-bar"></i> Lead Performance</h6>
                             <canvas id="leadChart" height="350"></canvas>
@@ -318,15 +318,50 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        @foreach ($topProducts as $index => $product)
+                                        @forelse ($topProducts as $index => $product)
                                             <tr>
                                                 <td>{{ $index + 1 }}</td>
                                                 <td>{{ $product->service_name ?? 'N/A' }}</td>
                                                 <td>{{ $product->quantity }}</td>
                                                 <td style="text-align:right">{{ $product->total_value ?? '-' }}</td>
                                             </tr>
-                                        @endforeach
+                                        @empty
+                                            <tr>
+                                                <td colspan="4" class="text-center text-muted">No completed deals found.</td>
+                                            </tr>
+                                        @endforelse
 
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                     <div class="col-md-6">
+                        <div class="card p-4">
+                            <h6><i class="fa-solid fa-trophy"></i> Top Performer Report</h6>
+                            <div class="table-responsive mb-3 table-wrapper">
+                                <table class="table table-bordered table-striped align-middle">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>S.No</th>
+                                            <th>Employee Name</th>
+                                            <th>Deals Closed</th>
+                                            <th class="text-end">Value</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @forelse ($topPerformers as $index => $performer)
+                                            <tr>
+                                                <td>{{ $index + 1 }}</td>
+                                                <td>{{ $performer->emp_name }}</td>
+                                                <td>{{ $performer->deals_closed }}</td>
+                                                <td class="text-end">{{ $performer->total_value ?? '-' }}</td>
+                                            </tr>
+                                        @empty
+                                            <tr>
+                                                <td colspan="4" class="text-center text-muted">No performer data found.</td>
+                                            </tr>
+                                        @endforelse
                                     </tbody>
                                 </table>
                             </div>
