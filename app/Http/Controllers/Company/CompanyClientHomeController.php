@@ -16,6 +16,7 @@ use App\Models\LeadPipeline;
 use App\Models\LeadSource;
 use App\Models\Role;
 use Carbon\Carbon;
+use App\Support\LeadSourceReport;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -45,7 +46,18 @@ class CompanyClientHomeController extends Controller
         $applyDashboardFilters = function ($query, $employeeColumn = 'employee_id', $dateColumn = 'created_at') use ($filterEmpId, $fromDate, $toDate) {
             return $query
                 ->when($filterEmpId, function ($query) use ($employeeColumn, $filterEmpId) {
-                    $query->where($employeeColumn, $filterEmpId);
+            $query->where(function ($query) use ($employeeColumn, $filterEmpId) {
+                        $query->where($employeeColumn, $filterEmpId)
+                            // Older integration leads were not populated in
+                            // employee_id. Fall back to their employee owner so
+                            // they are still included in employee-wise searches.
+                            ->orWhere(function ($query) use ($employeeColumn, $filterEmpId) {
+                                $query->where(function ($query) use ($employeeColumn) {
+                                    $query->whereNull($employeeColumn)
+                                        ->orWhere($employeeColumn, 0);
+                                })->where('iemployeeId', $filterEmpId);
+                            });
+                    });
                 })
                 ->when($fromDate, function ($query) use ($dateColumn, $fromDate) {
                     $query->whereDate($dateColumn, '>=', $fromDate);
@@ -284,6 +296,13 @@ class CompanyClientHomeController extends Controller
             ->orderBy('lead_source_name')
             ->get();
 
+// Integrations and manual entry can leave more than one master row with
+        // the same displayed name. Combine those IDs so Facebook, IndiaMart,
+        // and every other source show the true number of leads.
+        [$reportLeadSources, $leadSourceStatusCounts] = LeadSourceReport::consolidate(
+            $reportLeadSources,
+            $leadSourceStatusCounts
+        );
 
         // -------------------------------
         // 4. TOP SELLING PRODUCTS
