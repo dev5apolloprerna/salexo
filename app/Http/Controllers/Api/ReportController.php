@@ -193,58 +193,98 @@ class ReportController extends Controller
     public function lead_source_report(Request $request)
     {
         $data = $request->validate([
+            'emp_id' => 'nullable|integer',
             'from_date' => 'nullable|date_format:d-m-Y',
             'to_date' => 'nullable|date_format:d-m-Y|after_or_equal:from_date',
         ]);
 
-        $employee = Auth::guard('employee_api')->user();
+        $companyAdmin = Auth::guard('employee_api')->user();
+        if (!$companyAdmin || !$companyAdmin->isCompanyAdmin) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This report is available only to the company admin login.',
+            ], 403);
+        }
+
+        $employeeId = $data['emp_id'] ?? null;
+
         $from = isset($data['from_date']) ? Carbon::createFromFormat('d-m-Y', $data['from_date'])->startOfDay() : null;
         $to = isset($data['to_date']) ? Carbon::createFromFormat('d-m-Y', $data['to_date'])->endOfDay() : null;
-        $isCompanyAdmin = (int) $employee->role_id === 2 || (int) $employee->isCompanyAdmin === 1;
+         
 
-        $countsFor = function (string $table) use ($employee, $from, $to, $isCompanyAdmin) {
-            return DB::table($table)
-                ->select('LeadSourceId', DB::raw('COUNT(*) as lead_count'), DB::raw('COALESCE(SUM(amount), 0) as total_amount'))
-                ->where('iCustomerId', $employee->company_id)
-                ->where('isDelete', 0)
-                ->when(!$isCompanyAdmin, fn ($query) => $query->where('iemployeeId', $employee->emp_id))
-                ->when($from, fn ($query) => $query->where('created_at', '>=', $from))
-                ->when($to, fn ($query) => $query->where('created_at', '<=', $to))
-                ->groupBy('LeadSourceId')
-                ->get()
-                ->keyBy('LeadSourceId');
-        };
+         if ($employeeId && !Employee::where('company_id', $companyAdmin->company_id)
+            ->where('isDelete', 0)
+            ->where('emp_id', $employeeId)
+            ->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'The selected employee was not found in this company.',
+            ], 404);
+        }
 
-        $active = $countsFor('lead_master');
-        $converted = $countsFor('deal_done');
-        $cancelled = $countsFor('deal_cancel');
+            $sourceStatusQueries = collect(['lead_master', 'deal_done', 'deal_cancel'])
+            ->map(function (string $table) use ($companyAdmin, $employeeId, $from, $to) {
+                return DB::table($table)
+                    ->select('LeadSourceId', 'status', DB::raw('COUNT(*) as total'))
+                    ->where('iCustomerId', $companyAdmin->company_id)
+                    ->where('isDelete', 0)
+                    ->when($employeeId, fn ($query) => $query->where('employee_id', $employeeId))
+                    ->when($from, fn ($query) => $query->where('created_at', '>=', $from))
+                    ->when($to, fn ($query) => $query->where('created_at', '<=', $to))
+                    ->groupBy('LeadSourceId', 'status');
+            });
+        $combinedSourceStatusQuery = $sourceStatusQueries->shift();
+        $sourceStatusQueries->each(function ($query) use ($combinedSourceStatusQuery) {
+            $combinedSourceStatusQuery->unionAll($query);
+        });
 
-        $report = LeadSource::where('company_id', $employee->company_id)
-            ->orderBy('lead_source_name')
+        $leadSourceStatusCounts = DB::query()
+            ->fromSub($combinedSourceStatusQuery, 'source_statuses')
+            ->select('LeadSourceId', 'status', DB::raw('SUM(total) as total'))
+            ->groupBy('LeadSourceId', 'status')
             ->get()
-            ->map(function ($source) use ($active, $converted, $cancelled) {
-                $activeCount = (int) optional($active->get($source->lead_source_id))->lead_count;
-                $convertedRow = $converted->get($source->lead_source_id);
-                $convertedCount = (int) optional($convertedRow)->lead_count;
-                $cancelledCount = (int) optional($cancelled->get($source->lead_source_id))->lead_count;
+            ->groupBy('LeadSourceId')
+            ->map(fn ($statuses) => $statuses->pluck('total', 'status'));
+ 
 
-                return [
-                    'lead_source_id' => $source->lead_source_id,
-                    'lead_source_name' => $source->lead_source_name,
-                    'total_received' => $activeCount + $convertedCount + $cancelledCount,
-                    'active_leads' => $activeCount,
-                    'converted_leads' => $convertedCount,
-                    'cancelled_leads' => $cancelledCount,
-                    'converted_amount' => round((float) optional($convertedRow)->total_amount, 2),
-                ];
-            })
-            ->values();
+        $pipelines = LeadPipeline::where('company_id', $companyAdmin->company_id)
+            ->orderBy('pipeline_id')
+            ->get(['pipeline_id', 'pipeline_name', 'slugname', 'color']);
+        $leadSources = LeadSource::where('company_id', $companyAdmin->company_id)
+            ->orderBy('lead_source_name')
+            ->get();
 
-        return response()->json([
+        $report = $leadSources->map(function ($source) use ($leadSourceStatusCounts, $pipelines) {
+            $sourceStatuses = $leadSourceStatusCounts->get($source->lead_source_id, collect());
+
+            return [
+                'lead_source_id' => $source->lead_source_id,
+                'lead_source_name' => $source->lead_source_name,
+                'total_leads' => (int) $sourceStatuses->sum(),
+                'statuses' => $pipelines->map(function ($pipeline) use ($sourceStatuses) {
+                    return [
+                        'pipeline_id' => $pipeline->pipeline_id,
+                        'pipeline_name' => $pipeline->pipeline_name,
+                        'slugname' => $pipeline->slugname,
+                        'color' => $pipeline->color,
+                        'lead_count' => (int) $sourceStatuses->get($pipeline->pipeline_id, 0),
+                    ];
+                })->values(),
+            ];
+        })->values();
+
+
+         return response()->json([
             'success' => true,
             'message' => 'Lead source report fetched successfully',
+            'filters' => [
+                'emp_id' => $employeeId ? (int) $employeeId : null,
+                'from_date' => $data['from_date'] ?? null,
+                'to_date' => $data['to_date'] ?? null,
+            ],
             'data' => $report,
         ]);
+
     }
     
     public function roi_report(Request $request)
