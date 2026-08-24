@@ -13,6 +13,7 @@ use App\Models\Employee;
 use App\Models\LeadMaster;
 use App\Models\LeadPipeline;
 use App\Models\LeadSource;
+use App\Support\LeadSourceReport;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -228,7 +229,17 @@ class ReportController extends Controller
                     ->select('LeadSourceId', 'status', DB::raw('COUNT(*) as total'))
                     ->where('iCustomerId', $companyAdmin->company_id)
                     ->where('isDelete', 0)
-                    ->when($employeeId, fn ($query) => $query->where('employee_id', $employeeId))
+                    ->when($employeeId, function ($query) use ($employeeId) {
+                        $query->where(function ($query) use ($employeeId) {
+                            $query->where('employee_id', $employeeId)
+                                ->orWhere(function ($query) use ($employeeId) {
+                                    $query->where(function ($query) {
+                                        $query->whereNull('employee_id')
+                                            ->orWhere('employee_id', 0);
+                                    })->where('iemployeeId', $employeeId);
+                                });
+                        });
+                    })
                     ->when($from, fn ($query) => $query->where('created_at', '>=', $from))
                     ->when($to, fn ($query) => $query->where('created_at', '<=', $to))
                     ->groupBy('LeadSourceId', 'status');
@@ -253,6 +264,11 @@ class ReportController extends Controller
         $leadSources = LeadSource::where('company_id', $companyAdmin->company_id)
             ->orderBy('lead_source_name')
             ->get();
+
+        [$leadSources, $leadSourceStatusCounts] = LeadSourceReport::consolidate(
+            $leadSources,
+            $leadSourceStatusCounts
+        );
 
         $report = $leadSources->map(function ($source) use ($leadSourceStatusCounts, $pipelines) {
             $sourceStatuses = $leadSourceStatusCounts->get($source->lead_source_id, collect());
