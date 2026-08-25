@@ -33,17 +33,41 @@ class CompanyClientHomeController extends Controller
             'to_date' => ['nullable', 'date', 'after_or_equal:from_date'],
         ]);
 
-    try {
+    // try {
         $employee = Auth::guard('web_employees')->user();
         $emp_id = $employee->company_id;
 
         // Optional: filter all dashboard counts by a specific employee (search by employee name)
         $filterEmpId = $request->input('emp_id');
 
+        // Employee logins must never see another employee's dashboard data.
+        // Company administrators can still use the employee selector or leave
+        // it empty to see the whole company.
+        if (! $employee->isCompanyAdmin) {
+            $filterEmpId = $employee->emp_id;
+        }
+
+        if ($filterEmpId && ! Employee::where('company_id', $emp_id)->where('emp_id', $filterEmpId)->exists()) {
+            return back()->with('error', 'Invalid employee selected.');
+        }
+
          $fromDate = $request->input('from_date');
         $toDate = $request->input('to_date');
 
-        $applyDashboardFilters = function ($query, $employeeColumn = 'employee_id', $dateColumn = 'created_at') use ($filterEmpId, $fromDate, $toDate) {
+        $followupDateSql = function (string $table): string {
+            // next_followup_date is an old VARCHAR column and existing records
+            // use more than one format. Normalize it before comparing it with
+            // the Y-m-d value submitted by the HTML date inputs.
+            return "COALESCE("
+                . "STR_TO_DATE(TRIM({$table}.next_followup_date), '%d-%m-%Y %h:%i %p'), "
+                . "STR_TO_DATE(TRIM({$table}.next_followup_date), '%Y/%m/%d %h:%i %p'), "
+                . "STR_TO_DATE(TRIM({$table}.next_followup_date), '%Y-%m-%d %h:%i %p')"
+                . ")";
+        };
+
+        $applyDashboardFilters = function ($query, string $table, $employeeColumn = 'employee_id') use ($filterEmpId, $fromDate, $toDate, $followupDateSql) {
+            $followupDate = $followupDateSql($table);
+
             return $query
                 ->when($filterEmpId, function ($query) use ($employeeColumn, $filterEmpId) {
             $query->where(function ($query) use ($employeeColumn, $filterEmpId) {
@@ -59,11 +83,11 @@ class CompanyClientHomeController extends Controller
                             });
                     });
                 })
-                ->when($fromDate, function ($query) use ($dateColumn, $fromDate) {
-                    $query->whereDate($dateColumn, '>=', $fromDate);
+                ->when($fromDate, function ($query) use ($followupDate, $fromDate) {
+                    $query->whereRaw("DATE({$followupDate}) >= ?", [$fromDate]);
                 })
-                ->when($toDate, function ($query) use ($dateColumn, $toDate) {
-                    $query->whereDate($dateColumn, '<=', $toDate);
+                ->when($toDate, function ($query) use ($followupDate, $toDate) {
+                    $query->whereRaw("DATE({$followupDate}) <= ?", [$toDate]);
                 });
         };
 
@@ -84,7 +108,7 @@ class CompanyClientHomeController extends Controller
         // New Lead Pipelines
         $pipline = (clone $pipelineBaseQuery)
             ->addSelect(DB::raw('COUNT(lead_master.lead_id) as status_count'))
-            ->leftJoin('lead_master', function ($join) use ($emp_id, $filterEmpId, $fromDate, $toDate) {
+            ->leftJoin('lead_master', function ($join) use ($emp_id, $filterEmpId, $fromDate, $toDate, $followupDateSql) {
                 $join->on('lead_master.status', '=', 'lead_pipeline_master.pipeline_id')
                     ->where('lead_master.iCustomerId', $emp_id)
                     ->where('lead_master.isDelete', 0);
@@ -92,10 +116,10 @@ class CompanyClientHomeController extends Controller
                     $join->where('lead_master.employee_id', $filterEmpId);
                 }
                 if ($fromDate) {
-                    $join->whereDate('lead_master.created_at', '>=', $fromDate);
+                    $join->whereRaw('DATE(' . $followupDateSql('lead_master') . ') >= ?', [$fromDate]);
                 }
                 if ($toDate) {
-                    $join->whereDate('lead_master.created_at', '<=', $toDate);
+                    $join->whereRaw('DATE(' . $followupDateSql('lead_master') . ') <= ?', [$toDate]);
                 }
 
             })
@@ -112,7 +136,7 @@ class CompanyClientHomeController extends Controller
         // Deal Done Pipeline
         $piplineDones = (clone $pipelineBaseQuery)
             ->addSelect(DB::raw('COUNT(deal_done.lead_id) as status_count'))
-            ->leftJoin('deal_done', function ($join) use ($emp_id, $filterEmpId, $fromDate, $toDate) {
+            ->leftJoin('deal_done', function ($join) use ($emp_id, $filterEmpId, $fromDate, $toDate, $followupDateSql) {
                 $join->on('deal_done.status', '=', 'lead_pipeline_master.pipeline_id')
                     ->where('deal_done.iCustomerId', $emp_id)
                     ->where('deal_done.isDelete', 0);
@@ -120,10 +144,10 @@ class CompanyClientHomeController extends Controller
                     $join->where('deal_done.employee_id', $filterEmpId);
                 }
                  if ($fromDate) {
-                    $join->whereDate('deal_done.created_at', '>=', $fromDate);
+                    $join->whereRaw('DATE(' . $followupDateSql('deal_done') . ') >= ?', [$fromDate]);
                 }
                 if ($toDate) {
-                    $join->whereDate('deal_done.created_at', '<=', $toDate);
+                    $join->whereRaw('DATE(' . $followupDateSql('deal_done') . ') <= ?', [$toDate]);
                 }
             })
             ->where('lead_pipeline_master.slugname', 'deal-done')
@@ -139,7 +163,7 @@ class CompanyClientHomeController extends Controller
         // Deal Cancel Pipeline
         $piplineCancels = (clone $pipelineBaseQuery)
             ->addSelect(DB::raw('COUNT(deal_cancel.lead_id) as status_count'))
-            ->leftJoin('deal_cancel', function ($join) use ($emp_id, $filterEmpId, $fromDate, $toDate) {
+            ->leftJoin('deal_cancel', function ($join) use ($emp_id, $filterEmpId, $fromDate, $toDate, $followupDateSql) {
                 $join->on('deal_cancel.status', '=', 'lead_pipeline_master.pipeline_id')
                     ->where('deal_cancel.iCustomerId', $emp_id)
                     ->where('deal_cancel.isDelete', 0);
@@ -147,10 +171,10 @@ class CompanyClientHomeController extends Controller
                     $join->where('deal_cancel.employee_id', $filterEmpId);
                 }
                  if ($fromDate) {
-                    $join->whereDate('deal_cancel.created_at', '>=', $fromDate);
+                    $join->whereRaw('DATE(' . $followupDateSql('deal_cancel') . ') >= ?', [$fromDate]);
                 }
                 if ($toDate) {
-                    $join->whereDate('deal_cancel.created_at', '<=', $toDate);
+                    $join->whereRaw('DATE(' . $followupDateSql('deal_cancel') . ') <= ?', [$toDate]);
                 }
             })
             ->where('lead_pipeline_master.slugname', 'deal-cancel')
@@ -176,11 +200,11 @@ class CompanyClientHomeController extends Controller
             ->when($filterEmpId, function ($query) use ($filterEmpId) {
                 $query->where('employee_id', $filterEmpId);
             })
-            ->when($fromDate, function ($query) use ($fromDate) {
-                $query->whereDate('created_at', '>=', $fromDate);
+            ->when($fromDate, function ($query) use ($fromDate, $followupDateSql) {
+                $query->whereRaw('DATE(' . $followupDateSql('lead_master') . ') >= ?', [$fromDate]);
             })
-            ->when($toDate, function ($query) use ($toDate) {
-                $query->whereDate('created_at', '<=', $toDate);
+            ->when($toDate, function ($query) use ($toDate, $followupDateSql) {
+                $query->whereRaw('DATE(' . $followupDateSql('lead_master') . ') <= ?', [$toDate]);
             })
             ->get();
 
@@ -230,7 +254,7 @@ class CompanyClientHomeController extends Controller
                 ->where('iCustomerId', $emp_id)
                 ->where('isDelete', 0);
 
-            $applyDashboardFilters($query);
+            $applyDashboardFilters($query, $source['table']);
 
             return $query->groupBy('employee_id', 'status');
         });
@@ -272,7 +296,7 @@ class CompanyClientHomeController extends Controller
                 ->where('iCustomerId', $emp_id)
                 ->where('isDelete', 0);
 
-            $applyDashboardFilters($query);
+            $applyDashboardFilters($query, $table);
 
             return $query->groupBy('LeadSourceId', 'status');
         });
@@ -325,11 +349,11 @@ class CompanyClientHomeController extends Controller
         ->when($filterEmpId, function ($query) use ($filterEmpId) {
             $query->where('deal_done.employee_id', $filterEmpId);
         })
-        ->when($fromDate, function ($query) use ($fromDate) {
-            $query->whereDate('deal_done.created_at', '>=', $fromDate);
+        ->when($fromDate, function ($query) use ($fromDate, $followupDateSql) {
+            $query->whereRaw('DATE(' . $followupDateSql('deal_done') . ') >= ?', [$fromDate]);
         })
-        ->when($toDate, function ($query) use ($toDate) {
-            $query->whereDate('deal_done.created_at', '<=', $toDate);
+        ->when($toDate, function ($query) use ($toDate, $followupDateSql) {
+            $query->whereRaw('DATE(' . $followupDateSql('deal_done') . ') <= ?', [$toDate]);
         })
         ->groupBy('deal_done.product_service_id', 'service_master.service_name')
         ->orderByDesc('total_value')
@@ -350,11 +374,11 @@ class CompanyClientHomeController extends Controller
             ->when($filterEmpId, function ($query) use ($filterEmpId) {
                 $query->where('deal_done.employee_id', $filterEmpId);
             })
-            ->when($fromDate, function ($query) use ($fromDate) {
-                $query->whereDate('deal_done.created_at', '>=', $fromDate);
+            ->when($fromDate, function ($query) use ($fromDate, $followupDateSql) {
+                $query->whereRaw('DATE(' . $followupDateSql('deal_done') . ') >= ?', [$fromDate]);
             })
-            ->when($toDate, function ($query) use ($toDate) {
-                $query->whereDate('deal_done.created_at', '<=', $toDate);
+            ->when($toDate, function ($query) use ($toDate, $followupDateSql) {
+                $query->whereRaw('DATE(' . $followupDateSql('deal_done') . ') <= ?', [$toDate]);
             })
             ->groupBy('employee_master.emp_id', 'employee_master.emp_name')
             ->orderByDesc('total_value')
@@ -362,24 +386,42 @@ class CompanyClientHomeController extends Controller
             ->get();
 
 
-    $leadsGenerated = DB::table(function ($query) use ($emp_id) {
+    // Keep the performance chart in sync with the dashboard form.  The old
+    // query was hard-coded to the current year, so changing either date input
+    // left the most prominent dashboard report unchanged.
+    $chartFrom = $fromDate
+        ? Carbon::parse($fromDate)->startOfDay()
+        : ($toDate ? Carbon::parse($toDate)->startOfMonth()->subMonths(5) : now()->startOfMonth()->subMonths(5));
+    $chartTo = $toDate ? Carbon::parse($toDate)->endOfDay() : now()->endOfDay();
+
+    $leadsGenerated = DB::table(function ($query) use ($emp_id, $filterEmpId, $chartFrom, $chartTo, $followupDateSql) {
+        $leadFollowupDate = $followupDateSql('lead_master');
         $leadQuery = DB::table('lead_master')
-            ->selectRaw('MONTH(created_at) as month, COUNT(*) as total')
-            ->whereYear('created_at', now()->year)
+            ->selectRaw("DATE_FORMAT({$leadFollowupDate}, '%Y-%m') as month, COUNT(*) as total")
             ->where('iCustomerId', $emp_id)
-            ->groupByRaw('MONTH(created_at)');
+            ->where('isDelete', 0)
+            ->whereRaw("{$leadFollowupDate} BETWEEN ? AND ?", [$chartFrom, $chartTo])
+            ->when($filterEmpId, fn ($query) => $query->where('employee_id', $filterEmpId))
+            ->groupByRaw("DATE_FORMAT({$leadFollowupDate}, '%Y-%m')");
 
+
+        $doneFollowupDate = $followupDateSql('deal_done');
         $dealDoneQuery = DB::table('deal_done')
-            ->selectRaw('MONTH(created_at) as month, COUNT(*) as total')
-            ->whereYear('created_at', now()->year)
+            ->selectRaw("DATE_FORMAT({$doneFollowupDate}, '%Y-%m') as month, COUNT(*) as total")
             ->where('iCustomerId', $emp_id)
-            ->groupByRaw('MONTH(created_at)');
+            ->where('isDelete', 0)
+            ->whereRaw("{$doneFollowupDate} BETWEEN ? AND ?", [$chartFrom, $chartTo])
+            ->when($filterEmpId, fn ($query) => $query->where('employee_id', $filterEmpId))
+            ->groupByRaw("DATE_FORMAT({$doneFollowupDate}, '%Y-%m')");
 
+        $cancelFollowupDate = $followupDateSql('deal_cancel');
         $dealCancelQuery = DB::table('deal_cancel')
-            ->selectRaw('MONTH(created_at) as month, COUNT(*) as total')
-            ->whereYear('created_at', now()->year)
+            ->selectRaw("DATE_FORMAT({$cancelFollowupDate}, '%Y-%m') as month, COUNT(*) as total")
             ->where('iCustomerId', $emp_id)
-            ->groupByRaw('MONTH(created_at)');
+           ->where('isDelete', 0)
+            ->whereRaw("{$cancelFollowupDate} BETWEEN ? AND ?", [$chartFrom, $chartTo])
+            ->when($filterEmpId, fn ($query) => $query->where('employee_id', $filterEmpId))
+            ->groupByRaw("DATE_FORMAT({$cancelFollowupDate}, '%Y-%m')");
 
         $query->fromSub(
             $leadQuery->unionAll($dealDoneQuery)->unionAll($dealCancelQuery),
@@ -398,34 +440,35 @@ class CompanyClientHomeController extends Controller
                 //'pipeline_name' => "Deal Done"
             ])->first();
 
-            $leadsConverted = DealDone::selectRaw('MONTH(created_at) as month, COUNT(*) as total')
+            $doneFollowupDate = $followupDateSql('deal_done');
+            $leadsConverted = DealDone::selectRaw("DATE_FORMAT({$doneFollowupDate}, '%Y-%m') as month, COUNT(*) as total")
                 ->where('status', $lead_pipeline->pipeline_id)
-                ->whereYear('created_at', now()->year)
                 ->where('iCustomerId', $emp_id)
-                ->groupByRaw('MONTH(created_at)')
+                ->where('isDelete', 0)
+                ->whereRaw("{$doneFollowupDate} BETWEEN ? AND ?", [$chartFrom, $chartTo])
+                ->when($filterEmpId, fn ($query) => $query->where('employee_id', $filterEmpId))
+                ->groupByRaw("DATE_FORMAT({$doneFollowupDate}, '%Y-%m')")
                 ->pluck('total', 'month')
                 ->toArray();
 
-            // 6 MONTHS RANGE
-            $currentMonth = now()->month;
-            $monthsToShow = 6;
-            $startMonth = max(1, $currentMonth - $monthsToShow);
-
-            // Labels
-            $allLabels = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+           
             $labels = [];
             $generatedData = [];
             $convertedData = [];
 
-            for ($i = $startMonth; $i <= $currentMonth; $i++) {
-                $labels[] = $allLabels[$i-1];
-                $generatedData[] = $leadsGenerated[$i] ?? 0;
-                $convertedData[] = $leadsConverted[$i] ?? 0;
+            for ($month = $chartFrom->copy()->startOfMonth(); $month->lte($chartTo); $month->addMonth()) {
+                $monthKey = $month->format('Y-m');
+                $labels[] = $month->format('M Y');
+                $generatedData[] = $leadsGenerated[$monthKey] ?? 0;
+                $convertedData[] = $leadsConverted[$monthKey] ?? 0;
+
             }
 
         $employeeLeads = LeadMaster::selectRaw('employee_id, COUNT(*) as leads')
             ->where('iCustomerId', $emp_id)
             ->where('isDelete', 0)
+            ->whereRaw($followupDateSql('lead_master') . ' BETWEEN ? AND ?', [$chartFrom, $chartTo])
+            ->when($filterEmpId, fn ($query) => $query->where('employee_id', $filterEmpId))
             ->groupBy('employee_id')
             ->pluck('leads', 'employee_id')
             ->toArray();
@@ -456,10 +499,10 @@ class CompanyClientHomeController extends Controller
     ));
 
 
-    } catch (\Exception $e) {
+/*    } catch (\Exception $e) {
         Log::error('HomeController Error: ' . $e->getMessage());
         return back()->with('error', 'Something went wrong.');
-    }
+    }*/
 }
 
 

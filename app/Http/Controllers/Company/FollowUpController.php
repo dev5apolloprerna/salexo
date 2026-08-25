@@ -117,10 +117,10 @@ class FollowUpController extends Controller
                     $query->where('lead_master.employee_id', $filterEmpId);
                 })
                 ->when($fromDate, function ($query) use ($fromDate) {
-                    $query->whereDate('lead_master.created_at', '>=', $fromDate);
+                    $query->whereRaw("DATE(COALESCE(STR_TO_DATE(TRIM(lead_master.next_followup_date), '%d-%m-%Y %h:%i %p'), STR_TO_DATE(TRIM(lead_master.next_followup_date), '%Y/%m/%d %h:%i %p'), STR_TO_DATE(TRIM(lead_master.next_followup_date), '%Y-%m-%d %h:%i %p'))) >= ?", [$fromDate]);
                 })
                 ->when($toDate, function ($query) use ($toDate) {
-                    $query->whereDate('lead_master.created_at', '<=', $toDate);
+                    $query->whereRaw("DATE(COALESCE(STR_TO_DATE(TRIM(lead_master.next_followup_date), '%d-%m-%Y %h:%i %p'), STR_TO_DATE(TRIM(lead_master.next_followup_date), '%Y/%m/%d %h:%i %p'), STR_TO_DATE(TRIM(lead_master.next_followup_date), '%Y-%m-%d %h:%i %p'))) <= ?", [$toDate]);
                 })
                 ->leftJoin('service_master', 'lead_master.product_service_id', '=', 'service_master.service_id')
                 ->leftJoin('lead_source_master', 'lead_master.LeadSourceId', '=', 'lead_source_master.lead_source_id')
@@ -202,15 +202,21 @@ class FollowUpController extends Controller
             }
 
             $applyDashboardFilters = function ($query, string $table) use ($filterEmpId, $fromDate, $toDate) {
+                 $followupDate = "COALESCE("
+                    . "STR_TO_DATE(TRIM({$table}.next_followup_date), '%d-%m-%Y %h:%i %p'), "
+                    . "STR_TO_DATE(TRIM({$table}.next_followup_date), '%Y/%m/%d %h:%i %p'), "
+                    . "STR_TO_DATE(TRIM({$table}.next_followup_date), '%Y-%m-%d %h:%i %p')"
+                    . ")";
+
                 return $query
                     ->when($filterEmpId, function ($query) use ($table, $filterEmpId) {
                         $query->where($table . '.employee_id', $filterEmpId);
                     })
-                    ->when($fromDate, function ($query) use ($table, $fromDate) {
-                        $query->whereDate($table . '.created_at', '>=', $fromDate);
+                    ->when($fromDate, function ($query) use ($followupDate, $fromDate) {
+                        $query->whereRaw("DATE({$followupDate}) >= ?", [$fromDate]);
                     })
-                    ->when($toDate, function ($query) use ($table, $toDate) {
-                        $query->whereDate($table . '.created_at', '<=', $toDate);
+                    ->when($toDate, function ($query) use ($followupDate, $toDate) {
+                        $query->whereRaw("DATE({$followupDate}) <= ?", [$toDate]);
                     });
             };
 
