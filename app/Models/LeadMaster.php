@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Validation\ValidationException;
 
 class LeadMaster extends Model
 {
@@ -48,6 +49,46 @@ class LeadMaster extends Model
         'link',
 
     ];
+
+    protected static function booted()
+    {
+        static::creating(function (LeadMaster $lead) {
+            $contactName = trim((string) $lead->customer_name);
+            $mobile = preg_replace('/\D+/', '', (string) $lead->mobile);
+            $email = mb_strtolower(trim((string) $lead->email));
+
+            if ($contactName === '' || ($mobile === '' && $email === '')) {
+                return;
+            }
+
+            $activeLeads = static::query()
+                ->where('iCustomerId', $lead->iCustomerId)
+                ->where('isDelete', 0);
+
+            $hasContactLead = $activeLeads
+                ->whereRaw('LOWER(TRIM(customer_name)) = ?', [mb_strtolower($contactName)])
+                ->where(function ($query) use ($mobile, $email) {
+                    if ($mobile !== '') {
+                        $query->whereRaw(
+                            "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(mobile, ' ', ''), '-', ''), '(', ''), ')', ''), '+', ''), '.', '') = ?",
+                            [$mobile]
+                        );
+                    }
+
+                    if ($email !== '') {
+                        $method = $mobile !== '' ? 'orWhereRaw' : 'whereRaw';
+                        $query->{$method}('LOWER(TRIM(email)) = ?', [$email]);
+                    }
+                })
+                ->exists();
+
+            if ($hasContactLead) {
+                throw ValidationException::withMessages([
+                    'customer_name' => 'This contact person already has an active lead with the same mobile number or email. Mark it as Deal Done or Deal Cancelled before creating another lead.',
+                ]);
+            }
+        });
+    }
 
     public function State()
     {
