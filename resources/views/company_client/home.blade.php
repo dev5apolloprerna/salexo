@@ -210,7 +210,11 @@
                 <br>
                 <div class="row g-3 mb-4 text-white">
                     <div class="col-md-4">
-                        <a href="{{ route('clients.todays_followup') }}">
+   <a href="{{ route('clients.todays_followup', array_filter([
+                            'emp_id' => $filterEmpId,
+                            'from_date' => $fromDate,
+                            'to_date' => $toDate,
+                        ], fn ($value) => filled($value))) }}">
                             <div class="card  text-center p-3 text-white" style="background:#7171cb;">
                                 <div class="card-title">
                                     <h5>Today's Followup</h5>
