@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 use App\Models\LeadPipeline;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class EmployeeLeadMasterController extends Controller
 {
@@ -236,6 +237,8 @@ class EmployeeLeadMasterController extends Controller
             }
 
             return redirect()->route('employee.leads.index')->with('success', 'Lead created successfully.');
+        } catch (ValidationException $e) {
+            return redirect()->back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
             Log::error('Lead creation failed', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return redirect()->back()->with('error', 'An error occurred: ' . $e->getMessage());

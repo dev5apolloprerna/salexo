@@ -19,6 +19,7 @@ use App\Models\LeadPipeline;
 use App\Models\LeadUdfData;
 use App\Models\UdfMaster;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class LeadMasterController extends Controller
 {
@@ -384,6 +385,9 @@ class LeadMasterController extends Controller
             }
 
             return redirect()->route('leads.index')->with('success', 'Lead created successfully.');
+        } catch (ValidationException $e) {
+            return redirect()->back()->withErrors($e->errors())->withInput();
+            
         } catch (\Exception $e) {
             Log::error('Error in LeadMasterController@store: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             return redirect()->back()->with('error', 'An error occurred while creating the lead.');
