@@ -472,7 +472,7 @@ class ReportController extends Controller
                 $leadsAssigned = $assignedQuery->count() + $assignedQuery1->count() + $assignedQuery2->count();
 
                 $convertedQuery = DealDone::where('iCustomerId', $employee->company_id)
-                    ->where('iemployeeId', $emp->emp_id)
+                    ->where('employee_id', $emp->emp_id)
                     ->where('status', $convertedPipelineId)
                     ->where('isDelete', 0);
                     

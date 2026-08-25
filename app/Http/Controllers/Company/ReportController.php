@@ -238,10 +238,12 @@ class ReportController extends Controller
                 
                 $emp->leads_assigned = $assignedQuery->count() + $assignedQuery1->count() + $assignedQuery2->count();
 
-                // Converted amount (from assigned leads where status = convertedPipelineId)
+                // Converted amount belongs to the current lead assignee. The dashboard
+                // uses employee_id for the same metric; iemployeeId is a legacy field
+                // and can contain a different employee, which made the totals disagree.
 
                 $convertedQuery = DealDone::where('iCustomerId', $companyId)
-                    ->where('iemployeeId', $emp->emp_id)
+                    ->where('employee_id', $emp->emp_id)
                     ->where('status', $convertedPipelineId)
                     ->where('isDelete', 0);
                 if ($fromDate) $convertedQuery->whereDate('created_at', '>=', $fromDate);
@@ -299,10 +301,12 @@ class ReportController extends Controller
             $leadsAss = $assQ->count() + $assQ1->count();
 
             // converted amount
-            $convAmt = DealDone::where('iCustomerId', $companyId)
-                ->where('iemployeeId', $emp->emp_id)
+            $convAmtQuery = DealDone::where('iCustomerId', $companyId)
+                ->where('employee_id', $emp->emp_id)
+                ->where('status', $convertedPipelineId)
                 ->where('isDelete', 0)
-                ->sum('amount');
+                ->when($fromDate, fn($query) => $query->whereDate('created_at', '>=', $fromDate))
+                ->when($toDate, fn($query) => $query->whereDate('created_at', '<=', $toDate));
 
             $reportData[] = [
                 'emp_name'         => $emp->emp_name,
