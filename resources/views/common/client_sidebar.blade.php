@@ -61,6 +61,47 @@
     .app-menu .nav-item i {
         font-size: 1rem;
     }
+
+    /* Sidebar menu scrollbar. The theme's default (SimpleBar) scrollbar thumb is
+       black, which is invisible on this dark sidebar background. As more menu
+       items (e.g. the Reports sub-menu) push the list past the visible height,
+       people need a scrollbar they can actually see and drag to reach every
+       item, so we style it to be a visible, light-colored slider instead. */
+    .app-menu .simplebar-track.simplebar-vertical {
+        width: 8px;
+        right: 2px;
+    }
+
+    .app-menu .simplebar-scrollbar:before {
+        background-color: rgba(255, 255, 255, 0.35);
+        opacity: 1 !important;
+        border-radius: 10px;
+    }
+
+    .app-menu .simplebar-scrollbar.simplebar-visible:before {
+        background-color: rgba(255, 255, 255, 0.65);
+    }
+
+    /* Fallback for the moment before SimpleBar initialises (or if it fails to)
+       so the menu is still scrollable with a visible slider. */
+    #navbar-nav {
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255, 255, 255, 0.35) transparent;
+    }
+
+    #navbar-nav::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    #navbar-nav::-webkit-scrollbar-thumb {
+        background-color: rgba(255, 255, 255, 0.35);
+        border-radius: 10px;
+    }
+
+    #navbar-nav::-webkit-scrollbar-thumb:hover {
+        background-color: rgba(255, 255, 255, 0.55);
+    }
 </style>
 
 <!-- ========== App Menu ========== -->
@@ -278,6 +319,8 @@
                             'clients.reports.lead_analysis_detail',
                             'clients.reports.lead_found_detail',
                             'clients.reports.lead_converted_detail',
+                            'clients.reports.emp_analysis_report',
+                            'clients.reports.lead_source_report',
                         ])
                             ? 'active'
                             : 'collapsed' }}"
@@ -293,6 +336,8 @@
                                 'clients.reports.lead_analysis_detail',
                                 'clients.reports.lead_found_detail',
                                 'clients.reports.lead_converted_detail',
+                                'clients.reports.emp_analysis_report',
+                                'clients.reports.lead_source_report',
                             ])
                                 ? 'true'
                                 : 'false' }}"
@@ -312,6 +357,8 @@
                             'clients.reports.lead_analysis_detail',
                             'clients.reports.lead_found_detail',
                             'clients.reports.lead_converted_detail',
+                            'clients.reports.emp_analysis_report',
+                            'clients.reports.lead_source_report',
                         ])
                             ? 'show'
                             : '' }}"
@@ -348,6 +395,18 @@
                                         href="{{ route('clients.reports.emp_lead_cancel_analysis') }}">
                                         <i class="fas fa-times-circle me-1"></i> Lead Cancel Analysis
 
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link @if (request()->routeIs('clients.reports.emp_analysis_report')) active @endif"
+                                        href="{{ route('clients.reports.emp_analysis_report') }}">
+                                        <i class="fas fa-list-check"></i> Employee Analysis Report
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link @if (request()->routeIs('clients.reports.lead_source_report')) active @endif"
+                                        href="{{ route('clients.reports.lead_source_report') }}">
+                                        <i class="fas fa-filter-circle-dollar"></i> Lead Source Report
                                     </a>
                                 </li>
                             </ul>
