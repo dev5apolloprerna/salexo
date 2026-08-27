@@ -362,24 +362,44 @@ class CompanyClientHomeController extends Controller
             ->get();
 
 
-    $leadsGenerated = DB::table(function ($query) use ($emp_id) {
+// Keep the performance chart in sync with the dashboard filters. Using a
+    // year-only condition here meant the cards changed after a date search,
+    // while the chart continued to display every lead from the current year.
+    $chartFrom = $fromDate
+        ? Carbon::parse($fromDate)->startOfDay()
+        : ($toDate
+            ? Carbon::parse($toDate)->startOfMonth()->subMonths(5)
+            : now()->startOfMonth()->subMonths(5));
+    $chartTo = $toDate
+        ? Carbon::parse($toDate)->endOfDay()
+        : now()->endOfDay();
+
+    $leadsGenerated = DB::table(function ($query) use ($emp_id, $filterEmpId, $chartFrom, $chartTo) {
         $leadQuery = DB::table('lead_master')
-            ->selectRaw('MONTH(created_at) as month, COUNT(*) as total')
-            ->whereYear('created_at', now()->year)
+            ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as month, COUNT(*) as total")
             ->where('iCustomerId', $emp_id)
-            ->groupByRaw('MONTH(created_at)');
+            ->where('isDelete', 0)
+            ->whereBetween('created_at', [$chartFrom, $chartTo])
+            ->when($filterEmpId, fn ($query) => $query->where('employee_id', $filterEmpId))
+            ->groupByRaw("DATE_FORMAT(created_at, '%Y-%m')");
+
 
         $dealDoneQuery = DB::table('deal_done')
-            ->selectRaw('MONTH(created_at) as month, COUNT(*) as total')
-            ->whereYear('created_at', now()->year)
+            ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as month, COUNT(*) as total")
             ->where('iCustomerId', $emp_id)
-            ->groupByRaw('MONTH(created_at)');
+            ->where('isDelete', 0)
+            ->whereBetween('created_at', [$chartFrom, $chartTo])
+            ->when($filterEmpId, fn ($query) => $query->where('employee_id', $filterEmpId))
+            ->groupByRaw("DATE_FORMAT(created_at, '%Y-%m')");
+
 
         $dealCancelQuery = DB::table('deal_cancel')
-            ->selectRaw('MONTH(created_at) as month, COUNT(*) as total')
-            ->whereYear('created_at', now()->year)
+            ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as month, COUNT(*) as total")
             ->where('iCustomerId', $emp_id)
-            ->groupByRaw('MONTH(created_at)');
+            ->where('isDelete', 0)
+            ->whereBetween('created_at', [$chartFrom, $chartTo])
+            ->when($filterEmpId, fn ($query) => $query->where('employee_id', $filterEmpId))
+            ->groupByRaw("DATE_FORMAT(created_at, '%Y-%m')");
 
         $query->fromSub(
             $leadQuery->unionAll($dealDoneQuery)->unionAll($dealCancelQuery),
@@ -398,34 +418,33 @@ class CompanyClientHomeController extends Controller
                 //'pipeline_name' => "Deal Done"
             ])->first();
 
-            $leadsConverted = DealDone::selectRaw('MONTH(created_at) as month, COUNT(*) as total')
+            $leadsConverted = DealDone::selectRaw("DATE_FORMAT(created_at, '%Y-%m') as month, COUNT(*) as total")
                 ->where('status', $lead_pipeline->pipeline_id)
-                ->whereYear('created_at', now()->year)
                 ->where('iCustomerId', $emp_id)
-                ->groupByRaw('MONTH(created_at)')
+                ->where('isDelete', 0)
+                ->whereBetween('created_at', [$chartFrom, $chartTo])
+                ->when($filterEmpId, fn ($query) => $query->where('employee_id', $filterEmpId))
+                ->groupByRaw("DATE_FORMAT(created_at, '%Y-%m')")
                 ->pluck('total', 'month')
                 ->toArray();
 
-            // 6 MONTHS RANGE
-            $currentMonth = now()->month;
-            $monthsToShow = 6;
-            $startMonth = max(1, $currentMonth - $monthsToShow);
-
-            // Labels
-            $allLabels = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+           
             $labels = [];
             $generatedData = [];
             $convertedData = [];
 
-            for ($i = $startMonth; $i <= $currentMonth; $i++) {
-                $labels[] = $allLabels[$i-1];
-                $generatedData[] = $leadsGenerated[$i] ?? 0;
-                $convertedData[] = $leadsConverted[$i] ?? 0;
+            for ($month = $chartFrom->copy()->startOfMonth(); $month->lte($chartTo); $month->addMonth()) {
+                $monthKey = $month->format('Y-m');
+                $labels[] = $month->format('M Y');
+                $generatedData[] = $leadsGenerated[$monthKey] ?? 0;
+                $convertedData[] = $leadsConverted[$monthKey] ?? 0;
             }
 
         $employeeLeads = LeadMaster::selectRaw('employee_id, COUNT(*) as leads')
             ->where('iCustomerId', $emp_id)
             ->where('isDelete', 0)
+            ->whereBetween('created_at', [$chartFrom, $chartTo])
+            ->when($filterEmpId, fn ($query) => $query->where('employee_id', $filterEmpId))
             ->groupBy('employee_id')
             ->pluck('leads', 'employee_id')
             ->toArray();
