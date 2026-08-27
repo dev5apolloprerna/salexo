@@ -53,42 +53,61 @@ class LeadMaster extends Model
     protected static function booted()
     {
         static::creating(function (LeadMaster $lead) {
-            $contactName = trim((string) $lead->customer_name);
-            $mobile = preg_replace('/\D+/', '', (string) $lead->mobile);
-            $email = mb_strtolower(trim((string) $lead->email));
+            $duplicate = static::findActiveDuplicate(
+                $lead->iCustomerId,
+                $lead->customer_name,
+                $lead->mobile,
+                $lead->email
+            );
 
-            if ($contactName === '' || ($mobile === '' && $email === '')) {
-                return;
-            }
-
-            $activeLeads = static::query()
-                ->where('iCustomerId', $lead->iCustomerId)
-                ->where('isDelete', 0);
-
-            $hasContactLead = $activeLeads
-                ->whereRaw('LOWER(TRIM(customer_name)) = ?', [mb_strtolower($contactName)])
-                ->where(function ($query) use ($mobile, $email) {
-                    if ($mobile !== '') {
-                        $query->whereRaw(
-                            "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(mobile, ' ', ''), '-', ''), '(', ''), ')', ''), '+', ''), '.', '') = ?",
-                            [$mobile]
-                        );
-                    }
-
-                    if ($email !== '') {
-                        $method = $mobile !== '' ? 'orWhereRaw' : 'whereRaw';
-                        $query->{$method}('LOWER(TRIM(email)) = ?', [$email]);
-                    }
-                })
-                ->exists();
-
-            if ($hasContactLead) {
+            if ($duplicate) {
                 throw ValidationException::withMessages([
-                    'customer_name' => 'This contact person already has an active lead with the same mobile number or email. Mark it as Deal Done or Deal Cancelled before creating another lead.',
+                    'customer_name' => static::duplicateErrorMessage($duplicate),
                 ]);
             }
         });
     }
+        public static function findActiveDuplicate($companyId, $contactName, $mobile = null, $email = null): ?self
+    {
+        $contactName = trim((string) $contactName);
+        $mobile = preg_replace('/\D+/', '', (string) $mobile);
+        $email = mb_strtolower(trim((string) $email));
+
+        if ($contactName === '' || ($mobile === '' && $email === '')) {
+            return null;
+        }
+
+        return static::query()
+            ->where('iCustomerId', $companyId)
+            ->where('isDelete', 0)
+            ->whereRaw('LOWER(TRIM(customer_name)) = ?', [mb_strtolower($contactName)])
+            ->where(function ($query) use ($mobile, $email) {
+                if ($mobile !== '') {
+                    $query->whereRaw(
+                        "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(mobile, ' ', ''), '-', ''), '(', ''), ')', ''), '+', ''), '.', '') = ?",
+                        [$mobile]
+                    );
+                }
+
+                if ($email !== '') {
+                    $method = $mobile !== '' ? 'orWhereRaw' : 'whereRaw';
+                    $query->{$method}('LOWER(TRIM(email)) = ?', [$email]);
+                }
+            })
+            ->first();
+    }
+
+    public static function duplicateErrorMessage(self $lead): string
+    {
+        $details = [
+            "Lead ID: {$lead->lead_id}",
+            'Contact: ' . ($lead->customer_name ?: 'N/A'),
+            'Mobile: ' . ($lead->mobile ?: 'N/A'),
+        ];
+
+        return 'An active lead already exists (' . implode(' | ', $details) . '). Mark it as Deal Done or Deal Cancelled before creating another lead.';
+    }
+
 
     public function State()
     {
