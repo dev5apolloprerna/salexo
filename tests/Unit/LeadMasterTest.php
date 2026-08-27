@@ -139,4 +139,27 @@ class LeadMasterTest extends TestCase
 
         $this->assertNotNull($lead->lead_id);
     }
+        public function test_duplicate_error_identifies_the_existing_lead_and_contact(): void
+    {
+        $existingLead = LeadMaster::create([
+            'iCustomerId' => 10,
+            'customer_name' => 'Jane Doe',
+            'mobile' => '9876543210',
+        ]);
+
+        try {
+            LeadMaster::create([
+                'iCustomerId' => 10,
+                'customer_name' => 'Jane Doe',
+                'mobile' => '9876543210',
+            ]);
+            $this->fail('The duplicate lead should have been rejected.');
+        } catch (ValidationException $exception) {
+            $message = $exception->errors()['customer_name'][0];
+
+            $this->assertStringContainsString("Lead ID: {$existingLead->lead_id}", $message);
+            $this->assertStringContainsString('Contact: Jane Doe', $message);
+            $this->assertStringContainsString('Mobile: 9876543210', $message);
+        }
+    }
 }
