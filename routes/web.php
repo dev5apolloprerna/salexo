@@ -345,6 +345,7 @@ Route::prefix('clients/reports')->middleware(['auth:web_employees'])->group(func
     // Moved here from the dashboard: same employee search + from/to date filters as before.
     Route::any('/emp/analysis', [ReportController::class, 'emp_analysis_report'])->name('clients.reports.emp_analysis_report');
     Route::any('/lead/source', [ReportController::class, 'lead_source_report'])->name('clients.reports.lead_source_report');
+        Route::any('/lead/meeting-done', [ReportController::class, 'meeting_done_report'])->name('clients.reports.meeting_done');
 });
 
 // UDF Master

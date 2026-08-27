@@ -20,9 +20,78 @@ use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Facades\Excel;
 use Carbon\Carbon;
 use App\Support\LeadSourceReport;
+use App\Models\LeadHistory;
 
 class ReportController extends Controller
 {
+        /**
+     * "Meeting Done" report — company_id 5 only.
+     *
+     * Lists every lead_history row whose status (pipeline stage) matches this
+     * company's "Meeting Done" pipeline, joined with the parent lead for
+     * customer/contact details.
+     */
+    public function meeting_done_report(Request $request)
+    {
+        try {
+            $request->validate([
+                'from_date' => ['nullable', 'date'],
+                'to_date' => ['nullable', 'date', 'after_or_equal:from_date'],
+            ]);
+
+            $companyId = Auth::user()->company_id;
+
+            // This report is only meant for company_id 5.
+            if ($companyId != 5) {
+                abort(403);
+            }
+
+            $fromDate = $request->input('from_date');
+            $toDate = $request->input('to_date');
+
+            // lead_history.status stores lead_pipeline_master.pipeline_id.
+            // Match the pipeline(s) named/slugged "Meeting Done" for this company.
+            $meetingDonePipelineIds = LeadPipeline::where('company_id', $companyId)
+                ->where(function ($query) {
+                    $query->where('pipeline_name', 'like', '%meeting%done%')
+                        ->orWhere('slugname', 'like', '%meeting%done%');
+                })
+                ->pluck('pipeline_id');
+
+            $leadHistory = LeadHistory::select(
+                    'lead_history.*',
+                    'lead_pipeline_master.pipeline_name',
+                    'lead_master.customer_name',
+                    'lead_master.company_name',
+                    'lead_master.mobile',
+                    'employee_master.emp_name as followup_by_name'
+                )
+                ->join('lead_pipeline_master', 'lead_history.status', '=', 'lead_pipeline_master.pipeline_id')
+                ->leftJoin('lead_master', 'lead_history.iLeadId', '=', 'lead_master.lead_id')
+                ->leftJoin('employee_master', 'lead_history.followup_by', '=', 'employee_master.emp_id')
+                ->where('lead_history.iCustomerId', $companyId)
+                ->whereIn('lead_history.status', $meetingDonePipelineIds)
+                ->when($fromDate, function ($query) use ($fromDate) {
+                    $query->whereDate('lead_history.created_at', '>=', $fromDate);
+                })
+                ->when($toDate, function ($query) use ($toDate) {
+                    $query->whereDate('lead_history.created_at', '<=', $toDate);
+                })
+                ->orderBy('lead_history.iLeadHistoryId', 'desc')
+                ->paginate(config('app.per_page'))
+                ->withQueryString();
+
+            return view('company_client.reports.meeting_done', compact(
+                'leadHistory',
+                'fromDate',
+                'toDate',
+                'meetingDonePipelineIds'
+            ));
+        } catch (\Exception $e) {
+            Log::error('Error in meeting_done_report: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return redirect()->back()->with('error', 'An unexpected error occurred. Please try again later.');
+        }
+    }
 
     public function roi_report(Request $request)
     {
