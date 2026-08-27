@@ -53,161 +53,29 @@
                     <!-- </div> -->
                 </div>
 
-<div class="card p-4 mb-4">
-                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-                        <h6 class="mb-0"><i class="fa-solid fa-list-check"></i> EMP Analysis Report</h6>
-                        <small class="text-muted">
-                            {{ $fromDate ? \Carbon\Carbon::parse($fromDate)->format('d M Y') : 'All dates' }}
-                            @if ($toDate)
-                                to {{ \Carbon\Carbon::parse($toDate)->format('d M Y') }}
-                            @endif
-                        </small>
+                <div class="alert alert-light border d-flex flex-wrap align-items-center justify-content-between gap-2 mb-4">
+                    <div>
+                        <i class="fa-solid fa-list-check"></i>
+                        Looking for the EMP Analysis Report or Lead Source Report?
                     </div>
-
-                    @if ($reportEmployees->isEmpty())
-                        <div class="alert alert-info mb-0">No employees found for the selected filters.</div>
-                    @else
-                        <div class="accordion" id="employeeLeadStatusAccordion">
-                            @foreach ($reportEmployees as $employee)
-                                @php
-                                    $employeeStatuses = $leadStatusCounts->get($employee->emp_id, collect());
-                                    $employeeTotal = $employeeStatuses->sum();
-                                    $accordionId = 'employee-lead-status-' . $employee->emp_id;
-                                @endphp
-                                <div class="accordion-item">
-    <h2 class="accordion-header" id="heading-{{ $accordionId }}">
-        <button class="accordion-button collapsed" type="button"
-            data-bs-toggle="collapse" data-bs-target="#{{ $accordionId }}"
-            aria-expanded="false" aria-controls="{{ $accordionId }}">
-            <span class="fw-semibold">{{ $employee->emp_name }}</span>
-            @if ($employee->isCompanyAdmin)
-                <span class="badge bg-info text-dark ms-2">Company Login</span>
-            @endif
-            <span class="badge bg-primary ms-2">{{ $employeeTotal }} Total Leads</span>
-        </button>
-    </h2>
-    <div id="{{ $accordionId }}" class="accordion-collapse collapse"
-        aria-labelledby="heading-{{ $accordionId }}" data-bs-parent="#employeeLeadStatusAccordion">
-
-<!-- default ek open rakhva niche no code use krvo -->
-                                <!-- <div class="accordion-item">
-                                    <h2 class="accordion-header" id="heading-{{ $accordionId }}">
-                                        <button class="accordion-button {{ $loop->first ? '' : 'collapsed' }}" type="button"
-                                            data-bs-toggle="collapse" data-bs-target="#{{ $accordionId }}"
-                                            aria-expanded="{{ $loop->first ? 'true' : 'false' }}" aria-controls="{{ $accordionId }}">
-                                            <span class="fw-semibold">{{ $employee->emp_name }}</span>
-                                            <span class="badge bg-primary ms-2">{{ $employeeTotal }} Total Leads</span>
-                                        </button>
-                                    </h2>
-                                    <div id="{{ $accordionId }}" class="accordion-collapse collapse {{ $loop->first ? 'show' : '' }}"
-                                        aria-labelledby="heading-{{ $accordionId }}" data-bs-parent="#employeeLeadStatusAccordion"> -->
-                                        <div class="accordion-body">
-                                            <div class="table-responsive">
-                                                <table class="table table-bordered align-middle mb-0">
-                                                    <thead class="table-light">
-                                                        <tr>
-                                                            <th>Lead Status</th>
-                                                            <th class="text-end">Lead Count</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        @foreach ($reportPipelines as $pipeline)
-                                                            <tr>
-                                                                <td>
-                                                                    <span class="d-inline-block rounded-circle me-2"
-                                                                        style="width:10px;height:10px;background-color:{{ $pipeline->color ?: '#6c757d' }}"></span>
-                                                                    {{ $pipeline->pipeline_name }}
-                                                                </td>
-                                                                <td class="text-end fw-semibold">{{ $employeeStatuses->get($pipeline->pipeline_id, 0) }}</td>
-                                                            </tr>
-                                                        @endforeach
-                                                    </tbody>
-                                                    <tfoot class="table-light">
-                                                        <tr>
-                                                            <th>Total</th>
-                                                            <th class="text-end">{{ $employeeTotal }}</th>
-                                                        </tr>
-                                                    </tfoot>
-                                                </table>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    @endif
-                </div>
- <div class="card p-4 mb-4">
-                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-                        <h6 class="mb-0"><i class="fa-solid fa-filter-circle-dollar"></i> Lead Source Analysis Report</h6>
-                        <small class="text-muted">
-                            {{ $filterEmpId ? 'Filtered by selected employee' : 'Includes employee and company login leads' }}
-                            &middot;
-                            {{ $fromDate ? \Carbon\Carbon::parse($fromDate)->format('d M Y') : 'All dates' }}
-                            @if ($toDate)
-                                to {{ \Carbon\Carbon::parse($toDate)->format('d M Y') }}
-                            @endif
-                        </small>
+                    <div class="d-flex gap-2">
+                        <a href="{{ route('clients.reports.emp_analysis_report', array_filter([
+                            'emp_id' => $filterEmpId,
+                            'from_date' => $fromDate,
+                            'to_date' => $toDate,
+                        ], fn ($value) => filled($value))) }}" class="btn btn-sm btn-outline-primary">
+                            <i class="fa-solid fa-list-check"></i> Employee Analysis Report
+                        </a>
+                        <a href="{{ route('clients.reports.lead_source_report', array_filter([
+                            'emp_id' => $filterEmpId,
+                            'from_date' => $fromDate,
+                            'to_date' => $toDate,
+                        ], fn ($value) => filled($value))) }}" class="btn btn-sm btn-outline-primary">
+                            <i class="fa-solid fa-filter-circle-dollar"></i> Lead Source Report
+                        </a>
                     </div>
-
-                    @if ($reportLeadSources->isEmpty())
-                        <div class="alert alert-info mb-0">No lead sources found for the selected company.</div>
-                    @else
-                        <div class="accordion" id="leadSourceStatusAccordion">
-                            @foreach ($reportLeadSources as $leadSource)
-                                @php
-                                    $sourceStatuses = $leadSourceStatusCounts->get($leadSource->lead_source_id, collect());
-                                    $sourceTotal = $sourceStatuses->sum();
-                                    $accordionId = 'lead-source-status-' . $leadSource->lead_source_id;
-                                @endphp
-                                <div class="accordion-item">
-                                    <h2 class="accordion-header" id="heading-{{ $accordionId }}">
-                                        <button class="accordion-button collapsed" type="button"
-                                            data-bs-toggle="collapse" data-bs-target="#{{ $accordionId }}"
-                                            aria-expanded="false" aria-controls="{{ $accordionId }}">
-                                            <span class="fw-semibold">{{ $leadSource->lead_source_name }}</span>
-                                            <span class="badge bg-primary ms-2">{{ $sourceTotal }} Total Leads</span>
-                                        </button>
-                                    </h2>
-                                    <div id="{{ $accordionId }}" class="accordion-collapse collapse"
-                                        aria-labelledby="heading-{{ $accordionId }}" data-bs-parent="#leadSourceStatusAccordion">
-                                        <div class="accordion-body">
-                                            <div class="table-responsive">
-                                                <table class="table table-bordered align-middle mb-0">
-                                                    <thead class="table-light">
-                                                        <tr>
-                                                            <th>Lead Status</th>
-                                                            <th class="text-end">Lead Count</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        @foreach ($reportPipelines as $pipeline)
-                                                            <tr>
-                                                                <td>
-                                                                    <span class="d-inline-block rounded-circle me-2"
-                                                                        style="width:10px;height:10px;background-color:{{ $pipeline->color ?: '#6c757d' }}"></span>
-                                                                    {{ $pipeline->pipeline_name }}
-                                                                </td>
-                                                                <td class="text-end fw-semibold">{{ $sourceStatuses->get($pipeline->pipeline_id, 0) }}</td>
-                                                            </tr>
-                                                        @endforeach
-                                                    </tbody>
-                                                    <tfoot class="table-light">
-                                                        <tr>
-                                                            <th>Total</th>
-                                                            <th class="text-end">{{ $sourceTotal }}</th>
-                                                        </tr>
-                                                    </tfoot>
-                                                </table>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    @endif
                 </div>
-                <br>
+
                 <div class="row g-3 mb-4 text-white">
                     <div class="col-md-4">
    <a href="{{ route('clients.todays_followup', array_filter([

@@ -341,6 +341,10 @@ Route::prefix('clients/reports')->middleware(['auth:web_employees'])->group(func
 
     Route::any('/lead/cancel/analysis', [ReportController::class, 'emp_lead_cancel_analysis'])->name('clients.reports.emp_lead_cancel_analysis');
     Route::any('/lead/cancel/analysis/export', [ReportController::class, 'exportLeadCancelAnalysis'])->name('clients.reports.emp_lead_cancel_analysis.export');
+
+    // Moved here from the dashboard: same employee search + from/to date filters as before.
+    Route::any('/emp/analysis', [ReportController::class, 'emp_analysis_report'])->name('clients.reports.emp_analysis_report');
+    Route::any('/lead/source', [ReportController::class, 'lead_source_report'])->name('clients.reports.lead_source_report');
 });
 
 // UDF Master

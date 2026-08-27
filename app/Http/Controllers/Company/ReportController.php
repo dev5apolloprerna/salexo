@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Facades\Excel;
 use Carbon\Carbon;
+use App\Support\LeadSourceReport;
 
 class ReportController extends Controller
 {
@@ -1275,6 +1276,217 @@ class ReportController extends Controller
         } catch (\Exception $e) {
             Log::error('API Lead Converted Detail Error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             return response()->json(['success' => false, 'message' => 'Internal server error.'], 500);
+        }
+    }
+
+    /**
+     * Employee-wise lead status breakdown. Moved here from the dashboard, using the
+     * same "Search by Employee" + From/To date filters that used to live there.
+     */
+    public function emp_analysis_report(Request $request)
+    {
+        try {
+            $request->validate([
+                'emp_id' => ['nullable', 'integer'],
+                'from_date' => ['nullable', 'date'],
+                'to_date' => ['nullable', 'date', 'after_or_equal:from_date'],
+            ]);
+
+            $companyId = Auth::user()->company_id;
+            $filterEmpId = $request->input('emp_id');
+            $fromDate = $request->input('from_date');
+            $toDate = $request->input('to_date');
+
+            $employees = Employee::where([
+                'isDelete' => 0,
+                'isCompanyAdmin' => 0,
+                'company_id' => $companyId,
+            ])->orderBy('emp_name', 'asc')->get();
+
+            $applyFilters = function ($query, $employeeColumn = 'employee_id', $dateColumn = 'created_at') use ($filterEmpId, $fromDate, $toDate) {
+                return $query
+                    ->when($filterEmpId, function ($query) use ($employeeColumn, $filterEmpId) {
+                        $query->where(function ($query) use ($employeeColumn, $filterEmpId) {
+                            $query->where($employeeColumn, $filterEmpId)
+                                // Older integration leads were not populated in employee_id.
+                                // Fall back to their employee owner so they are still included.
+                                ->orWhere(function ($query) use ($employeeColumn, $filterEmpId) {
+                                    $query->where(function ($query) use ($employeeColumn) {
+                                        $query->whereNull($employeeColumn)
+                                            ->orWhere($employeeColumn, 0);
+                                    })->where('iemployeeId', $filterEmpId);
+                                });
+                        });
+                    })
+                    ->when($fromDate, function ($query) use ($dateColumn, $fromDate) {
+                        $query->whereDate($dateColumn, '>=', $fromDate);
+                    })
+                    ->when($toDate, function ($query) use ($dateColumn, $toDate) {
+                        $query->whereDate($dateColumn, '<=', $toDate);
+                    });
+            };
+
+            // Leads move out of lead_master when completed or cancelled, so all
+            // three lead tables are included.
+            $statusQueries = collect([
+                'lead_master',
+                'deal_done',
+                'deal_cancel',
+            ])->map(function ($table) use ($companyId, $applyFilters) {
+                $query = DB::table($table)
+                    ->select('employee_id', 'status', DB::raw('COUNT(*) as total'))
+                    ->where('iCustomerId', $companyId)
+                    ->where('isDelete', 0);
+
+                $applyFilters($query);
+
+                return $query->groupBy('employee_id', 'status');
+            });
+
+            $combinedStatusQuery = $statusQueries->shift();
+            $statusQueries->each(function ($query) use ($combinedStatusQuery) {
+                $combinedStatusQuery->unionAll($query);
+            });
+
+            $leadStatusCounts = DB::query()
+                ->fromSub($combinedStatusQuery, 'employee_statuses')
+                ->select('employee_id', 'status', DB::raw('SUM(total) as total'))
+                ->groupBy('employee_id', 'status')
+                ->get()
+                ->groupBy('employee_id')
+                ->map(function ($statuses) {
+                    return $statuses->pluck('total', 'status');
+                });
+
+            $reportEmployees = $employees
+                ->when($filterEmpId, function ($employees) use ($filterEmpId) {
+                    return $employees->where('emp_id', $filterEmpId);
+                })
+                ->values();
+
+            $reportPipelines = LeadPipeline::where('company_id', $companyId)
+                ->orderBy('pipeline_id')
+                ->get();
+
+            return view('company_client.reports.emp_analysis', compact(
+                'employees',
+                'reportEmployees',
+                'reportPipelines',
+                'leadStatusCounts',
+                'filterEmpId',
+                'fromDate',
+                'toDate'
+            ));
+        } catch (\Exception $e) {
+            Log::error('Error in emp_analysis_report: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return redirect()->back()->with('error', 'An unexpected error occurred. Please try again later.');
+        }
+    }
+
+    /**
+     * Lead-source-wise lead status breakdown. Moved here from the dashboard, using the
+     * same "Search by Employee" + From/To date filters that used to live there.
+     */
+    public function lead_source_report(Request $request)
+    {
+        try {
+            $request->validate([
+                'emp_id' => ['nullable', 'integer'],
+                'from_date' => ['nullable', 'date'],
+                'to_date' => ['nullable', 'date', 'after_or_equal:from_date'],
+            ]);
+
+            $companyId = Auth::user()->company_id;
+            $filterEmpId = $request->input('emp_id');
+            $fromDate = $request->input('from_date');
+            $toDate = $request->input('to_date');
+
+            $employees = Employee::where([
+                'isDelete' => 0,
+                'isCompanyAdmin' => 0,
+                'company_id' => $companyId,
+            ])->orderBy('emp_name', 'asc')->get();
+
+            $applyFilters = function ($query, $employeeColumn = 'employee_id', $dateColumn = 'created_at') use ($filterEmpId, $fromDate, $toDate) {
+                return $query
+                    ->when($filterEmpId, function ($query) use ($employeeColumn, $filterEmpId) {
+                        $query->where(function ($query) use ($employeeColumn, $filterEmpId) {
+                            $query->where($employeeColumn, $filterEmpId)
+                                ->orWhere(function ($query) use ($employeeColumn, $filterEmpId) {
+                                    $query->where(function ($query) use ($employeeColumn) {
+                                        $query->whereNull($employeeColumn)
+                                            ->orWhere($employeeColumn, 0);
+                                    })->where('iemployeeId', $filterEmpId);
+                                });
+                        });
+                    })
+                    ->when($fromDate, function ($query) use ($dateColumn, $fromDate) {
+                        $query->whereDate($dateColumn, '>=', $fromDate);
+                    })
+                    ->when($toDate, function ($query) use ($dateColumn, $toDate) {
+                        $query->whereDate($dateColumn, '<=', $toDate);
+                    });
+            };
+
+            // Unlike the employee report, this intentionally includes leads entered
+            // through the company login (super admin) as well as employee leads.
+            $sourceStatusQueries = collect([
+                'lead_master',
+                'deal_done',
+                'deal_cancel',
+            ])->map(function ($table) use ($companyId, $applyFilters) {
+                $query = DB::table($table)
+                    ->select('LeadSourceId', 'status', DB::raw('COUNT(*) as total'))
+                    ->where('iCustomerId', $companyId)
+                    ->where('isDelete', 0);
+
+                $applyFilters($query);
+
+                return $query->groupBy('LeadSourceId', 'status');
+            });
+
+            $combinedSourceStatusQuery = $sourceStatusQueries->shift();
+            $sourceStatusQueries->each(function ($query) use ($combinedSourceStatusQuery) {
+                $combinedSourceStatusQuery->unionAll($query);
+            });
+
+            $leadSourceStatusCounts = DB::query()
+                ->fromSub($combinedSourceStatusQuery, 'source_statuses')
+                ->select('LeadSourceId', 'status', DB::raw('SUM(total) as total'))
+                ->groupBy('LeadSourceId', 'status')
+                ->get()
+                ->groupBy('LeadSourceId')
+                ->map(function ($statuses) {
+                    return $statuses->pluck('total', 'status');
+                });
+
+            $reportLeadSources = LeadSource::where('company_id', $companyId)
+                ->orderBy('lead_source_name')
+                ->get();
+
+            // Integrations and manual entry can leave more than one master row with
+            // the same displayed name, so combine matching IDs before rendering.
+            [$reportLeadSources, $leadSourceStatusCounts] = LeadSourceReport::consolidate(
+                $reportLeadSources,
+                $leadSourceStatusCounts
+            );
+
+            $reportPipelines = LeadPipeline::where('company_id', $companyId)
+                ->orderBy('pipeline_id')
+                ->get();
+
+            return view('company_client.reports.lead_source', compact(
+                'employees',
+                'reportLeadSources',
+                'reportPipelines',
+                'leadSourceStatusCounts',
+                'filterEmpId',
+                'fromDate',
+                'toDate'
+            ));
+        } catch (\Exception $e) {
+            Log::error('Error in lead_source_report: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return redirect()->back()->with('error', 'An unexpected error occurred. Please try again later.');
         }
     }
 }
