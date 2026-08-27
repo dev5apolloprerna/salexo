@@ -409,6 +409,14 @@
                                         <i class="fas fa-filter-circle-dollar"></i> Lead Source Report
                                     </a>
                                 </li>
+                               @if ($company_id == 5)
+                                    <li class="nav-item">
+                                        <a class="nav-link @if (request()->routeIs('clients.reports.meeting_done')) active @endif"
+                                            href="{{ route('clients.reports.meeting_done') }}">
+                                            <i class="fas fa-handshake"></i> Meeting Done Report
+                                        </a>
+                                    </li>
+                                @endif
                             </ul>
                         </div>
                     </li>
