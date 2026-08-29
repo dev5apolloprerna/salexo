@@ -22,6 +22,7 @@ use Carbon\Carbon;
 use App\Support\LeadSourceReport;
 use App\Models\LeadHistory;
 use App\Exports\MeetingDoneExport;
+use Illuminate\Database\Eloquent\Builder;
 
 class ReportController extends Controller
 {
@@ -64,22 +65,7 @@ class ReportController extends Controller
                         ->orWhere('slugname', 'like', '%meeting%done%');
                 })
                 ->pluck('pipeline_id');
-
-            $leadHistory = LeadHistory::select(
-                    'lead_history.*',
-                    'lead_pipeline_master.pipeline_name',
-                    'lead_master.customer_name',
-                    'lead_master.company_name',
-                    'lead_master.mobile',
-                    'employee_master.emp_name as followup_by_name'
-                )
-                ->join('lead_pipeline_master', 'lead_history.status', '=', 'lead_pipeline_master.pipeline_id')
-                ->join('lead_master', function ($join) use ($companyId) {
-                    $join->on('lead_history.iLeadId', '=', 'lead_master.lead_id')
-                        ->where('lead_master.iCustomerId', '=', $companyId);
-                })
-                ->leftJoin('employee_master', 'lead_history.followup_by', '=', 'employee_master.emp_id')
-                ->where('lead_history.iCustomerId', $companyId)
+            $leadHistoryQuery = $this->meetingDoneQuery($companyId)
                 ->whereIn('lead_history.status', $meetingDonePipelineIds)
                 ->when($filterEmpId, function ($query) use ($filterEmpId) {
                     $query->where('lead_history.followup_by', $filterEmpId);
@@ -89,7 +75,15 @@ class ReportController extends Controller
                 })
                 ->when($toDate, function ($query) use ($toDate) {
                     $query->whereDate('lead_history.created_at', '<=', $toDate);
-                })
+                });
+
+            $showAmount = (clone $leadHistoryQuery)
+                ->whereNotNull('lead_history.amount')
+                ->where('lead_history.amount', '<>', '')
+                ->where('lead_history.amount', '<>', 0)
+                ->exists();
+
+            $leadHistory = $leadHistoryQuery
                 ->orderBy('lead_history.iLeadHistoryId', 'desc')
                 ->paginate(config('app.per_page'))
                 ->withQueryString();
@@ -100,7 +94,8 @@ class ReportController extends Controller
                 'toDate',
                 'filterEmpId',
                 'employees',
-                'meetingDonePipelineIds'
+                'meetingDonePipelineIds',
+                'showAmount'
             ));
         } catch (\Exception $e) {
             Log::error('Error in meeting_done_report: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
@@ -127,18 +122,7 @@ class ReportController extends Controller
             })
             ->pluck('pipeline_id');
 
-        $leadHistory = LeadHistory::select(
-                'lead_history.*',
-                'lead_pipeline_master.pipeline_name',
-                'lead_master.customer_name',
-                'lead_master.company_name',
-                'lead_master.mobile',
-                'employee_master.emp_name as followup_by_name'
-            )
-            ->join('lead_pipeline_master', 'lead_history.status', '=', 'lead_pipeline_master.pipeline_id')
-            ->leftJoin('lead_master', 'lead_history.iLeadId', '=', 'lead_master.lead_id')
-            ->leftJoin('employee_master', 'lead_history.followup_by', '=', 'employee_master.emp_id')
-            ->where('lead_history.iCustomerId', $companyId)
+        $leadHistory = $this->meetingDoneQuery($companyId)
             ->whereIn('lead_history.status', $meetingDonePipelineIds)
             ->when($filterEmpId, function ($query) use ($filterEmpId) {
                 $query->where('lead_history.followup_by', $filterEmpId);
@@ -154,6 +138,52 @@ class ReportController extends Controller
 
         return Excel::download(new MeetingDoneExport($leadHistory), 'meeting_done_report.xlsx');
     }
+     /**
+     * Build the common Meeting Done query, including contact details for leads
+     * that have since moved out of lead_master into an archive table.
+     */
+    /**
+     * Build the common Meeting Done query, including contact details for leads
+     * that have since moved out of lead_master into an archive table.
+     */
+     private function meetingDoneQuery(int $companyId): Builder
+    {
+        return LeadHistory::select(
+                'lead_history.*',
+                'lead_pipeline_master.pipeline_name',
+                DB::raw("COALESCE(NULLIF(TRIM(lead_master.customer_name), ''), NULLIF(TRIM(deal_done.customer_name), ''), NULLIF(TRIM(deal_cancel.customer_name), '')) as customer_name"),
+                DB::raw("COALESCE(NULLIF(TRIM(lead_master.company_name), ''), NULLIF(TRIM(deal_done.company_name), ''), NULLIF(TRIM(deal_cancel.company_name), '')) as company_name"),
+                DB::raw("COALESCE(NULLIF(TRIM(lead_master.mobile), ''), NULLIF(TRIM(deal_done.mobile), ''), NULLIF(TRIM(deal_cancel.mobile), '')) as mobile"),
+                'employee_master.emp_name as followup_by_name',
+                DB::raw('COALESCE(created_by_employee.emp_name, employee_master.emp_name) as created_by_name')
+            )
+            ->join('lead_pipeline_master', 'lead_history.status', '=', 'lead_pipeline_master.pipeline_id')
+            ->leftJoin('lead_master', function ($join) use ($companyId) {
+                $join->on('lead_history.iLeadId', '=', 'lead_master.lead_id')
+                    ->where('lead_master.iCustomerId', '=', $companyId)
+                    ->where('lead_master.isDelete', '=', 0);
+            })
+            ->leftJoin('deal_done', function ($join) use ($companyId) {
+                $join->on('lead_history.iLeadId', '=', 'deal_done.lead_id')
+                    ->where('deal_done.iCustomerId', '=', $companyId)
+                    ->where('deal_done.isDelete', '=', 0);
+            })
+            ->leftJoin('deal_cancel', function ($join) use ($companyId) {
+                $join->on('lead_history.iLeadId', '=', 'deal_cancel.lead_id')
+                    ->where('deal_cancel.iCustomerId', '=', $companyId)
+                    ->where('deal_cancel.isDelete', '=', 0);
+            })
+            ->leftJoin('employee_master', 'lead_history.followup_by', '=', 'employee_master.emp_id')
+            ->leftJoin('employee_master as created_by_employee', 'lead_history.iEnterBy', '=', 'created_by_employee.emp_id')
+            ->where('lead_history.iCustomerId', $companyId)
+            ->where('lead_history.isDelete', 0)
+            ->where(function ($query) {
+                $query->whereNotNull('lead_master.lead_id')
+                    ->orWhereNotNull('deal_done.lead_id')
+                    ->orWhereNotNull('deal_cancel.lead_id');
+            });
+    }
+
 
     public function roi_report(Request $request)
     {
