@@ -76,7 +76,7 @@ class EmployeeHomeController extends Controller
             ->leftJoin('deal_done', function ($join) use ($emp_id, $empUserId) {
                 $join->on('deal_done.status', '=', 'lead_pipeline_master.pipeline_id')
                     ->where('deal_done.iCustomerId', $emp_id)
-                    ->where('deal_done.iEnterBy', $empUserId)
+                    ->where('deal_done.employee_id', $empUserId)
                     ->where('deal_done.isDelete', 0);
             })
             ->where('lead_pipeline_master.company_id', $emp_id)
@@ -103,7 +103,7 @@ class EmployeeHomeController extends Controller
             ->leftJoin('deal_cancel', function ($join) use ($emp_id, $empUserId) {
                 $join->on('deal_cancel.status', '=', 'lead_pipeline_master.pipeline_id')
                     ->where('deal_cancel.iCustomerId', $emp_id)
-                    ->where('deal_cancel.iEnterBy', $empUserId)
+                    ->where('deal_cancel.employee_id', $empUserId)
                     ->where('deal_cancel.isDelete', 0);
             })
             ->where('lead_pipeline_master.company_id', $emp_id)
@@ -203,7 +203,7 @@ class EmployeeHomeController extends Controller
                             ->select(DB::raw('MONTH(created_at) as month'), DB::raw('COUNT(*) as total'))
                             ->whereYear('created_at', now()->year)
                             ->where('iCustomerId', $emp_id)
-                            ->where('iEnterBy', $empUserId)
+                            ->where('employee_id', $empUserId)
                             ->groupBy(DB::raw('MONTH(created_at)'))
                     );
             }, 'combined')
@@ -217,7 +217,7 @@ class EmployeeHomeController extends Controller
             ->where('status', $lead_pipeline_done->pipeline_id)
             ->whereYear('created_at', now()->year)
             ->where('iCustomerId', $emp_id)
-            ->where('iEnterBy', $empUserId)
+            ->where('employee_id', $empUserId)
             ->groupBy(DB::raw('MONTH(created_at)'))
             ->pluck('total', 'month')
             ->toArray();

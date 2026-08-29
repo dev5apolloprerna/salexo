@@ -19,17 +19,29 @@
                             <div class="card-body">
                                 <form action="{{ route('clients.reports.meeting_done') }}" method="GET"
                                     class="row g-3 align-items-end">
-                                    <div class="col-md-4">
+                                    <div class="col-md-3">
+                                        <label for="meeting_done_emp_id" class="form-label">User</label>
+                                        <select name="emp_id" id="meeting_done_emp_id" class="form-control">
+                                            <option value="">----- All Users -----</option>
+                                            @foreach ($employees as $employee)
+                                                <option value="{{ $employee->emp_id }}"
+                                                    {{ (string) ($filterEmpId ?? '') === (string) $employee->emp_id ? 'selected' : '' }}>
+                                                    {{ $employee->emp_name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
                                         <label for="meeting_done_from_date" class="form-label">From Date</label>
                                         <input type="date" name="from_date" id="meeting_done_from_date"
                                             class="form-control" value="{{ $fromDate ?? '' }}" max="{{ $toDate ?? '' }}">
                                     </div>
-                                    <div class="col-md-4">
+                                    <div class="col-md-3">
                                         <label for="meeting_done_to_date" class="form-label">To Date</label>
                                         <input type="date" name="to_date" id="meeting_done_to_date"
                                             class="form-control" value="{{ $toDate ?? '' }}" min="{{ $fromDate ?? '' }}">
                                     </div>
-                                    <div class="col-md-4">
+                                    <div class="col-md-3">
                                         <div class="d-flex gap-2">
                                             <button type="submit" class="btn btn-primary">Search</button>
                                             <a href="{{ route('clients.reports.meeting_done') }}"
@@ -45,6 +57,10 @@
                 <div class="card p-4 mb-4">
                     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                         <h6 class="mb-0"><i class="fas fa-handshake"></i> Leads with "Meeting Done" Status</h6>
+                            <a href="{{ route('clients.reports.meeting_done.export', request()->only(['emp_id', 'from_date', 'to_date'])) }}"
+                                    class="btn btn-success">
+                                    <i class="fas fa-file-excel me-1"></i> Export to Excel
+                                </a>
                     </div>
 
                     @if ($meetingDonePipelineIds->isEmpty())
