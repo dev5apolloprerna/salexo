@@ -17,18 +17,26 @@
 <style>
     /* Sidebar Gradient and Base Styles */
     .app-menu.navbar-menu {
-        /*background: linear-gradient(to bottom, #3ccf90, #246fdb) !important;*/
-        background-image: linear-gradient(to right, #141E30 0%, #243B55 51%, #141E30 100%) !important;
+        background-image: linear-gradient(
+            to right,
+            #141E30 0%,
+            #243B55 51%,
+            #141E30 100%
+        ) !important;
+
         color: #333 !important;
         box-shadow: 5px 0 5px 5px #cccccc9c;
-    }
 
+        height: 100vh;
+        overflow: hidden;
+    }
 
     .navbar-brand-box {
         text-align: center;
         padding: 20px 10px;
         border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         background: #fff;
+        flex-shrink: 0;
     }
 
     .navbar-brand-box img {
@@ -62,46 +70,61 @@
         font-size: 1rem;
     }
 
-    /* Sidebar menu scrollbar. The theme's default (SimpleBar) scrollbar thumb is
-       black, which is invisible on this dark sidebar background. As more menu
-       items (e.g. the Reports sub-menu) push the list past the visible height,
-       people need a scrollbar they can actually see and drag to reach every
-       item, so we style it to be a visible, light-colored slider instead. */
-    .app-menu .simplebar-track.simplebar-vertical {
-        width: 8px;
-        right: 2px;
+
+    /* =====================================================
+       SIDEBAR SCROLL
+       ===================================================== */
+
+    #scrollbar {
+        height: calc(100vh - 101px);
+        overflow-y: auto;
+        overflow-x: hidden;
     }
 
-    .app-menu .simplebar-scrollbar:before {
-        background-color: rgba(255, 255, 255, 0.35);
-        opacity: 1 !important;
+    #navbar-nav {
+        height: auto;
+        min-height: 100%;
+        overflow: visible;
+        padding-bottom: 20px;
+
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255, 255, 255, 0.45) transparent;
+    }
+
+    #scrollbar::-webkit-scrollbar {
+        width: 7px;
+    }
+
+    #scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    #scrollbar::-webkit-scrollbar-thumb {
+        background-color: rgba(255, 255, 255, 0.40);
         border-radius: 10px;
     }
 
-    .app-menu .simplebar-scrollbar.simplebar-visible:before {
+    #scrollbar::-webkit-scrollbar-thumb:hover {
         background-color: rgba(255, 255, 255, 0.65);
     }
 
-    /* Fallback for the moment before SimpleBar initialises (or if it fails to)
-       so the menu is still scrollable with a visible slider. */
-    #navbar-nav {
-        overflow-y: auto;
-        scrollbar-width: thin;
-        scrollbar-color: rgba(255, 255, 255, 0.35) transparent;
+
+    /* =====================================================
+       DROPDOWNS
+       ===================================================== */
+
+    #navbar-nav .collapse {
+        overflow: visible;
     }
 
-    #navbar-nav::-webkit-scrollbar {
-        width: 6px;
+    #navbar-nav .menu-dropdown {
+        padding-bottom: 2px;
     }
 
-    #navbar-nav::-webkit-scrollbar-thumb {
-        background-color: rgba(255, 255, 255, 0.35);
-        border-radius: 10px;
+    #navbar-nav .nav-sm {
+        overflow: visible;
     }
 
-    #navbar-nav::-webkit-scrollbar-thumb:hover {
-        background-color: rgba(255, 255, 255, 0.55);
-    }
 </style>
 
 <!-- ========== App Menu ========== -->
@@ -409,7 +432,7 @@
                                         <i class="fas fa-filter-circle-dollar"></i> Lead Source Report
                                     </a>
                                 </li>
-                               @if ($company_id == 5)
+                               @if ($company_id == 32)
                                     <li class="nav-item">
                                         <a class="nav-link @if (request()->routeIs('clients.reports.meeting_done')) active @endif"
                                             href="{{ route('clients.reports.meeting_done') }}">

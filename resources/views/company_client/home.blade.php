@@ -53,7 +53,7 @@
                     <!-- </div> -->
                 </div>
 
-                <div class="alert alert-light border d-flex flex-wrap align-items-center justify-content-between gap-2 mb-4">
+                <!-- <div class="alert alert-light border d-flex flex-wrap align-items-center justify-content-between gap-2 mb-4">
                     <div>
                         <i class="fa-solid fa-list-check"></i>
                         Looking for the EMP Analysis Report or Lead Source Report?
@@ -74,7 +74,7 @@
                             <i class="fa-solid fa-filter-circle-dollar"></i> Lead Source Report
                         </a>
                     </div>
-                </div>
+                </div> -->
 
                 <div class="row g-3 mb-4 text-white">
                     <div class="col-md-4">
