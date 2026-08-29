@@ -56,7 +56,10 @@
 
                 <div class="card p-4 mb-4">
                     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-                        <h6 class="mb-0"><i class="fas fa-handshake"></i> Leads with "Meeting Done" Status</h6>
+                        <h6 class="mb-0">
+                            <i class="fas fa-handshake"></i> Leads with "Meeting Done" Status
+                            <span class="badge bg-primary ms-2">Total: {{ $leadHistory->total() }}</span>
+                        </h6>
                             <a href="{{ route('clients.reports.meeting_done.export', request()->only(['emp_id', 'from_date', 'to_date'])) }}"
                                     class="btn btn-success">
                                     <i class="fas fa-file-excel me-1"></i> Export to Excel
@@ -79,10 +82,13 @@
                                         <th>Mobile</th>
                                         <th>Status</th>
                                         <th>Comments</th>
-                                        <th>Amount</th>
+                                        @if ($showAmount)
+                                            <th>Amount</th>
+                                        @endif
                                         <th>Follow Up By</th>
-                                        <th>Next Follow-up Date</th>
-                                        <th>Date</th>
+<!--                                         <th>Next Follow-up Date</th>
+                                        <th>Date</th> -->
+                                        <th>Created By</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -94,14 +100,17 @@
                                             <td>{{ $history->mobile ?? '-' }}</td>
                                             <td>{{ $history->pipeline_name ?? '-' }}</td>
                                             <td class="text-start">{{ $history->Comments ?? '-' }}</td>
-                                            <td>{{ $history->amount && $history->amount != '0' ? $history->amount : '-' }}</td>
+                                            @if ($showAmount)
+                                                <td>{{ $history->amount && $history->amount != '0' ? $history->amount : '-' }}</td>
+                                            @endif
                                             <td>{{ $history->followup_by_name ?? '-' }}</td>
-                                            <td>{{ $history->next_followup_date ?? '-' }}</td>
-                                            <td>{{ \Carbon\Carbon::parse($history->created_at)->format('d-m-Y H:i') }}</td>
+<!--                                             <td>{{ $history->next_followup_date ?? '-' }}</td>
+                                            <td>{{ \Carbon\Carbon::parse($history->created_at)->format('d-m-Y H:i') }}</td> -->
+                                            <td>{{ $history->created_by_name ?? '-' }}</td>
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="10">No records found.</td>
+                                            <td colspan="{{ $showAmount ? 9 : 8 }}">No records found.</td>
                                         </tr>
                                     @endforelse
                                 </tbody>
