@@ -80,7 +80,8 @@
                                         <th>Customer Name</th>
                                         <th>Company</th>
                                         <th>Mobile</th>
-                                        <th>Current Status</th>
+                                        <th>Meeting Done Status</th>
+                                        <th>Lead Current Status</th>
                                         <th>Comments</th>
                                         @if ($showAmount)
                                             <th>Amount</th>
@@ -98,6 +99,7 @@
                                             <td>{{ $history->customer_name ?? '-' }}</td>
                                             <td>{{ $history->company_name ?? '-' }}</td>
                                             <td>{{ $history->mobile ?? '-' }}</td>
+                                            <td>{{ $history->meeting_done_status_name ?? '-' }}</td>
                                             <td>{{ $history->current_status_name ?? '-' }}</td>
                                             <td class="text-start">{{ $history->Comments ?? '-' }}</td>
                                             @if ($showAmount)
@@ -110,7 +112,7 @@
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="{{ $showAmount ? 9 : 8 }}">No records found.</td>
+                                            <td colspan="{{ $showAmount ? 10 : 9 }}">No records found.</td>
                                         </tr>
                                     @endforelse
                                 </tbody>

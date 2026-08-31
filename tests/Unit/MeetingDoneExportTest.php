@@ -14,6 +14,7 @@
              'customer_name' => 'Test Customer',
              'company_name' => 'Test Company',
              'mobile' => '9999999999',
+             'meeting_done_status_name' => 'Meeting Done',
              'current_status_name' => 'Follow Up',
              'Comments' => 'Completed',
              'amount' => '2500',
@@ -29,13 +30,16 @@
              'Test Customer',
              'Test Company',
              '9999999999',
+            'Meeting Done',
              'Follow Up',
              'Completed',
              '2500',
              'Test User',
             'Test Creator',
          ], $export->map($history));
-        $this->assertSame('Created By', $export->headings()[7]);
+        $this->assertSame('Meeting Done Status', $export->headings()[3]);
+        $this->assertSame('Lead Current Status', $export->headings()[4]);
+        $this->assertSame('Created By', $export->headings()[8]);
     }
 
     public function test_it_removes_amount_heading_when_filtered_rows_have_no_amount(): void
@@ -44,6 +48,7 @@
             'customer_name' => 'Test Customer',
             'company_name' => 'Test Company',
             'mobile' => '9999999999',
+            'meeting_done_status_name' => 'Meeting Done',
             'current_status_name' => 'Meeting Done',
             'Comments' => 'Completed',
             'amount' => '0',
@@ -54,6 +59,6 @@
         $export = new MeetingDoneExport(new Collection([$history]));
 
         $this->assertNotContains('Amount', $export->headings());
-        $this->assertCount(7, $export->map($history));
+        $this->assertCount(8, $export->map($history));
      }
  }

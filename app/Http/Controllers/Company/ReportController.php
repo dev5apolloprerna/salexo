@@ -175,6 +175,7 @@ class ReportController extends Controller
     {
         return LeadHistory::select(
                 'lead_history.*',
+                'lead_pipeline_master.pipeline_name as meeting_done_status_name',
                 'current_pipeline.pipeline_name as current_status_name',
                 DB::raw("COALESCE(NULLIF(TRIM(lead_master.customer_name), ''), NULLIF(TRIM(deal_done.customer_name), ''), NULLIF(TRIM(deal_cancel.customer_name), '')) as customer_name"),
                 DB::raw("COALESCE(NULLIF(TRIM(lead_master.company_name), ''), NULLIF(TRIM(deal_done.company_name), ''), NULLIF(TRIM(deal_cancel.company_name), '')) as company_name"),
