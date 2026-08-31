@@ -34,7 +34,8 @@ class MeetingDoneExport implements FromCollection, WithHeadings, WithMapping
             'Customer Name',
             'Company',
             'Mobile',
-            'Status',
+            'Meeting Done Status',
+            'Lead Current Status',
             'Comments',
             // 'Amount',
             'Follow Up By',
@@ -55,7 +56,7 @@ class MeetingDoneExport implements FromCollection, WithHeadings, WithMapping
             $history->customer_name ?? '-',
             $history->company_name ?? '-',
             $history->mobile ?? '-',
-            $history->pipeline_name ?? '-',
+            $history->meeting_done_status_name ?? '-',
             $history->current_status_name ?? '-',
             $history->Comments ?? '-',
             // $history->amount && $history->amount != '0' ? $history->amount : '-',
@@ -66,7 +67,7 @@ class MeetingDoneExport implements FromCollection, WithHeadings, WithMapping
         ];
     if ($this->showAmount) {
             $amount = $history->amount ?? null;
-            array_splice($row, 5, 0, [$amount && $amount != '0' ? $amount : '-']);
+            array_splice($row, 6, 0, [$amount && $amount != '0' ? $amount : '-']);
         }
 
         return $row;
