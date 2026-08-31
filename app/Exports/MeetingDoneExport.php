@@ -56,6 +56,7 @@ class MeetingDoneExport implements FromCollection, WithHeadings, WithMapping
             $history->company_name ?? '-',
             $history->mobile ?? '-',
             $history->pipeline_name ?? '-',
+            $history->current_status_name ?? '-',
             $history->Comments ?? '-',
             // $history->amount && $history->amount != '0' ? $history->amount : '-',
             $history->followup_by_name ?? '-',

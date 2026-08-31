@@ -57,7 +57,7 @@
                 <div class="card p-4 mb-4">
                     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                         <h6 class="mb-0">
-                            <i class="fas fa-handshake"></i> Leads with "Meeting Done" Status
+                            <i class="fas fa-handshake"></i> Leads with a Meeting Done Activity
                             <span class="badge bg-primary ms-2">Total: {{ $leadHistory->total() }}</span>
                         </h6>
                             <a href="{{ route('clients.reports.meeting_done.export', request()->only(['emp_id', 'from_date', 'to_date'])) }}"
@@ -80,7 +80,7 @@
                                         <th>Customer Name</th>
                                         <th>Company</th>
                                         <th>Mobile</th>
-                                        <th>Status</th>
+                                        <th>Current Status</th>
                                         <th>Comments</th>
                                         @if ($showAmount)
                                             <th>Amount</th>
@@ -98,7 +98,7 @@
                                             <td>{{ $history->customer_name ?? '-' }}</td>
                                             <td>{{ $history->company_name ?? '-' }}</td>
                                             <td>{{ $history->mobile ?? '-' }}</td>
-                                            <td>{{ $history->pipeline_name ?? '-' }}</td>
+                                            <td>{{ $history->current_status_name ?? '-' }}</td>
                                             <td class="text-start">{{ $history->Comments ?? '-' }}</td>
                                             @if ($showAmount)
                                                 <td>{{ $history->amount && $history->amount != '0' ? $history->amount : '-' }}</td>

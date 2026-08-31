@@ -42,7 +42,7 @@ class ReportController extends Controller
                 'to_date' => ['nullable', 'date', 'after_or_equal:from_date'],
             ]);
 
-            $companyId = Auth::user()->company_id;
+            $companyId = Auth::guard('web_employees')->user()->company_id;
 
             // This report is only meant for company_id 5.
             if ($companyId != 32) {
@@ -51,6 +51,10 @@ class ReportController extends Controller
 
             $fromDate = $request->input('from_date');
             $toDate = $request->input('to_date');
+             if (!$fromDate && !$toDate) {
+                $fromDate = Carbon::now()->startOfMonth()->toDateString();
+                $toDate = Carbon::now()->endOfMonth()->toDateString();
+            }
             $filterEmpId = $request->input('emp_id');
             $employees = Employee::where('company_id', $companyId)
                 ->where('isDelete', 0)
@@ -67,6 +71,14 @@ class ReportController extends Controller
                 ->pluck('pipeline_id');
             $leadHistoryQuery = $this->meetingDoneQuery($companyId)
                 ->whereIn('lead_history.status', $meetingDonePipelineIds)
+                ->where('lead_history.iLeadHistoryId', function ($query) use ($companyId, $meetingDonePipelineIds) {
+                    $query->selectRaw('MAX(latest_meeting.iLeadHistoryId)')
+                        ->from('lead_history as latest_meeting')
+                        ->whereColumn('latest_meeting.iLeadId', 'lead_history.iLeadId')
+                        ->where('latest_meeting.iCustomerId', $companyId)
+                        ->where('latest_meeting.isDelete', 0)
+                        ->whereIn('latest_meeting.status', $meetingDonePipelineIds);
+                })
                 ->when($filterEmpId, function ($query) use ($filterEmpId) {
                     $query->where('lead_history.followup_by', $filterEmpId);
                 })
@@ -115,6 +127,11 @@ class ReportController extends Controller
         $fromDate = $request->input('from_date');
         $toDate = $request->input('to_date');
 
+        if (!$fromDate && !$toDate) {
+            $fromDate = Carbon::now()->startOfMonth()->toDateString();
+            $toDate = Carbon::now()->endOfMonth()->toDateString();
+        }
+
         $meetingDonePipelineIds = LeadPipeline::where('company_id', $companyId)
             ->where(function ($query) {
                 $query->where('pipeline_name', 'like', '%meeting%done%')
@@ -124,6 +141,14 @@ class ReportController extends Controller
 
         $leadHistory = $this->meetingDoneQuery($companyId)
             ->whereIn('lead_history.status', $meetingDonePipelineIds)
+            ->where('lead_history.iLeadHistoryId', function ($query) use ($companyId, $meetingDonePipelineIds) {
+                $query->selectRaw('MAX(latest_meeting.iLeadHistoryId)')
+                    ->from('lead_history as latest_meeting')
+                    ->whereColumn('latest_meeting.iLeadId', 'lead_history.iLeadId')
+                    ->where('latest_meeting.iCustomerId', $companyId)
+                    ->where('latest_meeting.isDelete', 0)
+                    ->whereIn('latest_meeting.status', $meetingDonePipelineIds);
+            })
             ->when($filterEmpId, function ($query) use ($filterEmpId) {
                 $query->where('lead_history.followup_by', $filterEmpId);
             })
@@ -150,7 +175,7 @@ class ReportController extends Controller
     {
         return LeadHistory::select(
                 'lead_history.*',
-                'lead_pipeline_master.pipeline_name',
+                'current_pipeline.pipeline_name as current_status_name',
                 DB::raw("COALESCE(NULLIF(TRIM(lead_master.customer_name), ''), NULLIF(TRIM(deal_done.customer_name), ''), NULLIF(TRIM(deal_cancel.customer_name), '')) as customer_name"),
                 DB::raw("COALESCE(NULLIF(TRIM(lead_master.company_name), ''), NULLIF(TRIM(deal_done.company_name), ''), NULLIF(TRIM(deal_cancel.company_name), '')) as company_name"),
                 DB::raw("COALESCE(NULLIF(TRIM(lead_master.mobile), ''), NULLIF(TRIM(deal_done.mobile), ''), NULLIF(TRIM(deal_cancel.mobile), '')) as mobile"),
@@ -172,6 +197,13 @@ class ReportController extends Controller
                 $join->on('lead_history.iLeadId', '=', 'deal_cancel.lead_id')
                     ->where('deal_cancel.iCustomerId', '=', $companyId)
                     ->where('deal_cancel.isDelete', '=', 0);
+            })
+            ->leftJoin('lead_pipeline_master as current_pipeline', function ($join) use ($companyId) {
+                $join->on(
+                    'current_pipeline.pipeline_id',
+                    '=',
+                    DB::raw('COALESCE(lead_master.status, deal_done.status, deal_cancel.status)')
+                )->where('current_pipeline.company_id', '=', $companyId);
             })
             ->leftJoin('employee_master', 'lead_history.followup_by', '=', 'employee_master.emp_id')
             ->leftJoin('employee_master as created_by_employee', 'lead_history.iEnterBy', '=', 'created_by_employee.emp_id')
