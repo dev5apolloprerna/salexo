@@ -80,8 +80,8 @@
                                         <th>Customer Name</th>
                                         <th>Company</th>
                                         <th>Mobile</th>
-                                        <th>Meeting Done Status</th>
                                         <th>Lead Current Status</th>
+                                        <th>Meeting Done Date</th>
                                         <th>Comments</th>
                                         @if ($showAmount)
                                             <th>Amount</th>
@@ -99,8 +99,8 @@
                                             <td>{{ $history->customer_name ?? '-' }}</td>
                                             <td>{{ $history->company_name ?? '-' }}</td>
                                             <td>{{ $history->mobile ?? '-' }}</td>
-                                            <td>{{ $history->meeting_done_status_name ?? '-' }}</td>
                                             <td>{{ $history->current_status_name ?? '-' }}</td>
+                                            <td>{{ $history->created_at ? \Carbon\Carbon::parse($history->created_at)->format('d-m-Y H:i') : '-' }}</td>
                                             <td class="text-start">{{ $history->Comments ?? '-' }}</td>
                                             @if ($showAmount)
                                                 <td>{{ $history->amount && $history->amount != '0' ? $history->amount : '-' }}</td>

@@ -97,7 +97,7 @@
                                                     <thead class="table-light">
                                                         <tr>
                                                             <th>Lead Status</th>
-                                                            <th class="text-end">Lead Count</th>
+                                                            <th class="text-end">Deal Done Amount</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -111,6 +111,13 @@
                                                                 <td class="text-end fw-semibold">
                                                                     {{ $employeeStatuses->get($pipeline->pipeline_id, 0) }}
                                                                 </td>
+                                                                <td class="text-end fw-semibold">
+                                                                        @if ($pipeline->slugname === 'deal-done' || strcasecmp($pipeline->pipeline_name, 'Deal Done') === 0)
+                                                                            {{ number_format((float) $dealDoneAmounts->get($employee->emp_id, 0), 2) }}
+                                                                        @else
+                                                                            -
+                                                                        @endif
+                                                                </td>
                                                             </tr>
                                                         @endforeach
                                                     </tbody>
@@ -118,6 +125,7 @@
                                                         <tr>
                                                             <th>Total</th>
                                                             <th class="text-end">{{ $employeeTotal }}</th>
+                                                            <th></th>
                                                         </tr>
                                                     </tfoot>
                                                 </table>

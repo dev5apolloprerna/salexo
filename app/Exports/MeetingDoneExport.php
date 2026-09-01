@@ -6,6 +6,7 @@ use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
+use Carbon\Carbon;
 
 class MeetingDoneExport implements FromCollection, WithHeadings, WithMapping
 {
@@ -34,8 +35,8 @@ class MeetingDoneExport implements FromCollection, WithHeadings, WithMapping
             'Customer Name',
             'Company',
             'Mobile',
-            'Meeting Done Status',
             'Lead Current Status',
+            'Meeting Done Date',
             'Comments',
             // 'Amount',
             'Follow Up By',
@@ -44,7 +45,7 @@ class MeetingDoneExport implements FromCollection, WithHeadings, WithMapping
             'Created By',
         ];
          if ($this->showAmount) {
-            array_splice($headings, 5, 0, ['Amount']);
+            array_splice($headings, 6, 0, ['Amount']);
         }
 
         return $headings;
@@ -56,8 +57,8 @@ class MeetingDoneExport implements FromCollection, WithHeadings, WithMapping
             $history->customer_name ?? '-',
             $history->company_name ?? '-',
             $history->mobile ?? '-',
-            $history->meeting_done_status_name ?? '-',
             $history->current_status_name ?? '-',
+            $history->created_at ? Carbon::parse($history->created_at)->format('d-m-Y H:i') : '-',
             $history->Comments ?? '-',
             // $history->amount && $history->amount != '0' ? $history->amount : '-',
             $history->followup_by_name ?? '-',

@@ -69,16 +69,7 @@ class ReportController extends Controller
                         ->orWhere('slugname', 'like', '%meeting%done%');
                 })
                 ->pluck('pipeline_id');
-            $leadHistoryQuery = $this->meetingDoneQuery($companyId)
-                ->whereIn('lead_history.status', $meetingDonePipelineIds)
-                ->where('lead_history.iLeadHistoryId', function ($query) use ($companyId, $meetingDonePipelineIds) {
-                    $query->selectRaw('MAX(latest_meeting.iLeadHistoryId)')
-                        ->from('lead_history as latest_meeting')
-                        ->whereColumn('latest_meeting.iLeadId', 'lead_history.iLeadId')
-                        ->where('latest_meeting.iCustomerId', $companyId)
-                        ->where('latest_meeting.isDelete', 0)
-                        ->whereIn('latest_meeting.status', $meetingDonePipelineIds);
-                })
+            $leadHistoryQuery = $this->firstMeetingDoneQuery($companyId, $meetingDonePipelineIds)
                 ->when($filterEmpId, function ($query) use ($filterEmpId) {
                     $query->where('lead_history.followup_by', $filterEmpId);
                 })
@@ -139,16 +130,7 @@ class ReportController extends Controller
             })
             ->pluck('pipeline_id');
 
-        $leadHistory = $this->meetingDoneQuery($companyId)
-            ->whereIn('lead_history.status', $meetingDonePipelineIds)
-            ->where('lead_history.iLeadHistoryId', function ($query) use ($companyId, $meetingDonePipelineIds) {
-                $query->selectRaw('MAX(latest_meeting.iLeadHistoryId)')
-                    ->from('lead_history as latest_meeting')
-                    ->whereColumn('latest_meeting.iLeadId', 'lead_history.iLeadId')
-                    ->where('latest_meeting.iCustomerId', $companyId)
-                    ->where('latest_meeting.isDelete', 0)
-                    ->whereIn('latest_meeting.status', $meetingDonePipelineIds);
-            })
+        $leadHistory = $this->firstMeetingDoneQuery($companyId, $meetingDonePipelineIds)
             ->when($filterEmpId, function ($query) use ($filterEmpId) {
                 $query->where('lead_history.followup_by', $filterEmpId);
             })
@@ -163,19 +145,25 @@ class ReportController extends Controller
 
         return Excel::download(new MeetingDoneExport($leadHistory), 'meeting_done_report.xlsx');
     }
-     /**
-     * Build the common Meeting Done query, including contact details for leads
-     * that have since moved out of lead_master into an archive table.
-     */
-    /**
-     * Build the common Meeting Done query, including contact details for leads
-     * that have since moved out of lead_master into an archive table.
-     */
-     private function meetingDoneQuery(int $companyId): Builder
+     
+ private function firstMeetingDoneQuery(int $companyId, $meetingDonePipelineIds): Builder
+    {
+        return $this->meetingDoneQuery($companyId)
+            ->whereIn('lead_history.status', $meetingDonePipelineIds)
+            ->where('lead_history.iLeadHistoryId', function ($query) use ($companyId, $meetingDonePipelineIds) {
+                $query->selectRaw('MIN(first_meeting.iLeadHistoryId)')
+                    ->from('lead_history as first_meeting')
+                    ->whereColumn('first_meeting.iLeadId', 'lead_history.iLeadId')
+                    ->where('first_meeting.iCustomerId', $companyId)
+                    ->where('first_meeting.isDelete', 0)
+                    ->whereIn('first_meeting.status', $meetingDonePipelineIds);
+            });
+    }
+
+    private function meetingDoneQuery(int $companyId): Builder
     {
         return LeadHistory::select(
                 'lead_history.*',
-                'lead_pipeline_master.pipeline_name as meeting_done_status_name',
                 'current_pipeline.pipeline_name as current_status_name',
                 DB::raw("COALESCE(NULLIF(TRIM(lead_master.customer_name), ''), NULLIF(TRIM(deal_done.customer_name), ''), NULLIF(TRIM(deal_cancel.customer_name), '')) as customer_name"),
                 DB::raw("COALESCE(NULLIF(TRIM(lead_master.company_name), ''), NULLIF(TRIM(deal_done.company_name), ''), NULLIF(TRIM(deal_cancel.company_name), '')) as company_name"),
@@ -1551,6 +1539,16 @@ class ReportController extends Controller
                 ->map(function ($statuses) {
                     return $statuses->pluck('total', 'status');
                 });
+            $dealDoneAmountQuery = DB::table('deal_done')
+                ->selectRaw('COALESCE(NULLIF(employee_id, 0), iemployeeId) as report_employee_id')
+                ->selectRaw('SUM(COALESCE(amount, 0)) as total_amount')
+                ->where('iCustomerId', $companyId)
+                ->where('isDelete', 0);
+            $applyFilters($dealDoneAmountQuery);
+            $dealDoneAmounts = $dealDoneAmountQuery
+                ->groupBy('report_employee_id')
+                ->pluck('total_amount', 'report_employee_id');
+
 
             $reportEmployees = $employees
                 ->when($filterEmpId, function ($employees) use ($filterEmpId) {
@@ -1567,6 +1565,7 @@ class ReportController extends Controller
                 'reportEmployees',
                 'reportPipelines',
                 'leadStatusCounts',
+                'dealDoneAmounts',
                 'filterEmpId',
                 'fromDate',
                 'toDate'

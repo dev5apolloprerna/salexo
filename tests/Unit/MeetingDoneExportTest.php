@@ -14,8 +14,8 @@
              'customer_name' => 'Test Customer',
              'company_name' => 'Test Company',
              'mobile' => '9999999999',
-             'meeting_done_status_name' => 'Meeting Done',
              'current_status_name' => 'Follow Up',
+            'created_at' => '2026-08-15 14:30:00',
              'Comments' => 'Completed',
              'amount' => '2500',
              'followup_by_name' => 'Test User',
@@ -30,15 +30,16 @@
              'Test Customer',
              'Test Company',
              '9999999999',
-            'Meeting Done',
              'Follow Up',
+            '15-08-2026 14:30',
              'Completed',
              '2500',
              'Test User',
             'Test Creator',
          ], $export->map($history));
-        $this->assertSame('Meeting Done Status', $export->headings()[3]);
-        $this->assertSame('Lead Current Status', $export->headings()[4]);
+        $this->assertSame('Lead Current Status', $export->headings()[3]);
+        $this->assertSame('Meeting Done Date', $export->headings()[4]);
+        $this->assertNotContains('Meeting Done Status', $export->headings());
         $this->assertSame('Created By', $export->headings()[8]);
     }
 
@@ -48,8 +49,8 @@
             'customer_name' => 'Test Customer',
             'company_name' => 'Test Company',
             'mobile' => '9999999999',
-            'meeting_done_status_name' => 'Meeting Done',
             'current_status_name' => 'Meeting Done',
+            'created_at' => '2026-08-15 14:30:00',
             'Comments' => 'Completed',
             'amount' => '0',
             'followup_by_name' => 'Test User',
