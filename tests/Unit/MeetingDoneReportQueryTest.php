@@ -8,6 +8,15 @@ use Tests\TestCase;
 
 class MeetingDoneReportQueryTest extends TestCase
 {
+     public function test_it_selects_the_first_meeting_done_history_for_each_lead(): void
+    {
+        $method = new ReflectionMethod(ReportController::class, 'firstMeetingDoneQuery');
+        $query = $method->invoke(new ReportController(), 32, collect([10, 11]));
+
+        $this->assertStringContainsString('MIN(first_meeting.iLeadHistoryId)', $query->toSql());
+        $this->assertStringNotContainsString('MAX(', $query->toSql());
+    }
+    
     public function test_contact_details_fall_back_to_archived_leads(): void
     {
         $method = new ReflectionMethod(ReportController::class, 'meetingDoneQuery');

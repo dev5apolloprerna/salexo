@@ -39,7 +39,10 @@ class LeadMasterController extends Controller
             $emp_id = $request->input('emp_id');
             $user = Auth::user();
 
-            $leadPipeline = LeadPipeline::where(['company_id' => $user->company_id])->get();
+            $leadPipeline = LeadPipeline::where('company_id', $user->company_id)
+                ->whereNotIn('slugname', ['deal-done', 'deal-cancel'])
+                ->whereNotIn('pipeline_name', ['Deal Done', 'Deal Cancel'])
+                ->get();
             $services = Service::where(['company_id' => $user->company_id])->get();
             $employees = Employee::orderBy('emp_name', 'asc')->where(['isDelete' => 0, 'company_id' => Auth::user()->company_id])->get();
 
