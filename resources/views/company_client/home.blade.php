@@ -210,7 +210,10 @@
                     </div>
                      <div class="col-md-6">
                         <div class="card p-4">
-                            <h6><i class="fa-solid fa-trophy"></i> Top Performer Report</h6>
+                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                                <h6 class="mb-0"><i class="fa-solid fa-trophy"></i> Top Performer Report</h6>
+                                <span class="badge bg-primary">{{ $topPerformerPeriodLabel }}</span>
+                            </div>
                             <div class="table-responsive mb-3 table-wrapper">
                                 <table class="table table-bordered table-striped align-middle">
                                     <thead class="table-light">
