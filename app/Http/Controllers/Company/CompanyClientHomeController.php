@@ -227,6 +227,8 @@ class CompanyClientHomeController extends Controller
         ->limit(10)
         ->get();
 
+        [$topPerformerFrom, $topPerformerTo] = $this->topPerformerPeriod($fromDate, $toDate);
+
         $topPerformers = DealDone::select(
             'employee_master.emp_id',
             'employee_master.emp_name',
@@ -238,19 +240,19 @@ class CompanyClientHomeController extends Controller
             ->where('deal_done.status', $lead_pipeline->pipeline_id)
             ->where('deal_done.isDelete', 0)
             ->where('employee_master.isDelete', 0)
+            ->whereBetween('deal_done.created_at', [$topPerformerFrom, $topPerformerTo])
             ->when($filterEmpId, function ($query) use ($filterEmpId) {
                 $query->where('deal_done.employee_id', $filterEmpId);
-            })
-            ->when($fromDate, function ($query) use ($fromDate) {
-                $query->whereDate('deal_done.created_at', '>=', $fromDate);
-            })
-            ->when($toDate, function ($query) use ($toDate) {
-                $query->whereDate('deal_done.created_at', '<=', $toDate);
             })
             ->groupBy('employee_master.emp_id', 'employee_master.emp_name')
             ->orderByDesc('total_value')
             ->limit(10)
             ->get();
+
+        $topPerformerPeriodLabel = ($fromDate || $toDate)
+            ? $topPerformerFrom->format('d M Y') . ' - ' . $topPerformerTo->format('d M Y')
+            : $topPerformerFrom->format('F Y');
+
 
 
 // Keep the performance chart in sync with the dashboard filters. Using a
@@ -353,6 +355,7 @@ class CompanyClientHomeController extends Controller
         'topPerformers',
         'labels',
         'generatedData',
+        'topPerformerPeriodLabel',
         'convertedData',
         'employeeLeads',
         'filterEmpId',
@@ -368,7 +371,24 @@ class CompanyClientHomeController extends Controller
 }
 
 
-    public function getProfile()
+
+  /**
+     * Resolve the inclusive period used by the dashboard leaderboard.
+     *
+     * With no search dates, the current calendar month is used. If only one
+     * date is supplied, the missing boundary is inferred from that date's
+     * month so the report remains month-based.
+     */
+    private function topPerformerPeriod(?string $fromDate, ?string $toDate): array
+    {
+        $referenceDate = Carbon::parse($fromDate ?? $toDate ?? now());
+
+        return [
+            $fromDate ? Carbon::parse($fromDate)->startOfDay() : $referenceDate->copy()->startOfMonth(),
+            $toDate ? Carbon::parse($toDate)->endOfDay() : $referenceDate->copy()->endOfMonth(),
+        ];
+    }
+        public function getProfile()
     {
         try {
 
