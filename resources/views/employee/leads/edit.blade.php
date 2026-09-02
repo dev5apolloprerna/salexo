@@ -16,7 +16,7 @@
                         <div class="page-title-box d-sm-flex align-items-center justify-content-between">
                             <h4 class="mb-sm-0">Edit Lead</h4>
                             <div class="page-title-right">
-                                <a href="{{ route('employee.leads.index') }}"
+                                <a href="{{ route('employee.leads.index', request()->only(['search', 'from_date', 'to_date'])) }}"
                                     class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
                                     Back
                                 </a>
@@ -34,6 +34,9 @@
                                     <form action="{{ route('employee.leads.update', $lead->lead_id) }}" method="POST">
                                         @csrf
                                         @method('PUT')
+                                        @foreach (request()->only(['search', 'from_date', 'to_date']) as $filter => $value)
+                                            <input type="hidden" name="{{ $filter }}" value="{{ $value }}">
+                                        @endforeach
                                         <div class="row gy-4">
                                             @include('employee.leads.form', ['lead' => $lead])
                                         </div>
@@ -42,7 +45,7 @@
                                                 <button type="submit"
                                                     class="btn btn-primary btn-user float-right mb-3 mx-2">Update</button>
                                                 <a class="btn btn-primary float-right mr-3 mb-3 mx-2"
-                                                    href="{{ route('employee.leads.index') }}">Cancel</a>
+                                                    href="{{ route('employee.leads.index', request()->only(['search', 'from_date', 'to_date'])) }}">Cancel</a>
                                             </div>
                                         </div>
                                     </form>
