@@ -33,10 +33,19 @@ class LeadMasterController extends Controller
     public function index(Request $request)
     {
         try {
+
+            $request->validate([
+                'from_date' => ['nullable', 'date_format:Y-m-d'],
+                'to_date' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from_date'],
+            ]);
+
+
             $search = $request->input('search');
             $pipeline_id = $request->input('pipeline_id');
             $service_id = $request->input('service_id');
             $emp_id = $request->input('emp_id');
+            $from_date = $request->input('from_date');
+            $to_date = $request->input('to_date');
             $user = Auth::user();
 
             $leadPipeline = LeadPipeline::where('company_id', $user->company_id)
@@ -83,11 +92,19 @@ class LeadMasterController extends Controller
                 $query->where('product_service_id', '=', $service_id);
             }
 
+            if ($from_date) {
+                $query->whereDate('lead_master.created_at', '>=', $from_date);
+            }
+
+            if ($to_date) {
+                $query->whereDate('lead_master.created_at', '<=', $to_date);
+            }
+
             $leads = $query->paginate(config('app.per_page'));
             // dd($leads);
             $leadCounts = $this->leadCounts($user->company_id);
 
-            return view('company_client.leads.index', compact('leads', 'search', 'leadPipeline', 'pipeline_id', 'services', 'service_id', 'employees', 'emp_id', 'leadCounts'));
+            return view('company_client.leads.index', compact('leads', 'search', 'leadPipeline', 'pipeline_id', 'services', 'service_id', 'employees', 'emp_id', 'from_date', 'to_date', 'leadCounts'));
         } catch (\Exception $e) {
             Log::error('Error in LeadMasterController@index: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             return redirect()->back()->with('error', 'An error occurred while fetching leads.');
@@ -503,7 +520,12 @@ class LeadMasterController extends Controller
                 }
             }
 
-            return redirect()->route('leads.index')->with('success', 'Lead updated successfully.');
+            $filters = array_filter(
+                $request->only(['search', 'pipeline_id', 'service_id', 'emp_id', 'from_date', 'to_date']),
+                fn ($value) => $value !== null && $value !== ''
+            );
+
+            return redirect()->route('leads.index', $filters)->with('success', 'Lead updated successfully.');
         } catch (\Exception $e) {
             Log::error('Error in LeadMasterController@update: ' . $e->getMessage(), [
                 'lead_id' => $id,

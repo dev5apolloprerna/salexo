@@ -83,6 +83,20 @@
                                                                 autocomplete="off">
                                                         </div>
                                                     </div>
+                                                    <div class="col-md-2">
+                                                        <div class="form-group">
+                                                            <label for="from_date">Lead Created From</label>
+                                                            <input type="date" name="from_date" id="from_date"
+                                                                class="form-control" value="{{ $from_date ?? '' }}">
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-2">
+                                                        <div class="form-group">
+                                                            <label for="to_date">Lead Created To</label>
+                                                            <input type="date" name="to_date" id="to_date"
+                                                                class="form-control" value="{{ $to_date ?? '' }}">
+                                                        </div>
+                                                    </div>
 
                                                     <div class="col-md-3">
                                                         <div class="form-group">
@@ -201,7 +215,7 @@
                                                                             </td>
                                                                             <td>
                                                                                 <a
-                                                                                    href="{{ route('leads.edit', $lead->lead_id) }}"><i
+                                                                                    href="{{ route('leads.edit', array_merge([$lead->lead_id], request()->except('page'))) }}"><i
                                                                                         class="fa fa-edit"></i></a>
                                                                                 <a class="" href="#"
                                                                                     data-bs-toggle="modal" title="Delete"
@@ -303,8 +317,7 @@
         }
 
         function resetForm() {
-            document.getElementById('search').value = '';
-            document.getElementById('myForm').submit();
+            window.location.href = "{{ route('leads.index') }}";
         }
     </script>
     <script>

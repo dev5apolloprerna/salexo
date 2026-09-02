@@ -22,7 +22,15 @@ class EmployeeLeadMasterController extends Controller
     public function lead_list(Request $request)
     {
         try {
+            $request->validate([
+                'from_date' => ['nullable', 'date_format:Y-m-d'],
+                'to_date' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from_date'],
+            ]);
+
+
             $search = $request->input('search');
+            $from_date = $request->input('from_date');
+            $to_date = $request->input('to_date');
 
             // $query = LeadMaster::where([
             //     'isDelete' => 0,
@@ -56,10 +64,17 @@ class EmployeeLeadMasterController extends Controller
                         ->orWhere('customer_name', 'like', "%{$search}%");
                 });
             }
+             if ($from_date) {
+                $query->whereDate('lead_master.created_at', '>=', $from_date);
+            }
+
+            if ($to_date) {
+                $query->whereDate('lead_master.created_at', '<=', $to_date);
+            }
 
             $leads = $query->paginate(config('app.per_page'));
 
-            return view('employee.leads.index', compact('leads', 'search'));
+            return view('employee.leads.index', compact('leads', 'search', 'from_date', 'to_date'));
         } catch (\Exception $e) {
             Log::error('Lead list fetch failed', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return redirect()->back()->with('error', 'An error occurred: ' . $e->getMessage());
@@ -308,7 +323,13 @@ class EmployeeLeadMasterController extends Controller
                 "updated_at" => now()
             ]);
 
-            return redirect()->route('employee.leads.index')->with('success', 'Lead updated successfully.');
+            $filters = array_filter(
+                $request->only(['search', 'from_date', 'to_date']),
+                fn ($value) => $value !== null && $value !== ''
+            );
+
+            return redirect()->route('employee.leads.index', $filters)->with('success', 'Lead updated successfully.');
+            
         } catch (\Exception $e) {
             Log::error('Lead update failed', ['lead_id' => $id, 'error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return redirect()->back()->with('error', 'An error occurred while updating the lead: ' . $e->getMessage());
