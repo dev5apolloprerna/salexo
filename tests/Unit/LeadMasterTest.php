@@ -28,6 +28,23 @@ class LeadMasterTest extends TestCase
             $table->boolean('isDelete')->default(false);
         });
     }
+      public function test_active_scope_excludes_deleted_leads(): void
+    {
+        LeadMaster::create([
+            'iCustomerId' => 10,
+            'customer_name' => 'Active Contact',
+            'mobile' => '9876543210',
+            'isDelete' => 0,
+        ]);
+        LeadMaster::create([
+            'iCustomerId' => 10,
+            'customer_name' => 'Deleted Contact',
+            'mobile' => '9876543211',
+            'isDelete' => 1,
+        ]);
+
+        $this->assertSame(1, LeadMaster::active()->count());
+    }
 
     public function test_it_allows_multiple_active_leads_for_the_same_company_when_contacts_differ(): void
     {

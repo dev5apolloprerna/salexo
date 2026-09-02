@@ -65,8 +65,8 @@
                                                         <th>Plan Amount</th>
                                                         <th>Subscription Start Date</th>
                                                         <th>Subscription End Date</th>
-                                                        <th>Login Date Time</th>
-                                                        <th>No. of leads</th>
+                                                        <th>Last Lead Entry Date</th>
+                                                        <th>Active Leads</th>
                                                         <th>Status</th>
                                                         <th>Action</th>
                                                     </tr>
@@ -94,13 +94,13 @@
                                                             <td>{{ date('d-m-Y', strtotime($client->subscription_end_date)) }}
                                                             </td>
                                                             <td>
-                                                                @if($client->employee->last_login)
-                                                                    {{ date('d-m-Y H:i', strtotime($client->employee->last_login)) }}
+                                                                @if($client->last_lead_entry_at)
+                                                                    {{ date('d-m-Y H:i', strtotime($client->last_lead_entry_at)) }}
                                                                 @else
                                                                     -
                                                                 @endif
                                                             </td>
-                                                            <td>{{ $client->total_leads  }}</td>
+                                                            <td>{{ $client->active_leads }}</td>
                                                             <td>
                                                                 <span class="badge bg-{{ $client->iStatus ? 'success' : 'secondary' }} toggle-status"
                                                                       style="cursor:pointer"

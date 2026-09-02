@@ -67,7 +67,12 @@ class LeadMaster extends Model
             }
         });
     }
-        public static function findActiveDuplicate($companyId, $contactName, $mobile = null, $email = null): ?self
+    public function scopeActive($query)
+    {
+        return $query->where('isDelete', 0);
+    }
+
+    public static function findActiveDuplicate($companyId, $contactName, $mobile = null, $email = null): ?self
     {
         $contactName = trim((string) $contactName);
         $mobile = preg_replace('/\D+/', '', (string) $mobile);
