@@ -91,6 +91,7 @@
                                                         <th>Lead Source</th>
                                                         @if ($status === 'deal-done')
                                                             <th>Lead Done Date</th>
+                                                            <th>Amount</th>
                                                         @endif
                                                         @if ($status === 'deal-cancel')
                                                             <th>Lead Cancel Date</th>
@@ -124,6 +125,7 @@
                                                                 <td>
                                                                     {{ $lead->deal_done_at ? date('d-m-Y H:i', strtotime($lead->deal_done_at)) : '-' }}
                                                                 </td>
+                                                                <td>₹ {{ number_format((float) ($lead->amount ?? 0), 2) }}</td>
                                                             @endif
                                                             @if ($status === 'deal-cancel')
                                                                 <td>
