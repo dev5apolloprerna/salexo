@@ -106,7 +106,7 @@
                                                                                     <th>Email</th>
                                                                                     <th>Mobile</th>
                                                                                     <th>Lead Source</th>
-
+                                                                                    <th>Amount</th>
                                                                                 </tr>
                                                                             </thead>
                                                                             <tbody>
@@ -122,11 +122,12 @@
                                                                                         <td>{{ $lead->mobile ?? '-' }}</td>
                                                                                         <td>{{ $lead->leadSource->lead_source_name ?? '' }}
                                                                                         </td>
-
+                                                                                        <td>₹ {{ number_format((float) ($lead->amount ?? 0), 2) }}
+                                                                                        </td>
                                                                                     </tr>
                                                                                 @empty
                                                                                     <tr>
-                                                                                        <td colspan="5"
+                                                                                        <td colspan="7"
                                                                                             class="text-center">No Leads
                                                                                             Found.</td>
                                                                                     </tr>

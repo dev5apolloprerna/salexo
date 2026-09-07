@@ -56,6 +56,9 @@
                                                         <th>Service / Product</th>
                                                         <th>Followup Date</th>
                                                         <th>Lead Source</th>
+                                                        @if ($status === 'deal-done')
+                                                            <th>Amount</th>
+                                                        @endif 
                                                         <th>Action</th>
                                                     </tr>
                                                 </thead>
@@ -76,7 +79,9 @@
                                                             <td>
                                                                 {{ $lead->lead_source_name ?? '' }}
                                                             </td>
-
+                                                            @if ($status === 'deal-done')
+                                                                <td>₹ {{ number_format((float) ($lead->amount ?? 0), 2) }}</td>
+                                                            @endif
                                                             @if ($profileId === 'new-lead')
                                                                 <td>
                                                                     <a href="{{ route('employee.followup_detail',[$status, $lead->lead_id]) }}"
