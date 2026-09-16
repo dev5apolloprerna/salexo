@@ -229,7 +229,7 @@ class CompanyClientHomeController extends Controller
 
         [$topPerformerFrom, $topPerformerTo] = $this->topPerformerPeriod($fromDate, $toDate);
 
-        $topPerformers = DealDone::select(
+        $topPerformersQuery = DealDone::select(
             'employee_master.emp_id',
             'employee_master.emp_name',
             DB::raw('COUNT(deal_done.lead_id) as deals_closed'),
@@ -239,8 +239,11 @@ class CompanyClientHomeController extends Controller
             ->where('deal_done.iCustomerId', $emp_id)
             ->where('deal_done.status', $lead_pipeline->pipeline_id)
             ->where('deal_done.isDelete', 0)
-            ->where('employee_master.isDelete', 0)
-            ->whereBetween('deal_done.created_at', [$topPerformerFrom, $topPerformerTo])
+            ->where('employee_master.isDelete', 0);
+
+        $this->applyTopPerformerPeriod($topPerformersQuery, $topPerformerFrom, $topPerformerTo);
+
+        $topPerformers = $topPerformersQuery
             ->when($filterEmpId, function ($query) use ($filterEmpId) {
                 $query->where('deal_done.employee_id', $filterEmpId);
             })
@@ -387,6 +390,17 @@ class CompanyClientHomeController extends Controller
             $fromDate ? Carbon::parse($fromDate)->startOfDay() : $referenceDate->copy()->startOfMonth(),
             $toDate ? Carbon::parse($toDate)->endOfDay() : $referenceDate->copy()->endOfMonth(),
         ];
+    }
+     private function applyTopPerformerPeriod($query, Carbon $from, Carbon $to)
+    {
+        // A deal keeps the lead's original created_at value when it is moved
+        // into deal_done. Prefer the conversion timestamp so a lead created
+        // earlier but closed today appears in the current leaderboard. The
+        // fallback supports legacy/imported rows without deal_done_at.
+        return $query->whereBetween(
+            DB::raw('COALESCE(deal_done.deal_done_at, deal_done.created_at)'),
+            [$from, $to]
+        );
     }
         public function getProfile()
     {
