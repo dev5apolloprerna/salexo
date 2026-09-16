@@ -92,12 +92,21 @@ class LeadMasterController extends Controller
                 $query->where('product_service_id', '=', $service_id);
             }
 
+            // next_followup_date is stored as text in "d-m-Y h:i A" format (not a real
+            // DATE/DATETIME column), so it has to be parsed with STR_TO_DATE before it
+            // can be compared to the from/to date inputs.
             if ($from_date) {
-                $query->whereDate('lead_master.created_at', '>=', $from_date);
+                $query->whereRaw(
+                    "STR_TO_DATE(lead_master.next_followup_date, '%d-%m-%Y %h:%i %p') >= ?",
+                    [$from_date . ' 00:00:00']
+                );
             }
 
             if ($to_date) {
-                $query->whereDate('lead_master.created_at', '<=', $to_date);
+                $query->whereRaw(
+                    "STR_TO_DATE(lead_master.next_followup_date, '%d-%m-%Y %h:%i %p') <= ?",
+                    [$to_date . ' 23:59:59']
+                );
             }
 
             $leads = $query->paginate(config('app.per_page'));

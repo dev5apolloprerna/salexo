@@ -85,14 +85,14 @@
                                                     </div>
                                                     <div class="col-md-2">
                                                         <div class="form-group">
-                                                            <label for="from_date">Lead Created From</label>
+                                                            <label for="from_date">Followup From</label>
                                                             <input type="date" name="from_date" id="from_date"
                                                                 class="form-control" value="{{ $from_date ?? '' }}">
                                                         </div>
                                                     </div>
                                                     <div class="col-md-2">
                                                         <div class="form-group">
-                                                            <label for="to_date">Lead Created To</label>
+                                                            <label for="to_date">Followup To</label>
                                                             <input type="date" name="to_date" id="to_date"
                                                                 class="form-control" value="{{ $to_date ?? '' }}">
                                                         </div>
