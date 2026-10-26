@@ -111,7 +111,7 @@
     <label for="no_of_users">No. of users <span style="color:red;">*</span></label>
     <input type="text" name="no_of_users" class="form-control" placeholder="Enter No. of users"
         onkeyup="if (/\D/g.test(this.value)) this.value = this.value.replace(/\D/g,'')" maxlength="3"
-        value="{{ old('3', $client->no_of_users ?? '') }}">
+        value="{{ old('no_of_users', $client->no_of_users ?? '') }}">
     @if ($errors->has('no_of_users'))
         <span class="text-danger">
             {{ $errors->first('no_of_users') }}
@@ -192,7 +192,7 @@
     <input type="hidden" name="notify_api" value="0"> {{-- Default value when unchecked --}}
     
     <input type="checkbox" name="notify_api" id="notify_api" value="1"
-                   {{ old('notify_api', $client->notify_api ?? 0) == 1 ? 'checked' : '' }}>
+                   {{ old('notify_api', $client->isNotifyApi ?? 0) == 1 ? 'checked' : '' }}>
     <span>Enable notification</span>
 
     @if ($errors->has('notify_api'))
@@ -245,15 +245,17 @@
             startDateInput.addEventListener('change', calculateEndDate);
             planDaysInput.addEventListener('input', calculateEndDate);
 
-            // Trigger on page load if plan is already selected
-            if (planSelect.value) {
-                planSelect.dispatchEvent(new Event('change'));
+            // On page load, keep the saved/entered values (do not reset to plan defaults).
+            // Only fill plan amount/days if they are empty.
+            if (planSelect.value && planDetails[planSelect.value]) {
+                if (!planAmountInput.value) planAmountInput.value = planDetails[planSelect.value].amount;
+                if (!planDaysInput.value) planDaysInput.value = planDetails[planSelect.value].days;
             }
 
-            // Trigger calculation on page load if adding new
-            @if (!isset($client->subscription_end_date))
+            // Calculate end date on load only if it is not already set
+            if (!endDateInput.value) {
                 calculateEndDate();
-            @endif
+            }
         });
 
         document.getElementById('gstInput').addEventListener('input', function() {

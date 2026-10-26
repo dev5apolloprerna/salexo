@@ -106,6 +106,8 @@ class CompanyClientController extends Controller
             'email' => 'required|unique:company_client_master,email',
             'password' => 'required|min:6',
             'no_of_users' => 'required',
+            'subscription_start_date' => 'required|date',
+            'subscription_end_date' => 'nullable|date|after_or_equal:subscription_start_date',
             'GST' => [
                 'nullable', // or 'required' if mandatory
                 'string',
@@ -121,15 +123,11 @@ class CompanyClientController extends Controller
         try {
 
             $data = $request->all();
-            $data['subscription_start_date'] = Carbon::now();
             $data['no_of_users'] = $request->no_of_users;
             $data['isNotifyApi'] = $request->notify_api; // 0 or 1
 
-            // Get the plan days
-            $planDays = isset($request->plan_days) ? (int)$request->plan_days : 0;
-
-            // Calculate subscription end date
-            $data['subscription_end_date'] = Carbon::now()->addDays($planDays);
+            // Use the subscription dates entered in the form (not today's date)
+            $data = array_merge($data, $this->resolveSubscriptionDates($request));
 
             // Hash the password if provided
             if (!empty($request->password)) {
@@ -290,6 +288,8 @@ class CompanyClientController extends Controller
                     'max:100',
                     'regex:/^(\d{2}[A-Z]{5}\d{4}[A-Z]{1}[A-Z\d]{1}[Z]{1}[A-Z\d]{1})$/'
                 ],
+                'subscription_start_date' => 'required|date',
+                'subscription_end_date' => 'nullable|date|after_or_equal:subscription_start_date',
             ]);
 
             // Find the client and the client's employee (if any)
@@ -309,12 +309,11 @@ class CompanyClientController extends Controller
             }
 
             $data = $request->all();
-            $data['subscription_start_date'] = Carbon::now();
             $data['no_of_users'] = $request->no_of_users;
-            // Get the plan days
-            $planDays = isset($request->plan_days) ? (int)$request->plan_days : 0;
-            // Calculate subscription end date
-            $data['subscription_end_date'] = Carbon::now()->addDays($planDays);
+            $data['isNotifyApi'] = $request->notify_api ?? 0; // 0 or 1
+
+            // Use the subscription dates entered in the form (not today's date)
+            $data = array_merge($data, $this->resolveSubscriptionDates($request));
 
             // If password provided, hash it for client (so Employee sync below can also use it)
             if (!empty($data['password'])) {
@@ -357,6 +356,30 @@ class CompanyClientController extends Controller
             return redirect()->back()->with('error', 'An error occurred: ' . $e->getMessage());
         }
     }
+    /**
+     * Build subscription start/end dates from the values entered in the form.
+     * - Start date: the date the admin entered (falls back to today only if empty).
+     * - End date: the date entered; if empty, start date + plan days.
+     */
+    private function resolveSubscriptionDates(Request $request): array
+    {
+        $startDate = $request->filled('subscription_start_date')
+            ? Carbon::parse($request->subscription_start_date)->startOfDay()
+            : Carbon::today();
+
+        if ($request->filled('subscription_end_date')) {
+            $endDate = Carbon::parse($request->subscription_end_date)->startOfDay();
+        } else {
+            $planDays = (int) ($request->plan_days ?? 0);
+            $endDate = $startDate->copy()->addDays($planDays);
+        }
+
+        return [
+            'subscription_start_date' => $startDate,
+            'subscription_end_date'   => $endDate,
+        ];
+    }
+
     public function changepassword($id)
     {
         $userid = $id;
