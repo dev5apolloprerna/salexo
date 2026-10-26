@@ -67,6 +67,8 @@
                                                         <th>Subscription End Date</th>
                                                         <th>Last Lead Entry Date</th>
                                                         <th>Active Leads</th>
+                                                        <th>Total Leads</th>
+                                                        <th>Last Lead Date</th>
                                                         <th>Status</th>
                                                         <th>Action</th>
                                                     </tr>
@@ -101,6 +103,12 @@
                                                                 @endif
                                                             </td>
                                                             <td>{{ $client->active_leads }}</td>
+                                                            <td>{{ $client->total_leads }}</td>
+                                                            <td>
+                                                                {{ $client->last_lead_date
+                                                                    ? \Carbon\Carbon::parse($client->last_lead_date)->format('d-m-Y')
+                                                                    : '-' }}
+                                                            </td>
                                                             <td>
                                                                 <span class="badge bg-{{ $client->iStatus ? 'success' : 'secondary' }} toggle-status"
                                                                       style="cursor:pointer"

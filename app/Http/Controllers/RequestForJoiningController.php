@@ -55,13 +55,19 @@ class RequestForJoiningController extends Controller
         try {
 
             $data = $request->all();
-            $data['subscription_start_date'] = Carbon::now();
+            // Use the subscription start date entered in the form (not today's date)
+            $startDate = $request->filled('subscription_start_date')
+                ? Carbon::parse($request->subscription_start_date)->startOfDay()
+                : Carbon::today();
+            $data['subscription_start_date'] = $startDate;
 
             // Get the plan days
             $planDays = isset($request->plan_days) ? (int)$request->plan_days : 0;
 
-            // Calculate subscription end date
-            $data['subscription_end_date'] = Carbon::now()->addDays($planDays);
+            // Use the entered end date, otherwise start date + plan days
+            $data['subscription_end_date'] = $request->filled('subscription_end_date')
+                ? Carbon::parse($request->subscription_end_date)->startOfDay()
+                : $startDate->copy()->addDays($planDays);
 
             // Hash the password if provided
             if (!empty($request->password)) {
