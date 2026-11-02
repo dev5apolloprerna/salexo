@@ -74,10 +74,10 @@ class ReportController extends Controller
                     $query->where('lead_history.followup_by', $filterEmpId);
                 })
                 ->when($fromDate, function ($query) use ($fromDate) {
-                    $query->whereDate('lead_history.created_at', '>=', $fromDate);
+                    $query->where('lead_history.created_at', '>=', Carbon::parse($fromDate)->startOfDay());
                 })
                 ->when($toDate, function ($query) use ($toDate) {
-                    $query->whereDate('lead_history.created_at', '<=', $toDate);
+                    $query->where('lead_history.created_at', '<', Carbon::parse($toDate)->addDay()->startOfDay());
                 });
 
             $showAmount = (clone $leadHistoryQuery)
@@ -135,10 +135,10 @@ class ReportController extends Controller
                 $query->where('lead_history.followup_by', $filterEmpId);
             })
             ->when($fromDate, function ($query) use ($fromDate) {
-                $query->whereDate('lead_history.created_at', '>=', $fromDate);
+                $query->where('lead_history.created_at', '>=', Carbon::parse($fromDate)->startOfDay());
             })
             ->when($toDate, function ($query) use ($toDate) {
-                $query->whereDate('lead_history.created_at', '<=', $toDate);
+                $query->where('lead_history.created_at', '<', Carbon::parse($toDate)->addDay()->startOfDay());
             })
             ->orderBy('lead_history.iLeadHistoryId', 'desc')
             ->get();
@@ -146,32 +146,43 @@ class ReportController extends Controller
         return Excel::download(new MeetingDoneExport($leadHistory), 'meeting_done_report.xlsx');
     }
      
- private function firstMeetingDoneQuery(int $companyId, $meetingDonePipelineIds): Builder
+    /**
+     * First "Meeting Done" history row per lead.
+     *
+     * Performance: the earliest meeting per lead is computed ONCE in a grouped
+     * derived table (fm) and joined back, instead of a correlated MIN() subquery
+     * that re-scanned lead_history for every row (that took minutes on large data).
+     */
+    private function firstMeetingDoneQuery(int $companyId, $meetingDonePipelineIds): Builder
     {
+        $firstMeetings = DB::table('lead_history')
+            ->selectRaw('MIN(iLeadHistoryId) as first_id')
+            ->where('iCustomerId', $companyId)
+            ->where('isDelete', 0)
+            ->whereIn('status', $meetingDonePipelineIds)
+            ->groupBy('iLeadId');
+
         return $this->meetingDoneQuery($companyId)
-            ->whereIn('lead_history.status', $meetingDonePipelineIds)
-            ->where('lead_history.iLeadHistoryId', function ($query) use ($companyId, $meetingDonePipelineIds) {
-                $query->selectRaw('MIN(first_meeting.iLeadHistoryId)')
-                    ->from('lead_history as first_meeting')
-                    ->whereColumn('first_meeting.iLeadId', 'lead_history.iLeadId')
-                    ->where('first_meeting.iCustomerId', $companyId)
-                    ->where('first_meeting.isDelete', 0)
-                    ->whereIn('first_meeting.status', $meetingDonePipelineIds);
-            });
+            ->joinSub($firstMeetings, 'fm', 'fm.first_id', '=', 'lead_history.iLeadHistoryId');
     }
 
     private function meetingDoneQuery(int $companyId): Builder
     {
         return LeadHistory::select(
                 'lead_history.*',
-                'current_pipeline.pipeline_name as current_status_name',
+                // Same result as joining on COALESCE(lm.status, dd.status, dc.status),
+                // but each join can use the primary key.
+                DB::raw("CASE
+                    WHEN lead_master.status IS NOT NULL THEN lm_pipeline.pipeline_name
+                    WHEN deal_done.status IS NOT NULL THEN dd_pipeline.pipeline_name
+                    ELSE dc_pipeline.pipeline_name
+                END as current_status_name"),
                 DB::raw("COALESCE(NULLIF(TRIM(lead_master.customer_name), ''), NULLIF(TRIM(deal_done.customer_name), ''), NULLIF(TRIM(deal_cancel.customer_name), '')) as customer_name"),
                 DB::raw("COALESCE(NULLIF(TRIM(lead_master.company_name), ''), NULLIF(TRIM(deal_done.company_name), ''), NULLIF(TRIM(deal_cancel.company_name), '')) as company_name"),
                 DB::raw("COALESCE(NULLIF(TRIM(lead_master.mobile), ''), NULLIF(TRIM(deal_done.mobile), ''), NULLIF(TRIM(deal_cancel.mobile), '')) as mobile"),
                 'employee_master.emp_name as followup_by_name',
                 DB::raw('COALESCE(created_by_employee.emp_name, employee_master.emp_name) as created_by_name')
             )
-            ->join('lead_pipeline_master', 'lead_history.status', '=', 'lead_pipeline_master.pipeline_id')
             ->leftJoin('lead_master', function ($join) use ($companyId) {
                 $join->on('lead_history.iLeadId', '=', 'lead_master.lead_id')
                     ->where('lead_master.iCustomerId', '=', $companyId)
@@ -187,12 +198,17 @@ class ReportController extends Controller
                     ->where('deal_cancel.iCustomerId', '=', $companyId)
                     ->where('deal_cancel.isDelete', '=', 0);
             })
-            ->leftJoin('lead_pipeline_master as current_pipeline', function ($join) use ($companyId) {
-                $join->on(
-                    'current_pipeline.pipeline_id',
-                    '=',
-                    DB::raw('COALESCE(lead_master.status, deal_done.status, deal_cancel.status)')
-                )->where('current_pipeline.company_id', '=', $companyId);
+            ->leftJoin('lead_pipeline_master as lm_pipeline', function ($join) use ($companyId) {
+                $join->on('lm_pipeline.pipeline_id', '=', 'lead_master.status')
+                    ->where('lm_pipeline.company_id', '=', $companyId);
+            })
+            ->leftJoin('lead_pipeline_master as dd_pipeline', function ($join) use ($companyId) {
+                $join->on('dd_pipeline.pipeline_id', '=', 'deal_done.status')
+                    ->where('dd_pipeline.company_id', '=', $companyId);
+            })
+            ->leftJoin('lead_pipeline_master as dc_pipeline', function ($join) use ($companyId) {
+                $join->on('dc_pipeline.pipeline_id', '=', 'deal_cancel.status')
+                    ->where('dc_pipeline.company_id', '=', $companyId);
             })
             ->leftJoin('employee_master', 'lead_history.followup_by', '=', 'employee_master.emp_id')
             ->leftJoin('employee_master as created_by_employee', 'lead_history.iEnterBy', '=', 'created_by_employee.emp_id')
