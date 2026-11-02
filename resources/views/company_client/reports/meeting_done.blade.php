@@ -34,12 +34,12 @@
                                     <div class="col-md-3">
                                         <label for="meeting_done_from_date" class="form-label">From Date</label>
                                         <input type="date" name="from_date" id="meeting_done_from_date"
-                                            class="form-control" value="{{ $fromDate ?? '' }}" max="{{ $toDate ?? '' }}">
+                                            class="form-control" value="{{ $fromDate ?? '' }}">
                                     </div>
                                     <div class="col-md-3">
                                         <label for="meeting_done_to_date" class="form-label">To Date</label>
                                         <input type="date" name="to_date" id="meeting_done_to_date"
-                                            class="form-control" value="{{ $toDate ?? '' }}" min="{{ $fromDate ?? '' }}">
+                                            class="form-control" value="{{ $toDate ?? '' }}">
                                     </div>
                                     <div class="col-md-3">
                                         <div class="d-flex gap-2">
